@@ -1,0 +1,13 @@
+{
+    "windowTitle": "Model Viewer",
+    "windowDimensions": {
+        "width": 800,
+        "height": 600
+    },
+    "clearColor": {
+        "r": 0.0,
+        "g": 0.0,
+        "b": 0.0,
+        "a": 1.0
+    }
+}
