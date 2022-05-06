@@ -28,20 +28,25 @@ Application::Application(const std::filesystem::path& configPath)
     const float width = m_config.windowDimensions.x;
     const float height = m_config.windowDimensions.y;
 
-    m_orthoCamera.left(width / -2);
-    m_orthoCamera.right(width / 2);
-    m_orthoCamera.bottom(height / -2);
-    m_orthoCamera.top(height / 2);
+    m_orthoCamera.leftExtent(width / -2);
+    m_orthoCamera.rightExtent(width / 2);
+    m_orthoCamera.bottomExtent(height / -2);
+    m_orthoCamera.topExtent(height / 2);
     m_orthoCamera.far(1000.f);
-    m_orthoCamera.near(-100.f);
+    m_orthoCamera.near(-1000.f);
 
     m_perspCamera.aspectRatio(width / height);
-    m_perspCamera.fov(75.f);
+    m_perspCamera.fov(glm::radians(45.f));
     m_perspCamera.far(100.f);
-    m_perspCamera.near(1.f);
+    m_perspCamera.near(0.1f);
     
-    m_orthoCamera.update();
-    m_perspCamera.update();
+    m_orthoCamera.position({ 0.f, 0.f, 5.f });
+    m_perspCamera.position({ 0.f, 0.f, 5.f });
+
+    if (m_ortho)
+        m_callbacks.camera(&m_orthoCamera);
+    else
+        m_callbacks.camera(&m_perspCamera);
 }
 
 bool Application::setUp() {
@@ -64,9 +69,6 @@ bool Application::setUp() {
         return false;
     }
     
-    m_orthoCamera.position({ 0.f, 15.f, 20.f });
-    m_perspCamera.position({ 0.f, 5.f, 5.f });
-
     m_renderer.setUp();
     m_renderer.canvasDimensions(m_config.windowDimensions);
 
@@ -93,11 +95,12 @@ GLFWwindow* Application::createWindow(const glm::ivec2& dimensions, const std::s
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+    
+    // Enable MSAA
+    glfwWindowHint(GLFW_SAMPLES, 4);
 
     GLFWwindow* pWindow = glfwCreateWindow(dimensions.x, dimensions.y, title.c_str(), nullptr, nullptr);
     glfwMakeContextCurrent(pWindow);
-
-    //glfwSetInputMode(pWindow, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 
     return pWindow;
 }
@@ -118,21 +121,29 @@ void Application::render() {
     glClearColor(clearColor.r, clearColor.g, clearColor.b, clearColor.a);
     glClear(GL_COLOR_BUFFER_BIT);
 
-    if (m_ortho) {
-        const glm::vec2 start = { -100.f, 0.f };
-        const glm::vec2 end = { 100.f, 0.f };
+    static const glm::vec3 xAxis{ 1.f, 0.f, 0.f };
+    static const glm::vec3 yAxis{ 0.f, 1.f, 0.f };
+    static const glm::vec3 zAxis{ 0.f, 0.f, 1.f };
 
-        m_renderer.drawLine(start, end);
-        m_renderer.drawPoint(start);
-        m_renderer.drawPoint(end);
+    if (m_ortho) {
+        const glm::vec3 end = { 100.f, 100.f, 0.f};
+
+        m_renderer.drawLine({}, end, kRed);
+        m_renderer.drawPoint(end, kBlue);
+
+        m_renderer.drawLine({}, xAxis * 200.f, kRed);
+        m_renderer.drawLine({}, yAxis * 200.f, kGreen);
+        m_renderer.drawLine({}, zAxis * 200.f, kBlue);
     }
     else {
-        const glm::vec2 start = { -1.f, 0.f };
-        const glm::vec2 end = { 1.f, 0.f };
+        const glm::vec3 end = { 1.f, 1.f, 0.f };
 
-        m_renderer.drawLine(start, end);
-        m_renderer.drawPoint(start);
-        m_renderer.drawPoint(end);
+        m_renderer.drawLine({}, end, kRed);
+        m_renderer.drawPoint(end, kBlue);
+
+        m_renderer.drawLine({}, xAxis * 1.f, kRed);
+        m_renderer.drawLine({}, yAxis * 1.f, kGreen);
+        m_renderer.drawLine({}, zAxis * 1.f, kBlue);
     }
 
     glfwSwapBuffers(m_pWindow);
@@ -140,13 +151,7 @@ void Application::render() {
 
 void Application::update() {
 
-    constexpr float radius = 10.f;
-    const glm::vec3 position = { glm::sin(glfwGetTime()) * radius, 5.f, glm::cos(glfwGetTime()) * radius };
-
-    m_orthoCamera.position(position);
     m_orthoCamera.update();
-
-    m_perspCamera.position(position);
     m_perspCamera.update();
 }
 

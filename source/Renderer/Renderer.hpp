@@ -6,6 +6,14 @@
 #include <memory>
 #include <variant>
 
+constexpr glm::vec4 kRed{1.f, 0.f, 0.f, 1.f };
+constexpr glm::vec4 kGreen{0.f, 1.f, 0.f, 1.f };
+constexpr glm::vec4 kBlue{0.f, 0.f, 1.f, 1.f };
+
+constexpr glm::vec4 kYellow{1.f, 1.f, 0.f, 1.f };
+constexpr glm::vec4 kMagenta{1.f, 0.f, 1.f, 1.f };
+constexpr glm::vec4 kCyan{0.f, 1.f, 1.f, 1.f };
+
 class Renderer final {
 public:
     void setUp();
@@ -15,8 +23,10 @@ public:
         m_pCamera = pCamera;
     }
 
-    void drawLine(const glm::vec2& posA, const glm::vec2& posB) const;
-    void drawPoint(const glm::vec2& pos) const;
+    void drawLine(const glm::vec2& posA, const glm::vec2& posB, const glm::vec4& color) const;
+    void drawLine(const glm::vec3& posA, const glm::vec3& posB, const glm::vec4& color) const;
+    void drawPoint(const glm::vec2& pos, const glm::vec4& color) const;
+    void drawPoint(const glm::vec3& pos, const glm::vec4& color) const;
 
 private:
     void loadShaders();

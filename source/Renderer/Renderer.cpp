@@ -12,6 +12,7 @@ void Renderer::setUp() {
     loadShaders();
     createBuffers();
 
+    glEnable(GL_MULTISAMPLE);
     glPointSize(7.f);
 }
 
@@ -20,16 +21,18 @@ void Renderer::canvasDimensions(const glm::ivec2& dimensions) {
     //m_perspectiveCamera.windowDimensions(dimensions);
 }
 
-void Renderer::drawLine(const glm::vec2& posA, const glm::vec2& posB) const {
+void Renderer::drawLine(const glm::vec2& posA, const glm::vec2& posB, const glm::vec4& color) const {
+    drawLine(glm::vec3{ posA, 0.f }, glm::vec3{ posB, 0.f }, color);
+}
+
+void Renderer::drawLine(const glm::vec3& posA, const glm::vec3& posB, const glm::vec4& color) const {
 
     const glm::mat4 shearMatrix{
-        glm::vec4{posA, 0.f, 0.f},
-        glm::vec4{posB, 0.f, 0.f},
+        glm::vec4{posA, 0.f},
+        glm::vec4{posB, 0.f},
         glm::vec4{},
         glm::vec4{0.f, 0.f, 0.f, 1.f}
     };
-
-    const glm::vec4 color{ 1.f, 0.f, 0.f, 1.f };
 
     m_shader.useProgram();  
     m_shader.set("viewProj", m_pCamera->viewProjection());
@@ -40,16 +43,18 @@ void Renderer::drawLine(const glm::vec2& posA, const glm::vec2& posB) const {
     glDrawArrays(GL_LINES, 0, 2);
 }
 
-void Renderer::drawPoint(const glm::vec2& pos) const {
+void Renderer::drawPoint(const glm::vec2& pos, const glm::vec4& color) const {
+    drawPoint(glm::vec3{ pos, 0.f }, color);
+}
+
+void Renderer::drawPoint(const glm::vec3& pos, const glm::vec4& color) const {
 
     const glm::mat4 shearMatrix{
-        glm::vec4{pos, 0.f, 0.f},
+        glm::vec4{pos, 0.f},
         glm::vec4{},
         glm::vec4{},
         glm::vec4{0.f, 0.f, 0.f, 1.f}
     };
-
-    const glm::vec4 color{ 0.f, 0.f, 1.f, 1.f };
 
     m_shader.useProgram();
     m_shader.set("viewProj", m_pCamera->viewProjection());

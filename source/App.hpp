@@ -40,7 +40,7 @@ private:
 
     Config m_config;
     GLFWwindow* m_pWindow = nullptr;
-    DefaultCallbacks m_callbacks;
+    OrbitalControls m_callbacks;
 
     static struct Destructor {
         ~Destructor();

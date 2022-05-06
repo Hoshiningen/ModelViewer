@@ -2,6 +2,8 @@
 
 struct GLFWwindow;
 
+class Camera;
+
 class WindowCallbacks {
 public:
     static void FrameBufferSizeCallback(GLFWwindow* pWindow, int width, int height);
@@ -19,7 +21,10 @@ protected:
     virtual void ScrollImpl(GLFWwindow* pWindow, double xOffset, double yOffset) {}
 };
 
-class DefaultCallbacks : public WindowCallbacks {
+class OrbitalControls : public WindowCallbacks {
+public:
+    void camera(Camera* pCamera);
+
 protected:
     virtual void FrameBufferSizeImpl(GLFWwindow* pWindow, int width, int height) override;
 
@@ -27,4 +32,12 @@ protected:
     virtual void MouseButtonImpl(GLFWwindow* pWindow, int button, int action, int modifiers) override;
     virtual void KeyboardImpl(GLFWwindow* pWindow, int key, int scanCode, int action, int modifiers) override;
     virtual void ScrollImpl(GLFWwindow* pWindow, double xOffset, double yOffset) override;
+
+private:
+    void updateCamera(const glm::vec3& forward, float deltaX, float deltaY);
+
+    Camera* m_pCamera = nullptr;
+
+    bool m_leftDrag = false;
+    bool m_rightDrag = false;
 };
