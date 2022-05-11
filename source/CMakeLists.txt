@@ -1,5 +1,5 @@
-set(SOURCES main.cpp App.cpp WindowCallbacks.cpp)
-set(INCLUDES App.hpp WindowCallbacks.hpp)
+set(SOURCES main.cpp App.cpp WindowCallbacks.cpp OrbitalControls.cpp)
+set(INCLUDES App.hpp WindowCallbacks.hpp OrbitalControls.hpp)
 
 add_executable(${PROJECT_NAME} ${SOURCES} ${INCLUDES})
 target_link_libraries(${PROJECT_NAME} PRIVATE
@@ -7,6 +7,7 @@ target_link_libraries(${PROJECT_NAME} PRIVATE
     CONAN_PKG::glfw
     CONAN_PKG::glm
     CONAN_PKG::nlohmann_json
+    CONAN_PKG::sigslot
     ${PROJECT_NAME}::Renderer
 )
 

@@ -17,7 +17,6 @@ constexpr glm::vec4 kCyan{0.f, 1.f, 1.f, 1.f };
 class Renderer final {
 public:
     void setUp();
-    void canvasDimensions(const glm::ivec2& dimensions);
 
     void camera(Camera* pCamera) {
         m_pCamera = pCamera;

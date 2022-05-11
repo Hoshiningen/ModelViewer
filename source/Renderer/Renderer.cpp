@@ -14,11 +14,9 @@ void Renderer::setUp() {
 
     glEnable(GL_MULTISAMPLE);
     glPointSize(7.f);
-}
 
-void Renderer::canvasDimensions(const glm::ivec2& dimensions) {
-    //m_orthoCamera.windowDimensions(dimensions);
-    //m_perspectiveCamera.windowDimensions(dimensions);
+    glEnable(GL_DEPTH_TEST);
+    glDepthFunc(GL_ALWAYS);
 }
 
 void Renderer::drawLine(const glm::vec2& posA, const glm::vec2& posB, const glm::vec4& color) const {

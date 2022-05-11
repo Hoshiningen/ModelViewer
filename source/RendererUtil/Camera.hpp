@@ -3,120 +3,62 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 
+#include <utility>
+#include <variant>
+#include <vector>
+
 class Camera {
 public:
     Camera() = default;
-    Camera(float nearZ, float farZ)
-        : m_nearZ(nearZ), m_farZ(farZ) {}
+    Camera(float aspectRatio, float fovY, float nearZ, float farZ);
+    Camera(const glm::vec3& position, float aspectRatio, float fovY, float nearZ, float farZ);
 
-    glm::vec3 position() const { return m_position; }
-    void position(const glm::vec3& value) { m_position = value; }
+    glm::vec3 position() const;
+    void position(const glm::vec3& value);
 
-    glm::vec3 target() const { return m_target; }
-    void target(const glm::vec3& value) { m_target = value; }
+    glm::vec3 target() const;
+    void target(const glm::vec3& value);
 
-    float near() const { return m_nearZ; }
-    void near(float value) { m_nearZ = value; }
+    float near() const;
+    void near(float value);
 
-    float far() const { return m_farZ; }
-    void far(float value) { m_farZ = value; }
+    float far() const;
+    void far(float value);
 
-    glm::mat4 viewProjection() const {
-        return m_viewProjection;
-    }
+    float fovX() const;
 
-    void update() {
-        m_viewProjection = projection() * view();
-    }
+    virtual float fovY() const;
+    virtual void fovY(float value);
 
-    glm::vec3 forward() const {
-        return glm::normalize(target() - m_position);
-    }
-    
-    glm::vec3 right() const {
-        return glm::normalize(glm::cross(forward(), worldUp()));
-    }
+    virtual float aspectRatio() const;
+    virtual void aspectRatio(float value);
 
-    glm::vec3 up() const {
-        return glm::normalize(glm::cross(right(), forward()));
-    }
+    glm::mat4 viewProjection() const;
 
-    glm::vec3 worldUp() const {
-        static const glm::vec3 kUp{ 0.f, 1.f, 0.f };
-        return kUp;
-    }
+    void update();
+
+    glm::vec3 forward() const;
+    glm::vec3 right() const;
+    glm::vec3 up() const;
+
+    glm::vec3 worldUp() const;
+
+    using Geometry = std::variant<glm::vec3, std::pair<glm::vec3, glm::vec3>>;
+    virtual std::vector<Geometry> debugFrustum() const { return {}; };
 
 protected:
-    virtual glm::mat4 projection() const {
-        return glm::identity<glm::mat4>();
-    };
+    virtual glm::mat4 projection() const;;
 
-    float m_nearZ = 0.1f;
-    float m_farZ = 100.f;
+    float m_nearZ = 0.1f; // Distance of the near plane from the camera
+    float m_farZ = 100.f; // Distance of the far plane from the camera
+    float m_aspectRatio = 1.f;
+    float m_fovY = glm::radians(45.0); // Full fovY angle
 
     glm::mat4 m_viewProjection = glm::identity<glm::mat4>();
 
 private:
-    glm::mat4 view() const {
-        return glm::lookAt(m_position, target(), up());
-    }
+    glm::mat4 view() const;
 
     glm::vec3 m_position{ 0.f, 0.f, 0.f };
     glm::vec3 m_target{ 0.f, 0.f, 0.f };
-};
-
-
-
-class PerspectiveCamera : public Camera {
-public:
-    PerspectiveCamera() = default;
-    PerspectiveCamera(float aspectRatio, float fov, float nearZ, float farZ)
-        : Camera(nearZ, farZ), m_aspectRatio(aspectRatio), m_fov(fov) {}
-
-    float fov() const { return m_fov; }
-    void fov(float value) { m_fov = value; }
-
-    float aspectRatio() const { return m_aspectRatio; }
-    void aspectRatio(float value) { m_aspectRatio = value; }
-
-protected:
-    virtual glm::mat4 projection() const override {
-        return glm::perspective(m_fov, m_aspectRatio, m_nearZ, m_farZ);
-    }
-
-private:
-    float m_aspectRatio = 1.f;
-    float m_fov = glm::radians(45.0);
-};
-
-
-
-class OrthographicCamera : public Camera {
-public:
-    OrthographicCamera() = default;
-    OrthographicCamera(float left, float right, float bottom, float top, float nearZ, float farZ)
-        : Camera(nearZ, farZ), m_left(left), m_right(right), m_bottom(bottom), m_top(top) {}
-
-    float leftExtent() const { return m_left; }
-    void leftExtent(float value) { m_left = value; }
-
-    float rightExtent() const { return m_right; }
-    void rightExtent(float value) { m_right = value; }
-    
-    float bottomExtent() const { return m_bottom; }
-    void bottomExtent(float value) { m_bottom = value; }
-    
-    float topExtent() const { return m_top; }
-    void topExtent(float value) { m_top = value; }
-
-protected:
-    virtual glm::mat4 projection() const override {
-        return glm::ortho(m_left, m_right, m_bottom, m_top, m_nearZ, m_farZ);
-    }
-
-private:
-    float m_left = 0.f;
-    float m_right = 0.f;
-    float m_bottom = 0.f;
-    float m_top = 0.f;
 };

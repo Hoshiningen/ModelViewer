@@ -1,6 +1,8 @@
 #include "App.hpp"
 
-#include <chrono>
+#include "RendererUtil/PerspectiveCamera.hpp"
+#include "RendererUtil/OrthographicCamera.hpp"
+
 #include <iostream>
 #include <fstream>
 
@@ -20,6 +22,47 @@ constexpr const char* kWindowTitle = "windowTitle";
 constexpr const char* kWindowDimensionsKey = "windowDimensions";
 constexpr const char* kWidthComponentKey = "width";
 constexpr const char* kHeightComponentKey = "height";
+
+template<typename ...TypeHandlers>
+struct DrawVisitor : public TypeHandlers... {
+    using TypeHandlers::operator()...;
+};
+
+void DrawPerspectiveFrustrum(PerspectiveCamera* pCamera, Renderer* pRenderer) {
+
+    if (!pCamera || !pRenderer)
+        return;
+
+    const DrawVisitor visitor{
+        [pRenderer](const glm::vec3& point) {
+            pRenderer->drawPoint(point, kBlue);
+        },
+        [pRenderer](const std::pair<glm::vec3, glm::vec3>& line) {
+            pRenderer->drawLine(line.first, line.second, kCyan);
+        },
+    };
+
+    for (const Camera::Geometry& geometry : pCamera->debugFrustum())
+        std::visit(visitor, geometry);
+}
+
+void DrawOrthographicFrustrum(OrthographicCamera* pCamera, Renderer* pRenderer) {
+
+    if (!pCamera || !pRenderer)
+        return;
+
+    const DrawVisitor visitor{
+        [pRenderer](const glm::vec3& point) {
+            pRenderer->drawPoint(point, kMagenta);
+        },
+        [pRenderer](const std::pair<glm::vec3, glm::vec3>& line) {
+            pRenderer->drawLine(line.first, line.second, kMagenta);
+        },
+    };
+
+    for (const Camera::Geometry& geometry : pCamera->debugFrustum())
+        std::visit(visitor, geometry);
+}
 } // end unnamed namespace
 
 Application::Application(const std::filesystem::path& configPath)
@@ -28,25 +71,22 @@ Application::Application(const std::filesystem::path& configPath)
     const float width = m_config.windowDimensions.x;
     const float height = m_config.windowDimensions.y;
 
-    m_orthoCamera.leftExtent(width / -2);
-    m_orthoCamera.rightExtent(width / 2);
-    m_orthoCamera.bottomExtent(height / -2);
-    m_orthoCamera.topExtent(height / 2);
-    m_orthoCamera.far(1000.f);
-    m_orthoCamera.near(-1000.f);
+    m_pCamera = [&width, &height] {
+        std::unique_ptr<PerspectiveCamera> pCamera = std::make_unique<PerspectiveCamera>();
+        pCamera->aspectRatio(width / height);
+        pCamera->fovY(glm::radians(45.f));
+        pCamera->far(150.f);
+        pCamera->near(0.01f);
+        pCamera->position({ 0.f, 0.f, 35.f });
 
-    m_perspCamera.aspectRatio(width / height);
-    m_perspCamera.fov(glm::radians(45.f));
-    m_perspCamera.far(100.f);
-    m_perspCamera.near(0.1f);
-    
-    m_orthoCamera.position({ 0.f, 0.f, 5.f });
-    m_perspCamera.position({ 0.f, 0.f, 5.f });
+        return std::move(pCamera);
+    }();
 
-    if (m_ortho)
-        m_callbacks.camera(&m_orthoCamera);
-    else
-        m_callbacks.camera(&m_perspCamera);
+    m_callbacks.connectProjectionChanged(&Application::onProjectionChange, this);
+    m_callbacks.camera(m_pCamera.get());
+
+    m_persp = *static_cast<PerspectiveCamera*>(m_pCamera.get());
+    m_ortho = m_persp;
 }
 
 bool Application::setUp() {
@@ -70,12 +110,7 @@ bool Application::setUp() {
     }
     
     m_renderer.setUp();
-    m_renderer.canvasDimensions(m_config.windowDimensions);
-
-    if (m_ortho)
-        m_renderer.camera(&m_orthoCamera);
-    else
-        m_renderer.camera(&m_perspCamera);
+    m_renderer.camera(m_pCamera.get());
 
     glViewport(0, 0, m_config.windowDimensions.x, m_config.windowDimensions.y);
 
@@ -115,44 +150,59 @@ void Application::run() {
     }
 }
 
+void Application::onProjectionChange(WindowCallbacks::ProjectionChange projection) {
+
+    if (projection == WindowCallbacks::ProjectionChange::Orthographic) {
+
+        const PerspectiveCamera* pCamera = dynamic_cast<const PerspectiveCamera*>(m_pCamera.get());
+        if (pCamera) {
+            m_pCamera = std::make_unique<OrthographicCamera>(*pCamera);
+            m_callbacks.camera(m_pCamera.get());
+            m_renderer.camera(m_pCamera.get());
+        }
+    }
+
+    if (projection == WindowCallbacks::ProjectionChange::Perspective) {
+
+        const OrthographicCamera* pCamera = dynamic_cast<const OrthographicCamera*>(m_pCamera.get());
+        if (pCamera) {
+            m_pCamera = std::make_unique<PerspectiveCamera>(*pCamera);
+            m_callbacks.camera(m_pCamera.get());
+            m_renderer.camera(m_pCamera.get());
+        }
+    }
+}
+
 void Application::render() {
 
     const glm::vec4 clearColor = m_config.clearColor;
     glClearColor(clearColor.r, clearColor.g, clearColor.b, clearColor.a);
-    glClear(GL_COLOR_BUFFER_BIT);
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
     static const glm::vec3 xAxis{ 1.f, 0.f, 0.f };
     static const glm::vec3 yAxis{ 0.f, 1.f, 0.f };
     static const glm::vec3 zAxis{ 0.f, 0.f, 1.f };
 
-    if (m_ortho) {
-        const glm::vec3 end = { 100.f, 100.f, 0.f};
+    const glm::vec3 end = { 1.f, 1.f, 0.f };
 
-        m_renderer.drawLine({}, end, kRed);
-        m_renderer.drawPoint(end, kBlue);
+    m_renderer.drawLine({}, end, kRed);
+    m_renderer.drawPoint(end, kBlue);
+    
+    m_renderer.drawLine({}, xAxis, kRed);
+    m_renderer.drawLine({}, yAxis, kGreen);
+    m_renderer.drawLine({}, zAxis, kBlue);
 
-        m_renderer.drawLine({}, xAxis * 200.f, kRed);
-        m_renderer.drawLine({}, yAxis * 200.f, kGreen);
-        m_renderer.drawLine({}, zAxis * 200.f, kBlue);
-    }
-    else {
-        const glm::vec3 end = { 1.f, 1.f, 0.f };
-
-        m_renderer.drawLine({}, end, kRed);
-        m_renderer.drawPoint(end, kBlue);
-
-        m_renderer.drawLine({}, xAxis * 1.f, kRed);
-        m_renderer.drawLine({}, yAxis * 1.f, kGreen);
-        m_renderer.drawLine({}, zAxis * 1.f, kBlue);
-    }
+    DrawPerspectiveFrustrum(&m_persp, &m_renderer);
+    DrawOrthographicFrustrum(&m_ortho, &m_renderer);
 
     glfwSwapBuffers(m_pWindow);
 }
 
 void Application::update() {
 
-    m_orthoCamera.update();
-    m_perspCamera.update();
+    if (m_pCamera) {
+        m_pCamera->update();
+    }
 }
 
 Config Application::readConfig(const std::filesystem::path& configPath) {
