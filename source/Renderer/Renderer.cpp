@@ -1,16 +1,64 @@
-#include "Renderer.hpp"
+#include "Renderer/Renderer.hpp"
 
-#include <array>
+#include "PointLineArtist.hpp"
+
+#include "Camera/Camera.hpp"
+#include "Shader/Shader.hpp"
+
 #include <iostream>
+#include <forward_list>
 
-#include <glm/glm.hpp>
-#include <glm/gtc/matrix_transform.hpp>
-#include <glm/gtc/type_ptr.hpp>
+#include <glad/glad.h>
 
-void Renderer::setUp() {
+struct Renderer::Private {
+    void loadShaders();
 
-    loadShaders();
-    createBuffers();
+    Camera* m_pCamera = nullptr;
+
+    Shader m_shearShader;
+    Shader m_meshShader;
+
+    std::forward_list<std::unique_ptr<GeometryArtist>> m_artists;
+};
+
+void Renderer::Private::loadShaders() {
+
+    m_shearShader.createProgram();
+    m_meshShader.createProgram();
+
+    const auto LoadShader = [](const std::filesystem::path& vert, const std::filesystem::path& frag, Shader& shader) {
+
+        const std::filesystem::path cwd = std::filesystem::current_path();
+
+        if (!std::filesystem::exists(vert) || !std::filesystem::exists(frag)) {
+            std::cerr << "Could not locate shaders. Aborting.\n";
+            std::exit(1);
+        }
+
+        if (auto shaderId = shader.loadShader(frag, GL_FRAGMENT_SHADER); shaderId.has_value())
+            shader.attachShader(shaderId.value());
+
+        if (auto shaderId = shader.loadShader(vert, GL_VERTEX_SHADER); shaderId.has_value())
+            shader.attachShader(shaderId.value());
+
+        shader.compileAndLink();
+    };
+
+    LoadShader("glsl/shear.vert", "glsl/shear.frag", m_shearShader);
+}
+
+
+Renderer::Renderer()
+    : m_pPrivate(std::make_unique<Private>()) {}
+
+Renderer::~Renderer() {}
+
+void Renderer::setup() {
+
+    m_pPrivate->loadShaders();
+
+    m_pPrivate->m_artists.push_front(std::make_unique<PointLineArtist>(&m_pPrivate->m_shearShader));
+    m_pPrivate->m_artists.front()->createVertexArrays();
 
     glEnable(GL_MULTISAMPLE);
     glPointSize(7.f);
@@ -19,86 +67,20 @@ void Renderer::setUp() {
     glDepthFunc(GL_ALWAYS);
 }
 
-void Renderer::drawLine(const glm::vec2& posA, const glm::vec2& posB, const glm::vec4& color) const {
-    drawLine(glm::vec3{ posA, 0.f }, glm::vec3{ posB, 0.f }, color);
+void Renderer::camera(Camera* pCamera) {
+    m_pPrivate->m_pCamera = pCamera;
 }
 
-void Renderer::drawLine(const glm::vec3& posA, const glm::vec3& posB, const glm::vec4& color) const {
-
-    const glm::mat4 shearMatrix{
-        glm::vec4{posA, 0.f},
-        glm::vec4{posB, 0.f},
-        glm::vec4{},
-        glm::vec4{0.f, 0.f, 0.f, 1.f}
-    };
-
-    m_shader.useProgram();  
-    m_shader.set("viewProj", m_pCamera->viewProjection());
-    m_shader.set("shear", shearMatrix);
-    m_shader.set("lineColor", color);
-
-    glBindVertexArray(m_vao);
-    glDrawArrays(GL_LINES, 0, 2);
-}
-
-void Renderer::drawPoint(const glm::vec2& pos, const glm::vec4& color) const {
-    drawPoint(glm::vec3{ pos, 0.f }, color);
-}
-
-void Renderer::drawPoint(const glm::vec3& pos, const glm::vec4& color) const {
-
-    const glm::mat4 shearMatrix{
-        glm::vec4{pos, 0.f},
-        glm::vec4{},
-        glm::vec4{},
-        glm::vec4{0.f, 0.f, 0.f, 1.f}
-    };
-
-    m_shader.useProgram();
-    m_shader.set("viewProj", m_pCamera->viewProjection());
-    m_shader.set("shear", shearMatrix);
-    m_shader.set("lineColor", color);
-
-    glBindVertexArray(m_vao);
-    glDrawArrays(GL_POINTS, 0, 1);
-}
-
-void Renderer::loadShaders() {
-
-    m_shader.createProgram();
+void Renderer::draw(const VertexBuffered& geometry, const glm::vec4& color) const {
     
-    const std::filesystem::path fragmentPath = "glsl/fragment.glsl";
-    const std::filesystem::path vertexPath = "glsl/vertex.glsl";
+    // Chain of responsibility handlers for drawing geometry.
+    for (const std::unique_ptr<GeometryArtist>& pArtist : m_pPrivate->m_artists) {
 
-    if (!std::filesystem::exists(fragmentPath) || !std::filesystem::exists(vertexPath)) {
-        std::cerr << "Could not locate shaders. Aborting.\n";
-        std::exit(1);
+        Shader* pShader = pArtist->shader();
+        pShader->useProgram();
+        pShader->set("viewProj", m_pPrivate->m_pCamera->viewProjection());
+
+        if (pArtist->draw(geometry, color))
+            break;
     }
-
-    if (auto shader = m_shader.loadShader(fragmentPath, GL_FRAGMENT_SHADER); shader.has_value())
-        m_shader.attachShader(shader.value());
-
-    if (auto shader = m_shader.loadShader(vertexPath, GL_VERTEX_SHADER); shader.has_value())
-        m_shader.attachShader(shader.value());
-
-    m_shader.compileAndLink();
-}
-
-void Renderer::createBuffers() {
-
-    glBindVertexArray(0);
-    glGenVertexArrays(1, &m_vao);
-    glBindVertexArray(m_vao);
-
-    std::array<glm::vec3, 2> basisVectors {
-        glm::vec3{ 1.f, 0.f, 0.f },
-        glm::vec3{ 0.f, 1.f, 0.f }
-    };
-
-    glGenBuffers(1, &m_vbo);
-    glBindBuffer(GL_ARRAY_BUFFER, m_vbo);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(glm::vec3) * basisVectors.size(), basisVectors.data(), GL_STATIC_DRAW);
-
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(glm::vec3), reinterpret_cast<void*>(0));
-    glEnableVertexAttribArray(0);
 }
