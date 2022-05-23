@@ -15,8 +15,7 @@ add_subdirectory(source/Geometry)
 add_subdirectory(source/Renderer)
 add_subdirectory(source/Shader)
 
-set_property(GLOBAL PROPERTY VS_STARTUP_PROJECT Application)
-#set_property(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/source/Application PROPERTY VS_STARTUP_PROJECT Application)
+set_property(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/source/Application PROPERTY VS_STARTUP_PROJECT Application)
 
 set(dir)
 get_property(dir GLOBAL PROPERTY VS_STARTUP_PROJECT)

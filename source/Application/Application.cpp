@@ -6,6 +6,7 @@
 #include "Controls/OrbitalControls.hpp"
 
 #include "Geometry/Line.hpp"
+#include "Geometry/Plane.hpp"
 #include "Geometry/Point.hpp"
 
 #include "Renderer/Renderer.hpp"
@@ -68,8 +69,8 @@ void Application::Private::render() {
     m_renderer.draw(Line({}, yAxis), kGreen);
     m_renderer.draw(Line({}, zAxis), kBlue);
 
-    drawPerspectiveFrustrum(&m_persp, &m_renderer);
-    drawOrthographicFrustrum(&m_ortho, &m_renderer);
+    Plane plane{ {0, 0, 0}, {1, 0, 0}, {1, 1, 0} };
+    m_renderer.draw(plane, kRed);
 
     glfwSwapBuffers(m_pWindow);
 }

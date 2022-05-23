@@ -17,7 +17,6 @@ target_link_libraries(Application PRIVATE
     ${PROJECT_NAME}::Controls
     ${PROJECT_NAME}::Geometry
     ${PROJECT_NAME}::Renderer
-    ${PROJECT_NAME}::Shader
     CONAN_PKG::glad
     CONAN_PKG::glfw
     CONAN_PKG::glm

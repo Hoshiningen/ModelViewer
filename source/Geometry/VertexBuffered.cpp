@@ -2,7 +2,7 @@
 
 VertexBuffered::VertexBuffered(const std::vector<glm::vec3>& vertices,
                                const std::vector<glm::vec3>& normals,
-                               const std::forward_list<uint32_t>& indices)
+                               const std::list<uint32_t>& indices)
     : m_buffer(vertices, normals, indices) {}
 
 VertexBuffered::VertexBuffered(const VertexBuffered& other) {
@@ -29,7 +29,7 @@ VertexBuffered& VertexBuffered::operator=(VertexBuffered&& other) noexcept {
     return *this;
 }
 
-std::optional<std::forward_list<uint32_t>> VertexBuffered::indices() const {
+std::optional<std::list<uint32_t>> VertexBuffered::indices() const {
 
     if (m_buffer.indices().empty())
         return std::nullopt;

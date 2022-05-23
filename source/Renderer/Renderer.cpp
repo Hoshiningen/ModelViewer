@@ -28,8 +28,6 @@ void Renderer::Private::loadShaders() {
 
     const auto LoadShader = [](const std::filesystem::path& vert, const std::filesystem::path& frag, Shader& shader) {
 
-        const std::filesystem::path cwd = std::filesystem::current_path();
-
         if (!std::filesystem::exists(vert) || !std::filesystem::exists(frag)) {
             std::cerr << "Could not locate shaders. Aborting.\n";
             std::exit(1);

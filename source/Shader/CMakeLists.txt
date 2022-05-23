@@ -30,7 +30,7 @@ target_link_libraries(Shader PRIVATE
 
 # Copy shaders for vs execution
 add_custom_command(TARGET Shader POST_BUILD COMMAND ${CMAKE_COMMAND} -E copy_directory
-    ${CMAKE_CURRENT_SOURCE_DIR}/glsl ${CMAKE_BINARY_DIR}/source/glsl)
+    ${CMAKE_CURRENT_SOURCE_DIR}/glsl ${CMAKE_BINARY_DIR}/source/Application/glsl)
 
 # Copy shaders for renderdoc execution
 add_custom_command(TARGET Shader POST_BUILD COMMAND ${CMAKE_COMMAND} -E copy_directory

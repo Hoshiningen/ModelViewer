@@ -2,7 +2,7 @@
 
 #include "Geometry/VertexBuffer.hpp"
 
-#include <forward_list>
+#include <list>
 #include <optional>
 #include <vector>
 
@@ -13,7 +13,7 @@ public:
     VertexBuffered() = default;
     VertexBuffered(const std::vector<glm::vec3>& vertices,
                    const std::vector<glm::vec3>& normals,
-                   const std::forward_list<uint32_t>& indices);
+                   const std::list<uint32_t>& indices);
 
     virtual ~VertexBuffered() noexcept = default;
 
@@ -23,7 +23,7 @@ public:
     VertexBuffered(VertexBuffered&& other) noexcept;
     VertexBuffered& operator=(VertexBuffered&& other) noexcept;
 
-    std::optional<std::forward_list<uint32_t>> indices() const;
+    std::optional<std::list<uint32_t>> indices() const;
     std::optional<std::vector<glm::vec3>> vertices() const;
     std::optional<std::vector<glm::vec3>> normals() const;
 

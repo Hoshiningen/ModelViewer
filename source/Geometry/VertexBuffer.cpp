@@ -7,18 +7,18 @@ struct VertexBuffer::Private {
     Private() = default;
     Private(const std::vector<glm::vec3>& vertices,
             const std::vector<glm::vec3>& normals,
-            const std::forward_list<uint32_t>& indices);
+            const std::list<uint32_t>& indices);
 
     bool validate() const;
 
-    std::forward_list<uint32_t> m_indices;
+    std::list<uint32_t> m_indices;
     std::vector<glm::vec3> m_vertices;
     std::vector<glm::vec3> m_normals;
 };
 
 VertexBuffer::Private::Private(const std::vector<glm::vec3>& vertices,
                                const std::vector<glm::vec3>& normals,
-                               const std::forward_list<uint32_t>& indices)
+                               const std::list<uint32_t>& indices)
     : m_vertices(vertices), m_normals(normals), m_indices(indices) {
 
     assert(validate());
@@ -41,7 +41,7 @@ VertexBuffer::VertexBuffer()
 
 VertexBuffer::VertexBuffer(const std::vector<glm::vec3>& vertices,
                            const std::vector<glm::vec3>& normals,
-                           const std::forward_list<uint32_t>& indices)
+                           const std::list<uint32_t>& indices)
     : m_pPrivate(std::make_unique<Private>(vertices, normals, indices)) {}
 
 VertexBuffer::VertexBuffer(const VertexBuffer& other) {
@@ -83,14 +83,14 @@ void VertexBuffer::addNormal(const glm::vec3& normal) {
 }
 
 void VertexBuffer::addIndex(uint32_t index) {
-    m_pPrivate->m_indices.insert_after(m_pPrivate->m_indices.cend(), index);
+    m_pPrivate->m_indices.push_back(index);
 }
 
-const std::forward_list<uint32_t>& VertexBuffer::indices() const {
+const std::list<uint32_t>& VertexBuffer::indices() const {
     return m_pPrivate->m_indices;
 }
 
-std::forward_list<uint32_t>& VertexBuffer::indices() {
+std::list<uint32_t>& VertexBuffer::indices() {
     return m_pPrivate->m_indices;
 }
 
