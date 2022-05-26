@@ -1,6 +1,8 @@
 #include "Renderer/Renderer.hpp"
 
-#include "PointLineArtist.hpp"
+#include "GeometryArtist.hpp"
+#include "ShearArtist.hpp"
+#include "NonIndexedArtist.hpp"
 
 #include "Camera/Camera.hpp"
 #include "Shader/Shader.hpp"
@@ -16,7 +18,7 @@ struct Renderer::Private {
     Camera* m_pCamera = nullptr;
 
     Shader m_shearShader;
-    Shader m_meshShader;
+    Shader m_nonIndexedShader;
 
     std::forward_list<std::unique_ptr<GeometryArtist>> m_artists;
 };
@@ -24,7 +26,7 @@ struct Renderer::Private {
 void Renderer::Private::loadShaders() {
 
     m_shearShader.createProgram();
-    m_meshShader.createProgram();
+    m_nonIndexedShader.createProgram();
 
     const auto LoadShader = [](const std::filesystem::path& vert, const std::filesystem::path& frag, Shader& shader) {
 
@@ -39,10 +41,14 @@ void Renderer::Private::loadShaders() {
         if (auto shaderId = shader.loadShader(vert, GL_VERTEX_SHADER); shaderId.has_value())
             shader.attachShader(shaderId.value());
 
-        shader.compileAndLink();
+        if (!shader.compileAndLink()) {
+            std::cerr << "Unable to compile shaders. Aborting.";
+            std::exit(-1);
+        }
     };
 
     LoadShader("glsl/shear.vert", "glsl/shear.frag", m_shearShader);
+    LoadShader("glsl/nonIndexed.vert", "glsl/nonIndexed.frag", m_nonIndexedShader);
 }
 
 
@@ -55,14 +61,13 @@ void Renderer::setup() {
 
     m_pPrivate->loadShaders();
 
-    m_pPrivate->m_artists.push_front(std::make_unique<PointLineArtist>(&m_pPrivate->m_shearShader));
-    m_pPrivate->m_artists.front()->createVertexArrays();
+    m_pPrivate->m_artists.push_front(std::make_unique<ShearArtist>(&m_pPrivate->m_shearShader));
+    m_pPrivate->m_artists.push_front(std::make_unique<NonIndexedArtist>(&m_pPrivate->m_nonIndexedShader));
 
     glEnable(GL_MULTISAMPLE);
     glPointSize(7.f);
 
     glEnable(GL_DEPTH_TEST);
-    glDepthFunc(GL_ALWAYS);
 }
 
 void Renderer::camera(Camera* pCamera) {
@@ -76,7 +81,9 @@ void Renderer::draw(const VertexBuffered& geometry, const glm::vec4& color) cons
 
         Shader* pShader = pArtist->shader();
         pShader->useProgram();
-        pShader->set("viewProj", m_pPrivate->m_pCamera->viewProjection());
+        pShader->set("viewProjection", m_pPrivate->m_pCamera->viewProjection());
+        pShader->set("eyePoint", m_pPrivate->m_pCamera->position());
+        pShader->set("model", glm::identity<glm::mat4>());
 
         if (pArtist->draw(geometry, color))
             break;

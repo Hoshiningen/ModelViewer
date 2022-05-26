@@ -5,6 +5,7 @@
 
 #include "Controls/OrbitalControls.hpp"
 
+#include "Geometry/Box.hpp"
 #include "Geometry/Line.hpp"
 #include "Geometry/Plane.hpp"
 #include "Geometry/Point.hpp"
@@ -62,24 +63,22 @@ void Application::Private::render() {
 
     const glm::vec3 end = { 1.f, 1.f, 0.f };
 
-    m_renderer.draw(Line{ {}, end }, kRed);
-    m_renderer.draw(Point{ end }, kBlue);
-
     m_renderer.draw(Line({}, xAxis), kRed);
     m_renderer.draw(Line({}, yAxis), kGreen);
     m_renderer.draw(Line({}, zAxis), kBlue);
 
-    Plane plane{ {0, 0, 0}, {1, 0, 0}, {1, 1, 0} };
-    m_renderer.draw(plane, kRed);
+    Box box{0.5f, 0.5f, 0.5f};
+    box.initialize();
+
+    m_renderer.draw(box, kCyan);
 
     glfwSwapBuffers(m_pWindow);
 }
 
 void Application::Private::update() {
 
-    if (m_pCamera) {
+    if (m_pCamera)
         m_pCamera->update();
-    }
 }
 
 GLFWwindow* Application::Private::createWindow(const glm::ivec2& dimensions, const std::string& title) {
@@ -230,7 +229,7 @@ Application::Application()
         pCamera->fovY(glm::radians(45.f));
         pCamera->far(150.f);
         pCamera->near(0.01f);
-        pCamera->position({ 0.f, 0.f, 35.f });
+        pCamera->position({ 0.f, 0.f, 5.f });
 
         return std::move(pCamera);
     }();

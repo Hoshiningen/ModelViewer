@@ -19,16 +19,8 @@ public:
     Box(Box&& other) noexcept;
     Box& operator=(Box&& other) noexcept;
 
-    void position(const glm::vec3& value);
-    glm::vec3 position() const;
-
-    void width(float value);
     float width() const;
-
-    void height(float value);
     float height() const;
-    
-    void length(float value);
     float length() const;
 
 private:

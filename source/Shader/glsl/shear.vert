@@ -5,10 +5,10 @@ layout (location = 0) in vec3 basisVector;
 out vec4 color;
 
 uniform mat4 shear;
-uniform mat4 viewProj;
+uniform mat4 viewProjection;
 uniform vec4 lineColor;
 
 void main() {
-    gl_Position = viewProj * shear * vec4(basisVector, 1);
+    gl_Position = viewProjection * shear * vec4(basisVector, 1);
     color = lineColor;
 }

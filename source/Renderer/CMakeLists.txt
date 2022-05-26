@@ -1,13 +1,17 @@
 set(SOURCES
-    GeometryArtist.cpp
-    PointLineArtist.cpp
     Renderer.cpp
-    )
+    GeometryArtist.cpp
+    IndexedArtist.cpp
+    NonIndexedArtist.cpp
+    ShearArtist.cpp
+)
     
     set(INCLUDES
     ${PUBLIC_DIR}/Renderer/Renderer/Renderer.hpp
     GeometryArtist.hpp
-    PointLineArtist.hpp
+    IndexedArtist.hpp
+    NonIndexedArtist.hpp
+    ShearArtist.hpp
 )
 
 add_library(Renderer ${SOURCES} ${INCLUDES})

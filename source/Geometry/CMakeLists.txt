@@ -24,5 +24,6 @@ target_include_directories(Geometry PRIVATE .)
 target_include_directories(Geometry PUBLIC ${PUBLIC_DIR}/Geometry)
 
 target_link_libraries(Geometry PRIVATE
+    CONAN_PKG::glad
     CONAN_PKG::glm
 )
