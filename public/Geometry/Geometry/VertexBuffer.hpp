@@ -1,6 +1,5 @@
 #pragma once
 
-#include <list>
 #include <memory>
 #include <vector>
 
@@ -11,7 +10,7 @@ public:
     VertexBuffer();
     VertexBuffer(const std::vector<glm::vec3>& vertices,
                  const std::vector<glm::vec3>& normals,
-                 const std::list<uint32_t>& indices);
+                 const std::vector<uint32_t>& indices);
 
     virtual ~VertexBuffer() noexcept;
 
@@ -25,8 +24,8 @@ public:
     void addNormal(const glm::vec3& normal);
     void addIndex(uint32_t index);
 
-    const std::list<uint32_t>& indices() const;
-    std::list<uint32_t>& indices();
+    const std::vector<uint32_t>& indices() const;
+    std::vector<uint32_t>& indices();
 
     const std::vector<glm::vec3>& vertices() const;
     std::vector<glm::vec3>& vertices();

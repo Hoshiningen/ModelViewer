@@ -1,6 +1,7 @@
 #include "Renderer/Renderer.hpp"
 
 #include "GeometryArtist.hpp"
+#include "IndexedArtist.hpp"
 #include "ShearArtist.hpp"
 #include "NonIndexedArtist.hpp"
 
@@ -63,11 +64,14 @@ void Renderer::setup() {
 
     m_pPrivate->m_artists.push_front(std::make_unique<ShearArtist>(&m_pPrivate->m_shearShader));
     m_pPrivate->m_artists.push_front(std::make_unique<NonIndexedArtist>(&m_pPrivate->m_nonIndexedShader));
-
-    glEnable(GL_MULTISAMPLE);
-    glPointSize(7.f);
+    m_pPrivate->m_artists.push_front(std::make_unique<IndexedArtist>(&m_pPrivate->m_nonIndexedShader));
 
     glEnable(GL_DEPTH_TEST);
+    glEnable(GL_MULTISAMPLE);
+    glEnable(GL_LINE_SMOOTH);
+
+    glPointSize(7.f);
+    glLineWidth(2.f);
 }
 
 void Renderer::camera(Camera* pCamera) {

@@ -11,6 +11,7 @@ public:
     virtual ~ShearArtist() = default;
 
     virtual bool draw(const VertexBuffered& geometry, const glm::vec4& color) override;
+    virtual bool validate(const VertexBuffered& geometry) const override;
 
 protected:
     virtual void initializeBufferData(const VertexBuffered& geometry) const override;
@@ -20,4 +21,5 @@ private:
     void drawPoint(const glm::vec3& pos, const glm::vec4& color) const;
 
     GLuint m_vbo = 0;
+    GLuint m_vao = 0;
 };

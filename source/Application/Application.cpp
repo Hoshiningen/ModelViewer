@@ -234,7 +234,10 @@ Application::Application()
         return std::move(pCamera);
     }();
 
+    // Event handlers.
     m_pPrivate->m_callbacks.connectProjectionChanged(&Application::onProjectionChange, this);
+    m_pPrivate->m_callbacks.connectWireframeModeChanged(&Application::onWireframeModeChange, this);
+
     m_pPrivate->m_callbacks.camera(m_pPrivate->m_pCamera.get());
 
     m_pPrivate->m_persp = *static_cast<PerspectiveCamera*>(m_pPrivate->m_pCamera.get());
@@ -310,4 +313,12 @@ void Application::onProjectionChange(WindowCallbacks::ProjectionChange projectio
             m_pPrivate->m_renderer.camera(m_pPrivate->m_pCamera.get());
         }
     }
+}
+
+void Application::onWireframeModeChange(bool wireframe) {
+
+    if (wireframe)
+        glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+    else
+        glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 }

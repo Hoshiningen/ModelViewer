@@ -118,6 +118,14 @@ void OrbitalControls::KeyboardImpl(GLFWwindow* pWindow, int key, int scanCode, i
     // set orthographic
     if (key == GLFW_KEY_2 && action == GLFW_PRESS)
         m_projectionChanged(ProjectionChange::Orthographic);
+
+    // Turn wireframe on
+    if (key == GLFW_KEY_W && action == GLFW_PRESS)
+        m_wireframeModeChanged(true);
+
+    // Turn wireframe off
+    if (key == GLFW_KEY_S && action == GLFW_PRESS)
+        m_wireframeModeChanged(false);
 }
 
 void OrbitalControls::ScrollImpl(GLFWwindow*, double, double) {}

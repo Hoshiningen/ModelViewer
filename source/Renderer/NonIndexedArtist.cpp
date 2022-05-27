@@ -3,8 +3,6 @@
 #include "Geometry/VertexBuffered.hpp"
 #include "Shader/Shader.hpp"
 
-#include <iostream>
-
 namespace {
 constexpr glm::vec3 kLightPosition{ 21.f, 7.f, 7.f };
 constexpr glm::vec3 kAmbient{ 1.f, 1.f, 1.f };
@@ -14,22 +12,6 @@ constexpr glm::vec3 kSpecular{ 1.f, 1.f, 1.f };
 constexpr float kAmbientIntensity = 0.1f;
 constexpr float kSpecularIntensity = 1.0f;
 constexpr float kSpecularShininess = 128.f;
-
-GLint BufferSize(GLuint bufferId) {
-
-    // Cache off the currently bound buffer so we can restore it later.
-    GLint previousBuffer = 0;
-    glGetIntegerv(GL_ARRAY_BUFFER_BINDING, &previousBuffer);
-
-    GLint bufferSize = 0;
-    glBindBuffer(GL_ARRAY_BUFFER, bufferId);
-    glGetBufferParameteriv(GL_ARRAY_BUFFER, GL_BUFFER_SIZE, &bufferSize);
-
-    // Restore the previous buffer.
-    glBindBuffer(GL_ARRAY_BUFFER, previousBuffer);
-
-    return bufferSize;
-}
 } // end unnamed namespace
 
 NonIndexedArtist::NonIndexedArtist(Shader* pShader)
@@ -37,19 +19,10 @@ NonIndexedArtist::NonIndexedArtist(Shader* pShader)
 
 bool NonIndexedArtist::draw(const VertexBuffered& geometry, const glm::vec4& color) {
 
-    if (!m_pShader)
+    if (!m_pShader || !validate(geometry))
         return false;
 
-    const auto indices = geometry.indices();
-    if (indices.has_value())
-        return false;
-
-    const auto vertices = geometry.vertices();
-    const auto normals = geometry.normals();
-    if (!vertices.has_value() || !normals.has_value())
-        return false;
-
-    if (vertices->size() != normals->size() || vertices->size() % 3 != 0)
+    if (geometry.indices().has_value())
         return false;
 
     m_pShader->set("objectColor", glm::vec3{color});
@@ -62,11 +35,28 @@ bool NonIndexedArtist::draw(const VertexBuffered& geometry, const glm::vec4& col
     m_pShader->set("directionalLight.diffuse", kDiffuse);
     m_pShader->set("directionalLight.specular", kSpecular);
 
-    if (BufferSize(geometry.vertexBufferId()) <= 0)
+    if (bufferSize(geometry.vertexBufferId()) <= 0)
         initializeBufferData(geometry);
 
     glBindVertexArray(geometry.Id());
     glDrawArrays(GL_TRIANGLES, 0, geometry.vertices()->size());
+
+    return true;
+}
+
+bool NonIndexedArtist::validate(const VertexBuffered& geometry) const {
+
+    const auto vertices = geometry.vertices();
+    const auto normals = geometry.normals();
+
+    if (!vertices.has_value() || !normals.has_value())
+        return false;
+
+    if (vertices->size() != normals->size())
+        return false;
+
+    if (vertices->size() % 3 != 0)
+        return false;
 
     return true;
 }

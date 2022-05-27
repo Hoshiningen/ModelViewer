@@ -1,39 +1,20 @@
 #include "Geometry/VertexBuffer.hpp"
 
-#include <algorithm>
-#include <ranges>
-
 struct VertexBuffer::Private {
     Private() = default;
     Private(const std::vector<glm::vec3>& vertices,
             const std::vector<glm::vec3>& normals,
-            const std::list<uint32_t>& indices);
+            const std::vector<uint32_t>& indices);
 
-    bool validate() const;
-
-    std::list<uint32_t> m_indices;
+    std::vector<uint32_t> m_indices;
     std::vector<glm::vec3> m_vertices;
     std::vector<glm::vec3> m_normals;
 };
 
 VertexBuffer::Private::Private(const std::vector<glm::vec3>& vertices,
                                const std::vector<glm::vec3>& normals,
-                               const std::list<uint32_t>& indices)
-    : m_vertices(vertices), m_normals(normals), m_indices(indices) {
-
-    assert(validate());
-}
-
-bool VertexBuffer::Private::validate() const {
-
-    //bool isValid = true;
-    //isValid &= m_normals.size() == m_vertices.size();
-    //isValid &= !m_normals.empty() ? m_indices.size() <=
-    //const auto maxElement = std::ranges::max_element(m_indices);
-    //isValid &= *maxElement <= (m_vertices.size() - 1);
-
-    return true;
-}
+                               const std::vector<uint32_t>& indices)
+    : m_vertices(vertices), m_normals(normals), m_indices(indices) {}
 
 
 VertexBuffer::VertexBuffer()
@@ -41,7 +22,7 @@ VertexBuffer::VertexBuffer()
 
 VertexBuffer::VertexBuffer(const std::vector<glm::vec3>& vertices,
                            const std::vector<glm::vec3>& normals,
-                           const std::list<uint32_t>& indices)
+                           const std::vector<uint32_t>& indices)
     : m_pPrivate(std::make_unique<Private>(vertices, normals, indices)) {}
 
 VertexBuffer::VertexBuffer(const VertexBuffer& other) {
@@ -86,11 +67,11 @@ void VertexBuffer::addIndex(uint32_t index) {
     m_pPrivate->m_indices.push_back(index);
 }
 
-const std::list<uint32_t>& VertexBuffer::indices() const {
+const std::vector<uint32_t>& VertexBuffer::indices() const {
     return m_pPrivate->m_indices;
 }
 
-std::list<uint32_t>& VertexBuffer::indices() {
+std::vector<uint32_t>& VertexBuffer::indices() {
     return m_pPrivate->m_indices;
 }
 

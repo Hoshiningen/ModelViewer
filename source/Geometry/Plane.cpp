@@ -6,8 +6,8 @@ struct Plane::Private {
     Private(const glm::vec3& ll, const glm::vec3& lr, const glm::vec3& ur);
 
     void buildNonIndexed(const glm::vec3& ll, const glm::vec3& lr, const glm::vec3& ur, VertexBuffer& buffer) const;
+    void buildIndexed(const glm::vec3& ll, const glm::vec3& lr, const glm::vec3& ur, VertexBuffer& buffer) const;
 
-    glm::vec3 m_center;
     glm::vec3 m_u; // Horizontal direction
     glm::vec3 m_v; // Vertical direction
 };
@@ -33,11 +33,50 @@ void Plane::Private::buildNonIndexed(const glm::vec3& ll, const glm::vec3& lr, c
     buffer.addNormal(normal);
 }
 
+void Plane::Private::buildIndexed(const glm::vec3& ll, const glm::vec3& lr, const glm::vec3& ur, VertexBuffer& buffer) const {
+
+    buffer.addVertex(ur);
+    buffer.addVertex(lr);
+    buffer.addVertex(ll);
+    buffer.addVertex(ll + (m_v * glm::distance(lr, ur)));
+
+    const glm::vec3 normal = glm::cross(m_v, m_u);
+    buffer.addNormal(normal);
+    buffer.addNormal(normal);
+    buffer.addNormal(normal);
+    buffer.addNormal(normal);
+
+    /*
+       ul (3)              ur (0)
+        o------------------o
+        |                / |
+        |    1         /   |
+        |            /     |
+        |         /        |
+        |      /           |
+        |   /        2     |
+        |/                 |
+        o------------------o
+       ll (2)              lr (1)
+    */
+
+    // Triangle 1
+    buffer.addIndex(0);
+    buffer.addIndex(2);
+    buffer.addIndex(3);
+
+    // Triangle 2
+    buffer.addIndex(0);
+    buffer.addIndex(1);
+    buffer.addIndex(2);
+}
+
 
 Plane::Plane(const glm::vec3& ll, const glm::vec3& lr, const glm::vec3& ur)
     : m_pPrivate(std::make_unique<Private>(ll, lr, ur)) {
 
-    m_pPrivate->buildNonIndexed(ll, lr, ur, m_buffer);
+    //m_pPrivate->buildNonIndexed(ll, lr, ur, m_buffer);
+    m_pPrivate->buildIndexed(ll, lr, ur, m_buffer);
 }
 
 Plane::~Plane() noexcept {}
@@ -51,7 +90,6 @@ Plane& Plane::operator=(const Plane& other) {
     if (this != &other) {
 
         m_buffer = other.m_buffer;
-        m_pPrivate->m_center = other.m_pPrivate->m_center;
         m_pPrivate->m_u = other.m_pPrivate->m_u;
         m_pPrivate->m_v = other.m_pPrivate->m_v;
     }

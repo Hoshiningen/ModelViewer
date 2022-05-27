@@ -26,6 +26,11 @@ public:
         return m_projectionChanged.connect(std::forward<CallArgs>(args)...);
     }
 
+    template<typename... CallArgs>
+    sigslot::connection connectWireframeModeChanged(CallArgs&&... args) {
+        return m_wireframeModeChanged.connect(std::forward<CallArgs>(args)...);
+    }
+
 protected:
     virtual void FrameBufferSizeImpl(GLFWwindow* pWindow, int width, int height) {}
     virtual void CursorPositionImpl(GLFWwindow* pWindow, double xPos, double yPos) {}
@@ -34,4 +39,5 @@ protected:
     virtual void ScrollImpl(GLFWwindow* pWindow, double xOffset, double yOffset) {}
 
     sigslot::signal<ProjectionChange> m_projectionChanged;
+    sigslot::signal<bool> m_wireframeModeChanged;
 };

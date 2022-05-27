@@ -23,6 +23,7 @@ public:
     void run();
 
     void onProjectionChange(WindowCallbacks::ProjectionChange projection);
+    void onWireframeModeChange(bool wireframe);
 
 private:
     struct Private;

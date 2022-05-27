@@ -26,16 +26,14 @@ ShearArtist::ShearArtist(Shader* pShader)
     glBindVertexArray(0);
 }
 
- bool ShearArtist::draw(const VertexBuffered& geometry, const glm::vec4& color) {
+bool ShearArtist::draw(const VertexBuffered& geometry, const glm::vec4& color) {
 
-    if (!m_pShader)
+    if (!m_pShader || !validate(geometry))
         return false;
 
     const auto vertices = geometry.vertices();
     if (!vertices.has_value() || vertices->size() > 2)
         return false;
-
-    glBindVertexArray(m_vao);
 
     if (vertices->size() == 2)
         drawLine(vertices->front(), vertices->back(), color);
@@ -46,7 +44,22 @@ ShearArtist::ShearArtist(Shader* pShader)
     return true;
 }
 
- void ShearArtist::initializeBufferData(const VertexBuffered& geometry) const {}
+bool ShearArtist::validate(const VertexBuffered& geometry) const {
+
+    const auto vertices = geometry.vertices();
+    const auto normals = geometry.normals();
+    const auto indices = geometry.indices();
+
+    if (normals.has_value() || indices.has_value() || !vertices.has_value())
+        return false;
+
+    if (vertices->size() > 2)
+        return false;
+
+    return true;
+}
+
+void ShearArtist::initializeBufferData(const VertexBuffered& geometry) const {}
 
 void ShearArtist::drawLine(const glm::vec3& posA, const glm::vec3& posB, const glm::vec4& color) const {
 
