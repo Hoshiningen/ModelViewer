@@ -16,6 +16,7 @@ target_link_libraries(Application PRIVATE
     ${PROJECT_NAME}::Camera
     ${PROJECT_NAME}::Controls
     ${PROJECT_NAME}::Geometry
+    ${PROJECT_NAME}::IO
     ${PROJECT_NAME}::Renderer
     CONAN_PKG::glad
     CONAN_PKG::glfw

@@ -12,6 +12,7 @@ add_subdirectory(source/Application)
 add_subdirectory(source/Camera)
 add_subdirectory(source/Controls)
 add_subdirectory(source/Geometry)
+add_subdirectory(source/IO)
 add_subdirectory(source/Renderer)
 add_subdirectory(source/Shader)
 

@@ -10,6 +10,8 @@
 #include "Geometry/Plane.hpp"
 #include "Geometry/Point.hpp"
 
+#include "IO/GeometryLoader.hpp"
+
 #include "Renderer/Renderer.hpp"
 
 #include <iostream>
@@ -24,6 +26,8 @@
 #include <glm/vec3.hpp>
 
 struct Application::Private {
+    Private();
+
     void render();
     void update();
 
@@ -45,11 +49,29 @@ struct Application::Private {
     GLFWwindow* m_pWindow = nullptr;
     OrbitalControls m_callbacks; // window controls. Sets up an orbital camera.
 
+    GeometryLoader m_loader;
+
+    std::forward_list<VertexBuffered> m_swordMesh;
+    std::forward_list<VertexBuffered> m_squirrelMesh;
+    std::forward_list<VertexBuffered> m_spiderMesh;
+
     // Ensures API shutdown happens after everything has been destroyed.
     static struct Destructor {
         ~Destructor();
     } kDestructor;
 };
+
+Application::Private::Private() {
+
+    const std::filesystem::path swordMesh = "D:\\Meshes\\Sword_StaticMesh\\sword.obj";
+    m_swordMesh = m_loader.loadGeometry(swordMesh);
+
+    const std::filesystem::path squirrelMesh = "D:\\Meshes\\Squirrel_SkeleMesh\\ShadeTail.obj";
+    m_squirrelMesh = m_loader.loadGeometry(squirrelMesh);
+
+    const std::filesystem::path spiderMesh = "D:\\Meshes\\BlackWidow_SkeleMesh\\blackwidow.obj";
+    m_spiderMesh = m_loader.loadGeometry(spiderMesh);
+}
 
 void Application::Private::render() {
 
@@ -63,14 +85,16 @@ void Application::Private::render() {
 
     const glm::vec3 end = { 1.f, 1.f, 0.f };
 
-    m_renderer.draw(Line({}, xAxis), kRed);
-    m_renderer.draw(Line({}, yAxis), kGreen);
-    m_renderer.draw(Line({}, zAxis), kBlue);
+    //m_renderer.draw(Line({}, xAxis), kRed);
+    //m_renderer.draw(Line({}, yAxis), kGreen);
+    //m_renderer.draw(Line({}, zAxis), kBlue);
 
-    Box box{0.5f, 0.5f, 0.5f};
-    box.initialize();
+    for (VertexBuffered& geometry : m_squirrelMesh) {
+        if (!geometry.initialized())
+            geometry.initialize();
 
-    m_renderer.draw(box, kCyan);
+        m_renderer.draw(geometry, kWhite);
+    }
 
     glfwSwapBuffers(m_pWindow);
 }

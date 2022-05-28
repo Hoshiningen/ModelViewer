@@ -12,6 +12,7 @@
 class VertexBuffered {
 public:
     VertexBuffered();
+    VertexBuffered(const VertexBuffer& buffer);
     VertexBuffered(const std::vector<glm::vec3>& vertices,
                    const std::vector<glm::vec3>& normals,
                    const std::vector<uint32_t>& indices);

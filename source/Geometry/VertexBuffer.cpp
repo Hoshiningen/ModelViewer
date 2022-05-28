@@ -31,12 +31,8 @@ VertexBuffer::VertexBuffer(const VertexBuffer& other) {
 
 VertexBuffer& VertexBuffer::operator=(const VertexBuffer& other) {
 
-    if (this != &other) {
-
-        m_pPrivate->m_indices = other.m_pPrivate->m_indices;
-        m_pPrivate->m_normals = other.m_pPrivate->m_normals;
-        m_pPrivate->m_vertices = other.m_pPrivate->m_vertices;
-    }
+    if (this != &other)
+        m_pPrivate = std::make_unique<Private>(*other.m_pPrivate);
 
     return *this;
 }

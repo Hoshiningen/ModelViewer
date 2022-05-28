@@ -13,12 +13,18 @@ struct VertexBuffered::Private {
 VertexBuffered::VertexBuffered()
     : m_pPrivate(std::make_unique<Private>()) {}
 
+VertexBuffered::VertexBuffered(const VertexBuffer& buffer)
+    : m_buffer(buffer), m_pPrivate(std::make_unique<Private>()) {}
+
 VertexBuffered::VertexBuffered(const std::vector<glm::vec3>& vertices,
                                const std::vector<glm::vec3>& normals,
                                const std::vector<uint32_t>& indices)
     : m_buffer(vertices, normals, indices), m_pPrivate(std::make_unique<Private>()) {}
 
 VertexBuffered::~VertexBuffered() noexcept {
+
+    if (!m_pPrivate->m_initialized)
+        return;
 
     glDeleteVertexArrays(1, &m_pPrivate->m_bufferId);
     glDeleteBuffers(1, &m_pPrivate->m_indexId);
@@ -32,8 +38,10 @@ VertexBuffered::VertexBuffered(const VertexBuffered& other) {
 
 VertexBuffered& VertexBuffered::operator=(const VertexBuffered& other) {
 
-    if (this != &other)
+    if (this != &other) {
+        m_pPrivate = std::make_unique<Private>();
         m_buffer = other.m_buffer;
+    }
 
     return *this;
 }
@@ -44,8 +52,10 @@ VertexBuffered::VertexBuffered(VertexBuffered&& other) noexcept {
 
 VertexBuffered& VertexBuffered::operator=(VertexBuffered&& other) noexcept {
 
-    if (this != &other)
+    if (this != &other) {
+        m_pPrivate = std::make_unique<Private>();
         m_buffer = std::move(other.m_buffer);
+    }
 
     return *this;
 }

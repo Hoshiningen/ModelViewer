@@ -9,8 +9,8 @@ set(INCLDUES
 set(SHADERS
     glsl/shear.frag
     glsl/shear.vert
-    glsl/meshPhong.frag
-    glsl/mesh.vert
+    glsl/nonIndexed.frag
+    glsl/nonIndexed.vert
 )
 
 add_library(Shader ${SOURCES} ${INCLDUES} ${SHADERS})
