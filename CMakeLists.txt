@@ -13,8 +13,11 @@ add_subdirectory(source/Camera)
 add_subdirectory(source/Controls)
 add_subdirectory(source/Geometry)
 add_subdirectory(source/IO)
+add_subdirectory(source/Light)
+add_subdirectory(source/Material)
 add_subdirectory(source/Renderer)
 add_subdirectory(source/Shader)
+add_subdirectory(source/Texture)
 
 set_property(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/source/Application PROPERTY VS_STARTUP_PROJECT Application)
 

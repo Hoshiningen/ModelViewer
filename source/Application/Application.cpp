@@ -11,6 +11,12 @@
 #include "Geometry/Point.hpp"
 
 #include "IO/GeometryLoader.hpp"
+#include "IO/TextureLoader.hpp"
+
+#include "Material/LambertianMaterial.hpp"
+#include "Material/PhongMaterial.hpp"
+#include "Material/SolidMaterial.hpp"
+#include "Material/SolidPointLineMaterial.hpp"
 
 #include "Renderer/Renderer.hpp"
 
@@ -49,11 +55,18 @@ struct Application::Private {
     GLFWwindow* m_pWindow = nullptr;
     OrbitalControls m_callbacks; // window controls. Sets up an orbital camera.
 
-    GeometryLoader m_loader;
+    GeometryLoader m_geometryLoader;
+    TextureLoader m_textureLoader;
 
     std::forward_list<VertexBuffered> m_swordMesh;
     std::forward_list<VertexBuffered> m_squirrelMesh;
     std::forward_list<VertexBuffered> m_spiderMesh;
+
+    SolidPointLineMaterial m_xAxisMaterial;
+    SolidPointLineMaterial m_yAxisMaterial;
+    SolidPointLineMaterial m_zAxisMaterial;
+    
+    PhongMaterial m_goldMaterial;
 
     // Ensures API shutdown happens after everything has been destroyed.
     static struct Destructor {
@@ -64,17 +77,29 @@ struct Application::Private {
 Application::Private::Private() {
 
     const std::filesystem::path swordMesh = "D:\\Meshes\\Sword_StaticMesh\\sword.obj";
-    m_swordMesh = m_loader.loadGeometry(swordMesh);
+    m_swordMesh = m_geometryLoader.load(swordMesh);
 
     const std::filesystem::path squirrelMesh = "D:\\Meshes\\Squirrel_SkeleMesh\\ShadeTail.obj";
-    m_squirrelMesh = m_loader.loadGeometry(squirrelMesh);
+    m_squirrelMesh = m_geometryLoader.load(squirrelMesh);
 
     const std::filesystem::path spiderMesh = "D:\\Meshes\\BlackWidow_SkeleMesh\\blackwidow.obj";
-    m_spiderMesh = m_loader.loadGeometry(spiderMesh);
+    m_spiderMesh = m_geometryLoader.load(spiderMesh);
+    
+    for (auto& buffer : m_spiderMesh)
+        buffer.color(kWhite);
+
+    m_xAxisMaterial.color(kRed);
+    m_yAxisMaterial.color(kGreen);
+    m_zAxisMaterial.color(kBlue);
+
+    m_goldMaterial.ambientColor({ 0.24725f, 0.1995f, 0.0745f });
+    m_goldMaterial.diffuseColor({ 0.75164f, 0.60648f, 0.22648f });
+    m_goldMaterial.ambientColor({ 0.628281f, 0.555802f, 0.366065f });
+    m_goldMaterial.shininess(0.4f * 128.f);
 }
 
 void Application::Private::render() {
-
+    
     const glm::vec4 clearColor = kBlack;
     glClearColor(clearColor.r, clearColor.g, clearColor.b, clearColor.a);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -83,18 +108,19 @@ void Application::Private::render() {
     static const glm::vec3 yAxis{ 0.f, 1.f, 0.f };
     static const glm::vec3 zAxis{ 0.f, 0.f, 1.f };
 
-    const glm::vec3 end = { 1.f, 1.f, 0.f };
+    m_renderer.draw(Line({}, xAxis), m_xAxisMaterial);
+    m_renderer.draw(Line({}, yAxis), m_yAxisMaterial);
+    m_renderer.draw(Line({}, zAxis), m_zAxisMaterial);
 
-    //m_renderer.draw(Line({}, xAxis), kRed);
-    //m_renderer.draw(Line({}, yAxis), kGreen);
-    //m_renderer.draw(Line({}, zAxis), kBlue);
-
-    for (VertexBuffered& geometry : m_squirrelMesh) {
+    for (VertexBuffered& geometry : m_spiderMesh) {
         if (!geometry.initialized())
             geometry.initialize();
-
-        m_renderer.draw(geometry, kWhite);
+    
+        m_renderer.draw(geometry, m_goldMaterial);
     }
+
+    //drawPerspectiveFrustrum(&m_persp, &m_renderer);
+    //drawOrthographicFrustrum(&m_ortho, & m_renderer);
 
     glfwSwapBuffers(m_pWindow);
 }
@@ -224,8 +250,15 @@ void Application::Private::drawPerspectiveFrustrum(PerspectiveCamera* pCamera, R
     if (!pCamera || !pRenderer)
         return;
 
+    static SolidPointLineMaterial lineMaterial = [] {
+        SolidPointLineMaterial mat;
+        mat.color(kMagenta);
+
+        return mat;
+    }();
+
     for (const Line& line : debugFrustum(pCamera))
-        pRenderer->draw(line, kMagenta);
+        pRenderer->draw(line, lineMaterial);
 }
 
 void Application::Private::drawOrthographicFrustrum(OrthographicCamera* pCamera, Renderer* pRenderer) const {
@@ -233,13 +266,21 @@ void Application::Private::drawOrthographicFrustrum(OrthographicCamera* pCamera,
     if (!pCamera || !pRenderer)
         return;
 
-    for (const Line& line : debugFrustum(pCamera))
-        pRenderer->draw(line, kCyan);
+    static SolidPointLineMaterial lineMaterial = [] {
+        SolidPointLineMaterial mat;
+        mat.color(kCyan);
+
+        return mat;
+    }();
+
+   for (const Line& line : debugFrustum(pCamera))
+       pRenderer->draw(line, lineMaterial);
 }
 
 Application::Private::Destructor::~Destructor() {
     glfwTerminate();
 }
+
 
 Application::Application()
     : m_pPrivate(std::make_unique<Private>()) {
@@ -340,6 +381,8 @@ void Application::onProjectionChange(WindowCallbacks::ProjectionChange projectio
 }
 
 void Application::onWireframeModeChange(bool wireframe) {
+
+    m_pPrivate->m_goldMaterial.wireframe(wireframe);
 
     if (wireframe)
         glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);

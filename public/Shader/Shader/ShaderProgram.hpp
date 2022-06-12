@@ -10,30 +10,30 @@
 #include <glm/vec4.hpp>
 #include <glm/mat4x4.hpp>
 
-class Shader final {
+class ShaderProgram final {
 public:
-    Shader();
-    ~Shader() noexcept;
+    ShaderProgram();
+    ~ShaderProgram() noexcept;
 
-    Shader(const Shader& other);
-    Shader& operator=(const Shader& other);
+    ShaderProgram(const ShaderProgram& other);
+    ShaderProgram& operator=(const ShaderProgram& other);
 
-    Shader(Shader&& other) noexcept;
-    Shader& operator=(Shader&& other) noexcept;
+    ShaderProgram(ShaderProgram&& other) noexcept;
+    ShaderProgram& operator=(ShaderProgram&& other) noexcept;
 
-    std::optional<GLuint> loadShader(const std::filesystem::path& path, GLenum shaderType);
+    std::optional<GLuint> loadShader(const std::filesystem::path& path, GLenum ShaderProgramType);
     
-    bool attachShader(GLuint shaderID) const;
-    bool detachShader(GLuint shaderID) const;
+    bool attachShader(GLuint ShaderProgramID) const;
+    bool detachShader(GLuint ShaderProgramID) const;
 
-    bool deleteShader(GLuint shaderID);
-    bool deleteShaders();
+    bool destroyShader(GLuint ShaderProgramID);
+    bool destroyShaders();
 
-    void createProgram();
-    void deleteProgram();
+    void create();
+    void destroy();
 
     bool compileAndLink() const;
-    void useProgram() const;
+    void use() const;
 
     void set(const std::string& variable, GLboolean value) const;
     void set(const std::string& variable, GLint value) const;
@@ -41,6 +41,8 @@ public:
     void set(const std::string& variable, glm::vec3 value) const;
     void set(const std::string& variable, glm::vec4 value) const;
     void set(const std::string& variable, glm::mat4 value) const;
+
+    GLuint id() const;
 
 private:
     struct Private;

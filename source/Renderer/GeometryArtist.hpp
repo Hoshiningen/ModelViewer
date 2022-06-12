@@ -3,23 +3,19 @@
 #include <glad/glad.h>
 #include <glm/vec4.hpp>
 
-class Shader;
+class IMaterial;
+class ShaderProgram;
 class VertexBuffered;
 
 class GeometryArtist {
 public:
-    explicit GeometryArtist(Shader* pShader);
-    virtual ~GeometryArtist() noexcept;
+    virtual ~GeometryArtist() noexcept = default;
 
-    virtual bool draw(const VertexBuffered& geometry, const glm::vec4& color) = 0;
-    virtual bool validate(const VertexBuffered& geometry) const = 0;
-
-    Shader* shader() const;
+    virtual bool draw(const VertexBuffered& geometry, ShaderProgram* pProgram) { return false; }
+    virtual bool validate(const VertexBuffered& geometry) const { return false; }
 
 protected:
-    virtual void initializeBufferData(const VertexBuffered& geometry) const = 0;
+    virtual void initializeBufferData(const VertexBuffered& geometry) const {}
 
     GLint bufferSize(GLuint bufferId) const;
-
-    Shader* m_pShader = nullptr;
 };

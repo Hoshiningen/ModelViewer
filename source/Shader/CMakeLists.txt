@@ -1,16 +1,16 @@
 set(SOURCES
-    Shader.cpp
-    )
+    ShaderProgram.cpp
+)
     
 set(INCLDUES
-    ${PUBLIC_DIR}/Shader/Shader/Shader.hpp
+    ${PUBLIC_DIR}/Shader/Shader/ShaderProgram.hpp
 )
 
 set(SHADERS
-    glsl/shear.frag
+    glsl/phong.vert
+    glsl/phong.frag
     glsl/shear.vert
-    glsl/nonIndexed.frag
-    glsl/nonIndexed.vert
+    glsl/shearSolid.frag
 )
 
 add_library(Shader ${SOURCES} ${INCLDUES} ${SHADERS})
@@ -23,7 +23,7 @@ target_sources(Shader PRIVATE ${SHADERS})
 target_include_directories(Shader PRIVATE .)
 target_include_directories(Shader PUBLIC ${PUBLIC_DIR}/Shader)
 
-target_link_libraries(Shader PRIVATE
+target_link_libraries(Shader PUBLIC
     CONAN_PKG::glad
     CONAN_PKG::glm
 )

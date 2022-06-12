@@ -1,12 +1,12 @@
 #include "ShearArtist.hpp"
 
 #include "Geometry/VertexBuffered.hpp"
-#include "Shader/Shader.hpp"
+#include "Shader/ShaderProgram.hpp"
 
 #include <array>
 
-ShearArtist::ShearArtist(Shader* pShader)
-    : GeometryArtist(pShader) {
+ShearArtist::ShearArtist()
+    : GeometryArtist() {
 
     const std::array<glm::vec3, 2> basisVectors{
         glm::vec3{ 1.f, 0.f, 0.f },
@@ -26,9 +26,9 @@ ShearArtist::ShearArtist(Shader* pShader)
     glBindVertexArray(0);
 }
 
-bool ShearArtist::draw(const VertexBuffered& geometry, const glm::vec4& color) {
+bool ShearArtist::draw(const VertexBuffered& geometry, ShaderProgram* pProgram) {
 
-    if (!m_pShader || !validate(geometry))
+    if (!validate(geometry) || !pProgram)
         return false;
 
     const auto vertices = geometry.vertices();
@@ -36,10 +36,10 @@ bool ShearArtist::draw(const VertexBuffered& geometry, const glm::vec4& color) {
         return false;
 
     if (vertices->size() == 2)
-        drawLine(vertices->front(), vertices->back(), color);
+        drawLine(vertices->front(), vertices->back(), pProgram);
 
     if (vertices->size() == 1)
-        drawPoint(vertices->front(), color);
+        drawPoint(vertices->front(), pProgram);
 
     return true;
 }
@@ -59,9 +59,10 @@ bool ShearArtist::validate(const VertexBuffered& geometry) const {
     return true;
 }
 
-void ShearArtist::initializeBufferData(const VertexBuffered& geometry) const {}
+void ShearArtist::drawLine(const glm::vec3& posA, const glm::vec3& posB, ShaderProgram* pProgram) const {
 
-void ShearArtist::drawLine(const glm::vec3& posA, const glm::vec3& posB, const glm::vec4& color) const {
+    if (!pProgram)
+        return;
 
     const glm::mat4 shearMatrix{
         glm::vec4{ posA, 0.f },
@@ -70,15 +71,16 @@ void ShearArtist::drawLine(const glm::vec3& posA, const glm::vec3& posB, const g
         glm::vec4{ 0.f, 0.f, 0.f, 1.f }
     };
 
-    m_pShader->useProgram();
-    m_pShader->set("shear", shearMatrix);
-    m_pShader->set("lineColor", color);
+    pProgram->set("matrices.shear", shearMatrix);
 
     glBindVertexArray(m_vao);
     glDrawArrays(GL_LINES, 0, 2);
 }
 
-void ShearArtist::drawPoint(const glm::vec3& pos, const glm::vec4& color) const {
+void ShearArtist::drawPoint(const glm::vec3& pos, ShaderProgram* pProgram) const {
+
+    if (!pProgram)
+        return;
 
     const glm::mat4 shearMatrix{
         glm::vec4{ pos, 0.f },
@@ -87,9 +89,7 @@ void ShearArtist::drawPoint(const glm::vec3& pos, const glm::vec4& color) const 
         glm::vec4{ 0.f, 0.f, 0.f, 1.f }
     };
 
-    m_pShader->useProgram();
-    m_pShader->set("shear", shearMatrix);
-    m_pShader->set("lineColor", color);
+    pProgram->set("shear", shearMatrix);
 
     glBindVertexArray(m_vao);
     glDrawArrays(GL_POINTS, 0, 1);

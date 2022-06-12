@@ -78,7 +78,7 @@ VertexBuffered GeometryLoader::Private::processMesh(aiMesh* pMesh, const aiScene
 GeometryLoader::GeometryLoader()
     : m_pPrivate(std::make_unique<Private>()) {}
 
-GeometryLoader::~GeometryLoader() {}
+GeometryLoader::~GeometryLoader() noexcept {}
 
 GeometryLoader::GeometryLoader(const GeometryLoader& other) {
     *this = other;
@@ -104,7 +104,7 @@ GeometryLoader& GeometryLoader::operator=(GeometryLoader&& other) noexcept {
     return *this;
 }
 
-std::forward_list<VertexBuffered> GeometryLoader::loadGeometry(const std::filesystem::path& path) const {
+std::forward_list<VertexBuffered> GeometryLoader::load(const std::filesystem::path& path) const {
 
     constexpr unsigned int kPostProcessingFlags =
         aiProcess_Triangulate |

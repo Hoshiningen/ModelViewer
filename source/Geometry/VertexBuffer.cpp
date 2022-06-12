@@ -4,17 +4,20 @@ struct VertexBuffer::Private {
     Private() = default;
     Private(const std::vector<glm::vec3>& vertices,
             const std::vector<glm::vec3>& normals,
+            const std::vector<glm::vec4>& colors,
             const std::vector<uint32_t>& indices);
 
     std::vector<uint32_t> m_indices;
     std::vector<glm::vec3> m_vertices;
     std::vector<glm::vec3> m_normals;
+    std::vector<glm::vec4> m_colors;
 };
 
 VertexBuffer::Private::Private(const std::vector<glm::vec3>& vertices,
                                const std::vector<glm::vec3>& normals,
+                               const std::vector<glm::vec4>& colors,
                                const std::vector<uint32_t>& indices)
-    : m_vertices(vertices), m_normals(normals), m_indices(indices) {}
+    : m_vertices(vertices), m_normals(normals), m_indices(indices), m_colors(colors) {}
 
 
 VertexBuffer::VertexBuffer()
@@ -22,8 +25,9 @@ VertexBuffer::VertexBuffer()
 
 VertexBuffer::VertexBuffer(const std::vector<glm::vec3>& vertices,
                            const std::vector<glm::vec3>& normals,
+                           const std::vector<glm::vec4>& colors,
                            const std::vector<uint32_t>& indices)
-    : m_pPrivate(std::make_unique<Private>(vertices, normals, indices)) {}
+    : m_pPrivate(std::make_unique<Private>(vertices, normals, colors, indices)) {}
 
 VertexBuffer::VertexBuffer(const VertexBuffer& other) {
     *this = other;
@@ -59,6 +63,10 @@ void VertexBuffer::addNormal(const glm::vec3& normal) {
     m_pPrivate->m_normals.push_back(normal);
 }
 
+void VertexBuffer::addColor(const glm::vec4& color) {
+    m_pPrivate->m_colors.push_back(color);
+}
+
 void VertexBuffer::addIndex(uint32_t index) {
     m_pPrivate->m_indices.push_back(index);
 }
@@ -85,4 +93,12 @@ const std::vector<glm::vec3>& VertexBuffer::normals() const {
 
 std::vector<glm::vec3>& VertexBuffer::normals() {
     return m_pPrivate->m_normals;
+}
+
+const std::vector<glm::vec4>& VertexBuffer::colors() const {
+    return m_pPrivate->m_colors;
+}
+
+std::vector<glm::vec4>& VertexBuffer::colors() {
+    return m_pPrivate->m_colors;
 }

@@ -8,7 +8,8 @@ class ModelViewerRecipe(ConanFile):
         "glfw/3.3.6",
         "nlohmann_json/3.10.5",
         "sigslot/1.2.1",
-        "assimp/5.2.2"
+        "assimp/5.2.2",
+        "stb/cci.20200203"
     )
     generators = "cmake_multi"
 

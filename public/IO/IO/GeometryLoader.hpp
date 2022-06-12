@@ -9,7 +9,7 @@
 class GeometryLoader {
 public:
     GeometryLoader();
-    virtual ~GeometryLoader();
+    virtual ~GeometryLoader() noexcept;
 
     GeometryLoader(const GeometryLoader& other);
     GeometryLoader& operator=(const GeometryLoader& other);
@@ -17,7 +17,7 @@ public:
     GeometryLoader(GeometryLoader&& other) noexcept;
     GeometryLoader& operator=(GeometryLoader&& other) noexcept;
 
-    std::forward_list<VertexBuffered> loadGeometry(const std::filesystem::path& path) const;
+    std::forward_list<VertexBuffered> load(const std::filesystem::path& path) const;
 
 private:
     struct Private;

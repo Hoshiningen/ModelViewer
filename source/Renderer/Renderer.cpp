@@ -2,11 +2,22 @@
 
 #include "GeometryArtist.hpp"
 #include "IndexedArtist.hpp"
-#include "ShearArtist.hpp"
 #include "NonIndexedArtist.hpp"
+#include "ShaderCache.hpp"
+#include "ShearArtist.hpp"
 
 #include "Camera/Camera.hpp"
-#include "Shader/Shader.hpp"
+
+#include "Light/DirectionalLight.hpp"
+
+#include "Material/IMaterial.hpp"
+#include "Material/LambertianMaterial.hpp"
+#include "Material/MeshMaterial.hpp"
+#include "Material/PhongMaterial.hpp"
+#include "Material/SolidMaterial.hpp"
+#include "Material/SolidPointLineMaterial.hpp"
+
+#include "Shader/ShaderProgram.hpp"
 
 #include <iostream>
 #include <forward_list>
@@ -14,82 +25,104 @@
 #include <glad/glad.h>
 
 struct Renderer::Private {
-    void loadShaders();
+    std::unique_ptr<ShaderProgram> loadShaders(const std::filesystem::path& vertexShader, const std::filesystem::path& fragmentShader);
 
+    DirectionalLight m_light;
     Camera* m_pCamera = nullptr;
-
-    Shader m_shearShader;
-    Shader m_nonIndexedShader;
-
+    ShaderCache m_shaderCache;
     std::forward_list<std::unique_ptr<GeometryArtist>> m_artists;
 };
 
-void Renderer::Private::loadShaders() {
+std::unique_ptr<ShaderProgram> Renderer::Private::loadShaders(const std::filesystem::path& vertexPath, const std::filesystem::path& fragmentPath) {
 
-    m_shearShader.createProgram();
-    m_nonIndexedShader.createProgram();
+    ShaderProgram shader;
 
-    const auto LoadShader = [](const std::filesystem::path& vert, const std::filesystem::path& frag, Shader& shader) {
+    if (!std::filesystem::exists(vertexPath) || !std::filesystem::exists(fragmentPath)) {
+        std::cerr << "Could not locate shaders. Aborting.\n";
+        std::exit(1);
+    }
 
-        if (!std::filesystem::exists(vert) || !std::filesystem::exists(frag)) {
-            std::cerr << "Could not locate shaders. Aborting.\n";
-            std::exit(1);
-        }
+    shader.create();
 
-        if (auto shaderId = shader.loadShader(frag, GL_FRAGMENT_SHADER); shaderId.has_value())
-            shader.attachShader(shaderId.value());
+    const auto vertShader = shader.loadShader(vertexPath, GL_VERTEX_SHADER);
+    const auto fragShader = shader.loadShader(fragmentPath, GL_FRAGMENT_SHADER);
 
-        if (auto shaderId = shader.loadShader(vert, GL_VERTEX_SHADER); shaderId.has_value())
-            shader.attachShader(shaderId.value());
+    if (!vertShader || !fragShader) {
+        std::cerr << "Failed to load the shaders: [" << vertexPath << ", " << fragmentPath << "]" << "\n";
+        std::exit(-1);
+    }
+    
+    shader.attachShader(*vertShader);
+    shader.attachShader(*fragShader);
 
-        if (!shader.compileAndLink()) {
-            std::cerr << "Unable to compile shaders. Aborting.";
-            std::exit(-1);
-        }
-    };
+    if (!shader.compileAndLink()) {
+        std::cerr << "Unable to compile shaders. Aborting.";
+        std::exit(-1);
+    }
 
-    LoadShader("glsl/shear.vert", "glsl/shear.frag", m_shearShader);
-    LoadShader("glsl/nonIndexed.vert", "glsl/nonIndexed.frag", m_nonIndexedShader);
+    // Cleanup shaders since they've already been linked.
+    shader.detachShader(*vertShader);
+    shader.detachShader(*fragShader);
+    shader.destroyShaders();
+
+    return std::make_unique<ShaderProgram>(std::move(shader));
 }
 
 
 Renderer::Renderer()
-    : m_pPrivate(std::make_unique<Private>()) {}
+    : m_pPrivate(std::make_unique<Private>()) {
+
+    m_pPrivate->m_light.color(kWhite);
+}
 
 Renderer::~Renderer() {}
 
 void Renderer::setup() {
 
-    m_pPrivate->loadShaders();
+    m_pPrivate->m_shaderCache.registerProgram<SolidPointLineMaterial>(m_pPrivate->loadShaders("glsl/shear.vert", "glsl/shearSolid.frag"));
+    m_pPrivate->m_shaderCache.registerProgram<LambertianMaterial>(m_pPrivate->loadShaders("glsl/phong.vert", "glsl/phong.frag"));
+    m_pPrivate->m_shaderCache.registerProgram<PhongMaterial>(m_pPrivate->m_shaderCache.get<LambertianMaterial>());
+    m_pPrivate->m_shaderCache.registerProgram<SolidMaterial>(m_pPrivate->m_shaderCache.get<LambertianMaterial>());
 
-    m_pPrivate->m_artists.push_front(std::make_unique<ShearArtist>(&m_pPrivate->m_shearShader));
-    m_pPrivate->m_artists.push_front(std::make_unique<NonIndexedArtist>(&m_pPrivate->m_nonIndexedShader));
-    m_pPrivate->m_artists.push_front(std::make_unique<IndexedArtist>(&m_pPrivate->m_nonIndexedShader));
+    m_pPrivate->m_artists.push_front(std::make_unique<ShearArtist>());
+    m_pPrivate->m_artists.push_front(std::make_unique<NonIndexedArtist>());
+    m_pPrivate->m_artists.push_front(std::make_unique<IndexedArtist>());
 
     glEnable(GL_DEPTH_TEST);
     glEnable(GL_MULTISAMPLE);
     glEnable(GL_LINE_SMOOTH);
 
     glPointSize(7.f);
-    glLineWidth(2.f);
+    glLineWidth(1.f);
 }
 
 void Renderer::camera(Camera* pCamera) {
     m_pPrivate->m_pCamera = pCamera;
 }
 
-void Renderer::draw(const VertexBuffered& geometry, const glm::vec4& color) const {
-    
+void Renderer::draw(const VertexBuffered& geometry, const IMaterial& material) const {
+
+    ShaderProgram* pShader = m_pPrivate->m_shaderCache.get(material);
+    if (!pShader) {
+        assert(false);
+        return;
+    }
+
     // Chain of responsibility handlers for drawing geometry.
     for (const std::unique_ptr<GeometryArtist>& pArtist : m_pPrivate->m_artists) {
 
-        Shader* pShader = pArtist->shader();
-        pShader->useProgram();
-        pShader->set("viewProjection", m_pPrivate->m_pCamera->viewProjection());
-        pShader->set("eyePoint", m_pPrivate->m_pCamera->position());
-        pShader->set("model", glm::identity<glm::mat4>());
+        if (!pArtist->validate(geometry))
+            continue;
 
-        if (pArtist->draw(geometry, color))
+        pShader->use();
+        pShader->set("matrices.model", glm::identity<glm::mat4>());
+        pShader->set("matrices.viewProjection", m_pPrivate->m_pCamera->viewProjection());
+        pShader->set("eyePoint", m_pPrivate->m_pCamera->position());
+
+        material.apply(pShader);
+        m_pPrivate->m_light.apply(pShader);
+
+        if (pArtist->draw(geometry, pShader))
             break;
     }
 }

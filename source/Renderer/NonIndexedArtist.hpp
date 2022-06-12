@@ -2,12 +2,14 @@
 
 #include "GeometryArtist.hpp"
 
+class ShaderProgram;
+class VertexBuffered;
+
 class NonIndexedArtist : public GeometryArtist {
 public:
-    explicit NonIndexedArtist(Shader* pShader);
     virtual ~NonIndexedArtist() = default;
 
-    virtual bool draw(const VertexBuffered& geometry, const glm::vec4& color) override;
+    virtual bool draw(const VertexBuffered& geometry, class ShaderProgram* pProgram) override;
     virtual bool validate(const VertexBuffered& geometry) const override;
 
 protected:

@@ -15,7 +15,10 @@ constexpr glm::vec4 kYellow{ 1.f, 1.f, 0.f, 1.f };
 constexpr glm::vec4 kMagenta{ 1.f, 0.f, 1.f, 1.f };
 constexpr glm::vec4 kCyan{ 0.f, 1.f, 1.f, 1.f };
 
+constexpr glm::vec4 kSunlight{ 255.f / 255.f, 232.f / 255.f, 181.f / 255.f, 1.f };
+
 class Camera;
+class IMaterial;
 class VertexBuffered;
 
 class Renderer {
@@ -26,7 +29,7 @@ public:
     void setup();
     void camera(Camera* pCamera);
 
-    void draw(const VertexBuffered& geometry, const glm::vec4& color) const;
+    void draw(const VertexBuffered& geometry, const IMaterial& material) const;
 
 private:
     struct Private;
