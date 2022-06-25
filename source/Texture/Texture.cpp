@@ -1,10 +1,11 @@
 #include "Texture/Texture.hpp"
 
+#include <glad/glad.h>
 #include <stb_image.h>
 
 struct Texture::Private {
     Private() = default;
-    Private(unsigned int width, unsigned int height, Channels textureFormat, Channels pixelFormat, unsigned char* pData);
+    Private(unsigned int width, unsigned int height, Channels textureFormat, Channels pixelFormat, Target target);
 
     Private(const Private& other);
     Private& operator=(const Private& other);
@@ -21,15 +22,18 @@ struct Texture::Private {
     Wrap m_wrapS = Wrap::Repeat;
     Wrap m_wrapT = Wrap::Repeat;
 
-    stbi_uc* m_pData = nullptr; // Image data
-
     bool m_needsMipmap = true;
+    bool m_initialized = false;
+
+    Target m_target = Target::Texture2D;
+
+    std::array<float, 4> m_borderColor{ 0.f, 0.f, 0.f, 0.f };
 
     GLuint m_id = 0; // Texture buffer id
 };
 
-Texture::Private::Private(unsigned int width, unsigned int height, Channels textureFormat, Channels pixelFormat, unsigned char* pData)
-    : m_width(width), m_height(height), m_textureFormat(textureFormat), m_pixelFormat(pixelFormat), m_pData(pData) {}
+Texture::Private::Private(unsigned int width, unsigned int height, Channels textureFormat, Channels pixelFormat, Target target)
+    : m_width(width), m_height(height), m_textureFormat(textureFormat), m_pixelFormat(pixelFormat), m_target(target) {}
 
 Texture::Private::Private(const Private& other) {
     *this = other;
@@ -47,6 +51,7 @@ Texture::Private& Texture::Private::operator=(const Private& other) {
         m_magFilter = other.m_magFilter;
         m_wrapS = other.m_wrapS;
         m_wrapT = other.m_wrapT;
+        m_target = other.m_target;
     }
 
     return *this;
@@ -58,9 +63,8 @@ Texture::Texture()
 
 Texture::~Texture() noexcept {}
 
-Texture::Texture(unsigned int width, unsigned int height, Channels textureFormat, Channels pixelFormat, unsigned char* pData)
-    : m_pPrivate(std::make_unique<Private>(width, height, textureFormat, pixelFormat, pData)) {
-}
+Texture::Texture(unsigned int width, unsigned int height, Channels textureFormat, Channels pixelFormat, Target target)
+    : m_pPrivate(std::make_unique<Private>(width, height, textureFormat, pixelFormat, target)) {}
 
 Texture::Texture(const Texture& other) {
     *this = other;
@@ -68,8 +72,28 @@ Texture::Texture(const Texture& other) {
 
 Texture& Texture::operator=(const Texture& other) {
 
-    if (this != &other)
+    if (this != &other) {
         m_pPrivate = std::make_unique<Private>(*other.m_pPrivate);
+        
+        if (other.initialized()) {
+            initialize();
+
+            if (other.target() == Texture::Target::Texture2D) {
+                glBindTexture(static_cast<GLenum>(other.target()), m_pPrivate->m_id);
+                glCopyTexImage2D(
+                    static_cast<GLenum>(other.target()),
+                    0,
+                    static_cast<GLenum>(other.textureFormat()),
+                    0,
+                    0,
+                    other.width(),
+                    other.height(),
+                    0
+                );
+                glBindTexture(static_cast<GLenum>(other.target()), 0);
+            }
+        }
+    }
 
     return *this;
 }
@@ -90,36 +114,28 @@ void Texture::minFilter(Filter value) {
     m_pPrivate->m_minFilter = value;
 }
 
-void Texture::width(unsigned int value) {
-    m_pPrivate->m_width = value;
-}
-
 unsigned int Texture::width() const {
     return m_pPrivate->m_width;
-}
-
-void Texture::height(unsigned int value) {
-    m_pPrivate->m_height = value;
 }
 
 unsigned int Texture::height() const {
     return m_pPrivate->m_height;
 }
 
-void Texture::textureFormat(Channels value) {
-    m_pPrivate->m_textureFormat = value;
-}
-
 Texture::Channels Texture::textureFormat() const {
     return m_pPrivate->m_textureFormat;
 }
 
-void Texture::pixelFormat(Channels value) {
-    m_pPrivate->m_pixelFormat = value;
-}
-
 Texture::Channels Texture::pixelFormat() const {
     return m_pPrivate->m_pixelFormat;
+}
+
+GLuint Texture::id() const {
+    return m_pPrivate->m_id;
+}
+
+Texture::Target Texture::target() const {
+    return m_pPrivate->m_target;
 }
 
 Texture::Filter Texture::minFilter() const {
@@ -155,7 +171,7 @@ Texture::Wrap Texture::wrapT() const {
     return m_pPrivate->m_wrapT;
 }
 
-void Texture::mapmap(bool value) {
+void Texture::mipmap(bool value) {
     m_pPrivate->m_needsMipmap = value;
 }
 
@@ -163,14 +179,19 @@ bool Texture::mipmap() const {
     return m_pPrivate->m_needsMipmap;
 }
 
-void Texture::data(unsigned char* pValue) {
-    m_pPrivate->m_pData = pValue;
+void Texture::borderColor(const glm::vec4& color) {
+    m_pPrivate->m_borderColor = { color.r, color.g, color.b, color.a };
 }
 
-unsigned char* Texture::data() const {
-    return m_pPrivate->m_pData;
+std::array<float, 4> Texture::borderColor() const {
+    return m_pPrivate->m_borderColor;
 }
 
-GLuint Texture::id() const {
-    return m_pPrivate->m_id;
+void Texture::initialize() {
+    glGenTextures(1, &m_pPrivate->m_id);
+    m_pPrivate->m_initialized = true;
+}
+
+bool Texture::initialized() const {
+    return m_pPrivate->m_initialized;
 }

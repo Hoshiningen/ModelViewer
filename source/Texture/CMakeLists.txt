@@ -19,4 +19,5 @@ target_link_libraries(Texture PRIVATE
 
 target_link_libraries(Texture PUBLIC
     CONAN_PKG::glad
+    CONAN_PKG::glm
 )

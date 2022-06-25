@@ -19,16 +19,19 @@ constexpr glm::vec4 kSunlight{ 255.f / 255.f, 232.f / 255.f, 181.f / 255.f, 1.f 
 
 class Camera;
 class IMaterial;
+class ShaderProgram;
 class VertexBuffered;
 
 class Renderer {
 public:
+
     Renderer();
     virtual ~Renderer();
 
     void setup();
     void camera(Camera* pCamera);
 
+    bool initialize(VertexBuffered& geometry, const IMaterial& material) const;
     void draw(const VertexBuffered& geometry, const IMaterial& material) const;
 
 private:

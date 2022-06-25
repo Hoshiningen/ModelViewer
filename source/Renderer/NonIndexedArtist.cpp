@@ -14,7 +14,7 @@ bool NonIndexedArtist::draw(const VertexBuffered& geometry, ShaderProgram*) {
     if (bufferSize(geometry.vertexBufferId()) <= 0)
         initializeBufferData(geometry);
 
-    glBindVertexArray(geometry.Id());
+    glBindVertexArray(geometry.id());
     glDrawArrays(GL_TRIANGLES, 0, geometry.vertices()->size());
 
     return true;
@@ -44,7 +44,7 @@ void NonIndexedArtist::initializeBufferData(const VertexBuffered& geometry) cons
     const GLsizeiptr normalBufferSize = sizeof(glm::vec3) * geometry.normals()->size();
     const GLsizeiptr colorBufferSize = sizeof(glm::vec4) * geometry.colors()->size();
 
-    glBindVertexArray(geometry.Id());
+    glBindVertexArray(geometry.id());
 
     // Copy over the vertex data.
     glBindBuffer(GL_ARRAY_BUFFER, geometry.vertexBufferId());

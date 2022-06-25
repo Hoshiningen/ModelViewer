@@ -3,6 +3,7 @@
 #include "Material/IMaterial.hpp"
 
 #include <memory>
+#include <optional>
 
 #include <glm/vec3.hpp>
 
@@ -20,12 +21,26 @@ public:
     MeshMaterial& operator=(MeshMaterial&& other) noexcept;
 
     virtual void apply(ShaderProgram* pShader) const override;
+    virtual void wireframe(bool value) override;
 
     void diffuseMap(const Texture& value);
-    void specularMap(const Texture& value);
-    void emissiveMap(const Texture& value);
+    const std::optional<Texture>& diffuseMap() const;
+    std::optional<Texture>& diffuseMap();
 
-    void specularShininess(float value);
+    void specularMap(const Texture& value);
+    const std::optional<Texture>& specularMap() const;
+    std::optional<Texture>& specularMap();
+
+    void emissiveMap(const Texture& value);
+    const std::optional<Texture>& emissiveMap() const;
+    std::optional<Texture>& emissiveMap();
+
+    void shininess(float value);
+
+    void ambientIntensity(float value);
+    void diffuseIntensity(float value);
+    void emissiveIntensity(float value);
+    void specularIntensity(float value);
 
 private:
     struct Private;

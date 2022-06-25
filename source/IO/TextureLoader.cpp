@@ -1,9 +1,11 @@
 #include "IO/TextureLoader.hpp"
 
+#include <glad/glad.h>
+
 #define STB_IMAGE_IMPLEMENTATION
 #include <stb_image.h>
 
-Texture TextureLoader::load(const std::filesystem::path& path) const {
+Texture TextureLoader::load(const std::filesystem::path& path, Texture::Target target) {
 
     Texture texture;
     if (!std::filesystem::is_regular_file(path))
@@ -18,10 +20,6 @@ Texture TextureLoader::load(const std::filesystem::path& path) const {
 
     if (pData != nullptr) {
 
-        texture.data(pData);
-        texture.width(width);
-        texture.height(height);
-
         const Texture::Channels format = [&channels] {
             switch (channels) {
             case 1: return Texture::Channels::R;
@@ -31,9 +29,25 @@ Texture TextureLoader::load(const std::filesystem::path& path) const {
             default: return Texture::Channels::RGB;
             }
         }();
+        
+        texture = Texture{ static_cast<GLuint>(width), static_cast<GLuint>(height), format, format, target };
+        texture.initialize();
 
-        texture.pixelFormat(format);
-        texture.textureFormat(format);
+        glBindTexture(static_cast<GLenum>(target), texture.id());
+        glTexImage2D(
+            static_cast<GLenum>(target),
+            0,
+            static_cast<GLint>(texture.textureFormat()),
+            texture.width(),
+            texture.height(),
+            0,
+            static_cast<GLint>(texture.pixelFormat()),
+            GL_UNSIGNED_BYTE,
+            pData
+        );
+
+        glBindTexture(static_cast<GLenum>(target), 0);
+        stbi_image_free(pData);
     }
 
     return texture;

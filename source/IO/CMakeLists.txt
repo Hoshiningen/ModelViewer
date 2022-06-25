@@ -23,5 +23,6 @@ target_link_libraries(IO PRIVATE
 
 target_link_libraries(IO PUBLIC
     ${PROJECT_NAME}::Geometry
+    ${PROJECT_NAME}::Material
     ${PROJECT_NAME}::Texture
 )

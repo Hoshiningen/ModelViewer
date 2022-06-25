@@ -4,7 +4,9 @@
 
 #include <filesystem>
 
+#include <glad/glad.h>
+
 class TextureLoader {
 public:
-    Texture load(const std::filesystem::path& path) const;
+    static Texture load(const std::filesystem::path& path, Texture::Target target);
 };

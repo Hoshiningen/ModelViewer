@@ -1,16 +1,18 @@
 set(SOURCES
     ShaderProgram.cpp
+    VertexAttribute.cpp
 )
     
 set(INCLDUES
     ${PUBLIC_DIR}/Shader/Shader/ShaderProgram.hpp
+    ${PUBLIC_DIR}/Shader/Shader/VertexAttribute.hpp
 )
 
 set(SHADERS
     glsl/phong.vert
     glsl/phong.frag
-    glsl/shear.vert
-    glsl/shearSolid.frag
+    glsl/mesh.vert
+    glsl/mesh.frag
 )
 
 add_library(Shader ${SOURCES} ${INCLDUES} ${SHADERS})

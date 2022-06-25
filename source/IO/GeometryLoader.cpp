@@ -1,14 +1,18 @@
 #include "IO/GeometryLoader.hpp"
+#include "IO/TextureLoader.hpp"
 
 #include "Geometry/VertexBuffer.hpp"
+#include "Material/MeshMaterial.hpp"
+#include "Texture/Texture.hpp"
 
 #include <iostream>
+#include <optional>
 #include <stack>
 #include <unordered_map>
 
 #include <assimp/Importer.hpp>
-#include <assimp/scene.h>
 #include <assimp/postprocess.h>
+#include <assimp/scene.h>
 
 struct GeometryLoader::Private {
 
@@ -54,11 +58,28 @@ VertexBuffered GeometryLoader::Private::processMesh(aiMesh* pMesh, const aiScene
 
     for (unsigned int vertIndex = 0; vertIndex < pMesh->mNumVertices; ++vertIndex) {
 
-        if (pMesh->HasPositions())
-            buffer.addVertex({ pMesh->mVertices[vertIndex].x, pMesh->mVertices[vertIndex].y , pMesh->mVertices[vertIndex].z });
+        if (pMesh->HasPositions()) {
+            const aiVector3D& vertex = pMesh->mVertices[vertIndex];
+            buffer.addVertex({ vertex.x, vertex.y , vertex.z });
+        }
 
-        if (pMesh->HasNormals())
-            buffer.addNormal({ pMesh->mNormals[vertIndex].x, pMesh->mNormals[vertIndex].y, pMesh->mNormals[vertIndex].z });
+        if (pMesh->HasNormals()) {
+            const aiVector3D& normal = pMesh->mNormals[vertIndex];
+            buffer.addNormal({ normal.x, normal.y, normal.z });
+        }
+
+        // Only support the first set out of many.
+        static constexpr unsigned int kSetIndex = 0;
+
+        if (pMesh->HasTextureCoords(kSetIndex)) {
+            const aiVector3D& texel = pMesh->mTextureCoords[kSetIndex][vertIndex];
+            buffer.addTexel({ texel.x, texel.y });
+        }
+
+        if (pMesh->HasVertexColors(kSetIndex)) {
+            const aiColor4D& color = pMesh->mColors[kSetIndex][vertIndex];
+            buffer.addColor({ color.r, color.g, color.b, color.a });
+        }
     }
 
     if (pMesh->HasFaces())

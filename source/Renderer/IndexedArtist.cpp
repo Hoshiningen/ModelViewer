@@ -15,7 +15,7 @@ bool IndexedArtist::draw(const VertexBuffered& geometry, ShaderProgram*) {
     if (bufferSize(geometry.vertexBufferId()) <= 0)
         initializeBufferData(geometry);
 
-    glBindVertexArray(geometry.Id());
+    glBindVertexArray(geometry.id());
     glDrawElements(GL_TRIANGLES, geometry.indices()->size(), GL_UNSIGNED_INT, reinterpret_cast<void*>(0));
 
     return true;
@@ -51,7 +51,7 @@ void IndexedArtist::initializeBufferData(const VertexBuffered& geometry) const {
     const GLsizeiptr colorBufferSize = sizeof(glm::vec4) * geometry.colors()->size();
     const GLsizeiptr indicesBufferSize = sizeof(uint32_t) * geometry.indices()->size();
 
-    glBindVertexArray(geometry.Id());
+    glBindVertexArray(geometry.id());
 
     // Copy over the vertex data.
     glBindBuffer(GL_ARRAY_BUFFER, geometry.vertexBufferId());

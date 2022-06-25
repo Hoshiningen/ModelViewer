@@ -3,6 +3,8 @@
 #include <filesystem>
 #include <memory>
 #include <optional>
+#include <string_view>
+#include <unordered_set>
 
 #include <glad/glad.h>
 
@@ -43,6 +45,14 @@ public:
     void set(const std::string& variable, glm::mat4 value) const;
 
     GLuint id() const;
+
+    std::unordered_set<std::string_view> attributes() const;
+    std::unordered_set<std::string_view> uniforms() const;
+
+    bool hasAttribute(const std::string& name) const;
+    bool hasUniform(const std::string& name) const;
+
+    std::optional<GLuint> attributeLocation(const std::string& attributeName) const;
 
 private:
     struct Private;

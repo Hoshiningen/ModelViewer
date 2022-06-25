@@ -14,7 +14,6 @@ struct PhongMaterial::Private {
     float m_shininess = 32.f;
 
     bool m_wireframe = false;
-    bool m_shadingMode = true;
 };
 
 
