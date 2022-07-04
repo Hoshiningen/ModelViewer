@@ -227,6 +227,7 @@ Renderer::Renderer()
     : m_pPrivate(std::make_unique<Private>()) {
 
     m_pPrivate->m_light.color(kWhite);
+    m_pPrivate->m_light.intensity(0.5f);
 }
 
 Renderer::~Renderer() {}

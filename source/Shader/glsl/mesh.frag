@@ -49,7 +49,7 @@ vec3 ComputeScatteredLight(float lightAngle) {
 
     if (material.hasDiffuse) {
         vec3 diffuseColor = directionalLight.color * lightAngle * directionalLight.intensity;
-        diffuseColor += vec3(texture(material.diffuseMap, fragIn.texel)) * material.diffuseIntensity;
+        diffuseColor += texture(material.diffuseMap, fragIn.texel).rgb * material.diffuseIntensity;
         
         color += diffuseColor;
     }
@@ -62,7 +62,7 @@ vec3 ComputeReflectedLight(float specularAngle) {
     vec3 color;
     if (material.hasSpecular) {
         color = directionalLight.color * specularAngle * directionalLight.intensity;
-        color *= vec3(texture(material.specularMap, fragIn.texel)) * material.specularIntensity;
+        color *= texture(material.specularMap, fragIn.texel).rgb * material.specularIntensity;
     }
 
     return color;
@@ -90,6 +90,11 @@ void main() {
     else {
         vec3 scatteredLight = ComputeScatteredLight(lightAngle);
         pixelColor = hasVertexColor ? fragIn.color.rgb * scatteredLight : scatteredLight;
+
+        if (material.hasEmissive) {
+            vec3 emittedLight = texture(material.emissiveMap, fragIn.texel).rgb * material.emissiveIntensity;
+            pixelColor += emittedLight;
+        }
 
         if (material.hasSpecular) {
             vec3 reflectedLight = ComputeReflectedLight(specularAngle);

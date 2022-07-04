@@ -2,7 +2,6 @@
 #include "IO/TextureLoader.hpp"
 
 #include "Geometry/VertexBuffer.hpp"
-#include "Material/MeshMaterial.hpp"
 #include "Texture/Texture.hpp"
 
 #include <iostream>

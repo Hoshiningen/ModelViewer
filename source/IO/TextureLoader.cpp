@@ -6,6 +6,10 @@
 #include <stb_image.h>
 
 Texture TextureLoader::load(const std::filesystem::path& path, Texture::Target target) {
+    return load(path, target, false);
+}
+
+Texture TextureLoader::load(const std::filesystem::path& path, Texture::Target target, bool flipUVs) {
 
     Texture texture;
     if (!std::filesystem::is_regular_file(path))
@@ -15,10 +19,10 @@ Texture TextureLoader::load(const std::filesystem::path& path, Texture::Target t
     int height = 0;
     int channels = 0;
 
-    stbi_set_flip_vertically_on_load(true);
+    stbi_set_flip_vertically_on_load(flipUVs);
     stbi_uc* pData = stbi_load(path.string().c_str(), &width, &height, &channels, STBI_default);
 
-    if (pData != nullptr) {
+    if (pData) {
 
         const Texture::Channels format = [&channels] {
             switch (channels) {
@@ -35,15 +39,15 @@ Texture TextureLoader::load(const std::filesystem::path& path, Texture::Target t
 
         glBindTexture(static_cast<GLenum>(target), texture.id());
         glTexImage2D(
-            static_cast<GLenum>(target),
-            0,
-            static_cast<GLint>(texture.textureFormat()),
-            texture.width(),
-            texture.height(),
-            0,
-            static_cast<GLint>(texture.pixelFormat()),
-            GL_UNSIGNED_BYTE,
-            pData
+            static_cast<GLenum>(target),                    // Target
+            0,                                              // Level
+            static_cast<GLint>(texture.textureFormat()),    // internal format
+            texture.width(),                                // width
+            texture.height(),                               // height
+            0,                                              // border
+            static_cast<GLint>(texture.pixelFormat()),      // format
+            GL_UNSIGNED_BYTE,                               // type
+            pData                                           // data
         );
 
         glBindTexture(static_cast<GLenum>(target), 0);

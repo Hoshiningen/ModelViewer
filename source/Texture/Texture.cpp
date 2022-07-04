@@ -7,9 +7,6 @@ struct Texture::Private {
     Private() = default;
     Private(unsigned int width, unsigned int height, Channels textureFormat, Channels pixelFormat, Target target);
 
-    Private(const Private& other);
-    Private& operator=(const Private& other);
-
     unsigned int m_width = 0;
     unsigned int m_height = 0;
 
@@ -35,28 +32,6 @@ struct Texture::Private {
 Texture::Private::Private(unsigned int width, unsigned int height, Channels textureFormat, Channels pixelFormat, Target target)
     : m_width(width), m_height(height), m_textureFormat(textureFormat), m_pixelFormat(pixelFormat), m_target(target) {}
 
-Texture::Private::Private(const Private& other) {
-    *this = other;
-}
-
-Texture::Private& Texture::Private::operator=(const Private& other) {
-    
-    if (this != &other) {
-
-        m_width = other.m_width;
-        m_height = other.m_height;
-        m_textureFormat = other.m_textureFormat;
-        m_pixelFormat = other.m_pixelFormat;
-        m_minFilter = other.m_minFilter;
-        m_magFilter = other.m_magFilter;
-        m_wrapS = other.m_wrapS;
-        m_wrapT = other.m_wrapT;
-        m_target = other.m_target;
-    }
-
-    return *this;
-}
-
 
 Texture::Texture()
     : m_pPrivate(std::make_unique<Private>()) {}
@@ -72,28 +47,8 @@ Texture::Texture(const Texture& other) {
 
 Texture& Texture::operator=(const Texture& other) {
 
-    if (this != &other) {
+    if (this != &other)
         m_pPrivate = std::make_unique<Private>(*other.m_pPrivate);
-        
-        if (other.initialized()) {
-            initialize();
-
-            if (other.target() == Texture::Target::Texture2D) {
-                glBindTexture(static_cast<GLenum>(other.target()), m_pPrivate->m_id);
-                glCopyTexImage2D(
-                    static_cast<GLenum>(other.target()),
-                    0,
-                    static_cast<GLenum>(other.textureFormat()),
-                    0,
-                    0,
-                    other.width(),
-                    other.height(),
-                    0
-                );
-                glBindTexture(static_cast<GLenum>(other.target()), 0);
-            }
-        }
-    }
 
     return *this;
 }

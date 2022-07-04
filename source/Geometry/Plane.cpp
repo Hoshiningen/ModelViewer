@@ -24,6 +24,13 @@ void Plane::Private::buildNonIndexed(const glm::vec3& ll, const glm::vec3& lr, c
     buffer.addVertex(ll + (m_v * glm::distance(lr, ur)));
     buffer.addVertex(ur);
 
+    buffer.addTexel({ 1.f, 1.f });
+    buffer.addTexel({ 1.f, 0.f });
+    buffer.addTexel({ 0.f, 0.f });
+    buffer.addTexel({ 0.f, 0.f });
+    buffer.addTexel({ 0.f, 1.f });
+    buffer.addTexel({ 1.f, 1.f });
+
     const glm::vec3 normal = glm::cross(m_v, m_u);
     buffer.addNormal(normal);
     buffer.addNormal(normal);
@@ -39,6 +46,11 @@ void Plane::Private::buildIndexed(const glm::vec3& ll, const glm::vec3& lr, cons
     buffer.addVertex(lr);
     buffer.addVertex(ll);
     buffer.addVertex(ll + (m_v * glm::distance(lr, ur)));
+
+    buffer.addTexel({ 1.f, 1.f });
+    buffer.addTexel({ 1.f, 0.f });
+    buffer.addTexel({ 0.f, 0.f });
+    buffer.addTexel({ 0.f, 1.f });
 
     const glm::vec3 normal = glm::cross(m_v, m_u);
     buffer.addNormal(normal);
