@@ -1,17 +1,10 @@
 set(SOURCES
     Renderer.cpp
-    GeometryArtist.cpp
-    IndexedArtist.cpp
-    NonIndexedArtist.cpp
-    ShearArtist.cpp
 )
     
-    set(INCLUDES
+set(INCLUDES
     ${PUBLIC_DIR}/Renderer/Renderer/Renderer.hpp
-    GeometryArtist.hpp
-    IndexedArtist.hpp
-    NonIndexedArtist.hpp
-    ShearArtist.hpp
+    ShaderCache.hpp
 )
 
 add_library(Renderer ${SOURCES} ${INCLUDES})
@@ -22,9 +15,15 @@ target_include_directories(Renderer PRIVATE .)
 target_include_directories(Renderer PUBLIC ${PUBLIC_DIR}/Renderer)
 
 target_link_libraries(Renderer PRIVATE
-    CONAN_PKG::glad
-    CONAN_PKG::glm
-    ${PROJECT_NAME}::Geometry
     ${PROJECT_NAME}::Camera
+    ${PROJECT_NAME}::Geometry
+    ${PROJECT_NAME}::Light
+    ${PROJECT_NAME}::Material
     ${PROJECT_NAME}::Shader
+    ${PROJECT_NAME}::Texture
+    CONAN_PKG::glad
+)
+  
+target_link_libraries(Renderer PUBLIC
+    CONAN_PKG::glm
 )

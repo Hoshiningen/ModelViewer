@@ -16,9 +16,12 @@ target_include_directories(Controls PRIVATE .)
 target_include_directories(Controls PUBLIC ${PUBLIC_DIR}/Controls)
 
 target_link_libraries(Controls PRIVATE
+    ${PROJECT_NAME}::Camera
     CONAN_PKG::glad
     CONAN_PKG::glm
     CONAN_PKG::glfw
+)
+    
+target_link_libraries(Controls PUBLIC
     CONAN_PKG::sigslot
-    ${PROJECT_NAME}::Camera
 )

@@ -1,10 +1,11 @@
-#include "Shader/Shader.hpp"
+#include "Shader/ShaderProgram.hpp"
 
 #include <array>
 #include <fstream>
 #include <iostream>
 #include <sstream>
 #include <string>
+#include <unordered_map>
 #include <unordered_set>
 #include <variant>
 #include <vector>
@@ -19,18 +20,23 @@ struct Visitor : public Handlers...{
 };
 } // end unnamed namespace
 
-struct Shader::Private {
+struct ShaderProgram::Private {
     bool reportError(GLuint objectID) const;
     bool isProgramLinked() const;
+
+    void readAttributes();
+    void readUniforms();
 
     using Variable = std::variant<GLboolean, GLint, GLfloat, glm::vec3, glm::vec4, glm::mat4>;
     void set(const std::string& variable, Variable value);
 
     GLuint m_program = 0;
     std::unordered_set<GLuint> m_shaders;
+    std::unordered_set<std::string> m_uniforms;
+    std::unordered_map<std::string, GLuint> m_attributes;
 };
 
-bool Shader::Private::reportError(GLuint objectID) const {
+bool ShaderProgram::Private::reportError(GLuint objectID) const {
 
     // Buffer to contain the error information
     std::array<char, 512> infoLog;
@@ -64,7 +70,7 @@ bool Shader::Private::reportError(GLuint objectID) const {
     return false;
 }
 
-bool Shader::Private::isProgramLinked() const {
+bool ShaderProgram::Private::isProgramLinked() const {
 
     GLint isLinked = 0;
     glGetProgramiv(m_program, GL_LINK_STATUS, &isLinked);
@@ -72,7 +78,58 @@ bool Shader::Private::isProgramLinked() const {
     return isLinked;
 }
 
-void Shader::Private::set(const std::string& variable, Variable value) {
+void ShaderProgram::Private::readAttributes() {
+
+    if (!isProgramLinked())
+        return;
+
+    GLint numAttributes = 0;
+    glGetProgramiv(m_program, GL_ACTIVE_ATTRIBUTES, &numAttributes);
+
+    GLint bufferSize = 0;
+    glGetProgramiv(m_program, GL_ACTIVE_ATTRIBUTE_MAX_LENGTH, &bufferSize);
+
+    for (GLint attributeIndex = 0; attributeIndex < numAttributes; ++attributeIndex) {
+
+        std::vector<GLchar> name;
+        name.resize(bufferSize);
+
+        GLint size = 0;
+        GLenum type = 0;
+        GLsizei nameLength = 0;
+        glGetActiveAttrib(m_program, attributeIndex, bufferSize, &nameLength, &size, &type, name.data());
+
+        const GLint attributeLocation = glGetAttribLocation(m_program, name.data());
+        m_attributes.emplace(std::string{ name.data(), static_cast<std::size_t>(nameLength) }, attributeLocation);
+    }
+}
+
+void ShaderProgram::Private::readUniforms() {
+
+    if (!isProgramLinked())
+        return;
+
+    GLint numUniforms = 0;
+    glGetProgramiv(m_program, GL_ACTIVE_UNIFORMS, &numUniforms);
+
+    GLint bufferSize = 0;
+    glGetProgramiv(m_program, GL_ACTIVE_UNIFORM_MAX_LENGTH, &bufferSize);
+
+    for (GLint uniformIndex = 0; uniformIndex < numUniforms; ++uniformIndex) {
+
+        std::vector<GLchar> name;
+        name.resize(bufferSize);
+
+        GLint size = 0;
+        GLenum type = 0;
+        GLsizei nameLength = 0;
+        glGetActiveUniform(m_program, uniformIndex, bufferSize, &nameLength, &size, &type, name.data());
+
+        m_uniforms.emplace(name.data(), nameLength);
+    }
+}
+
+void ShaderProgram::Private::set(const std::string& variable, Variable value) {
 
     if (!isProgramLinked()) {
         std::cerr << "Error: Program isn't linked. Unable to set '" << variable << "'.\n";
@@ -102,23 +159,23 @@ void Shader::Private::set(const std::string& variable, Variable value) {
 }
 
 
-Shader::Shader()
+ShaderProgram::ShaderProgram()
     : m_pPrivate(std::make_unique<Private>()) {}
 
-Shader::~Shader() {
-    deleteShaders();
-    deleteProgram();
+ShaderProgram::~ShaderProgram() {
+    destroyShaders();
+    destroy();
 }
 
-Shader::Shader(const Shader& other) {
+ShaderProgram::ShaderProgram(const ShaderProgram& other) {
     *this = other;
 }
 
-Shader& Shader::operator=(const Shader& other) {
+ShaderProgram& ShaderProgram::operator=(const ShaderProgram& other) {
 
     if (this != &other) {
 
-        createProgram();
+        create();
         for (const GLuint& shaderId : other.m_pPrivate->m_shaders)
             attachShader(shaderId);
     }
@@ -126,11 +183,11 @@ Shader& Shader::operator=(const Shader& other) {
     return *this;
 }
 
-Shader::Shader(Shader&& other) noexcept {
+ShaderProgram::ShaderProgram(ShaderProgram&& other) noexcept {
     *this = std::move(other);
 }
 
-Shader& Shader::operator=(Shader&& other) noexcept {
+ShaderProgram& ShaderProgram::operator=(ShaderProgram&& other) noexcept {
 
     if (this != &other)
         m_pPrivate = std::exchange(other.m_pPrivate, nullptr);
@@ -138,7 +195,7 @@ Shader& Shader::operator=(Shader&& other) noexcept {
     return *this;
 }
 
-std::optional<GLuint> Shader::loadShader(const std::filesystem::path& path, GLenum shaderType) {
+std::optional<GLuint> ShaderProgram::loadShader(const std::filesystem::path& path, GLenum shaderType) {
 
     if (!std::filesystem::exists(path) || std::filesystem::is_directory(path)) {
         std::cerr << "Error: Could not load the shader at: " << path << "\n";
@@ -172,7 +229,7 @@ std::optional<GLuint> Shader::loadShader(const std::filesystem::path& path, GLen
     return shaderID;
 }
 
-bool Shader::attachShader(GLuint shaderID) const {
+bool ShaderProgram::attachShader(GLuint shaderID) const {
 
     if (glIsShader(shaderID) == GL_FALSE)
         return false;
@@ -186,7 +243,7 @@ bool Shader::attachShader(GLuint shaderID) const {
     return true;
 }
 
-bool Shader::detachShader(GLuint shaderID) const {
+bool ShaderProgram::detachShader(GLuint shaderID) const {
 
     if (glIsShader(shaderID) == GL_FALSE)
         return false;
@@ -200,7 +257,7 @@ bool Shader::detachShader(GLuint shaderID) const {
     return true;
 }
 
-bool Shader::deleteShader(GLuint shaderID) {
+bool ShaderProgram::destroyShader(GLuint shaderID) {
 
     if (glIsShader(shaderID) == GL_FALSE)
         return false;
@@ -216,21 +273,28 @@ bool Shader::deleteShader(GLuint shaderID) {
     return true;
 }
 
-bool Shader::deleteShaders() {
+bool ShaderProgram::destroyShaders() {
+
+    // Private will be deleted if the program is moved.
+    if (!m_pPrivate)
+        return true;
 
     bool allDeleted = true;
 
     for (GLuint shader : m_pPrivate->m_shaders)
-        allDeleted &= deleteShader(shader);
+        allDeleted &= destroyShader(shader);
 
     return allDeleted;
 }
 
-void Shader::createProgram() {
+void ShaderProgram::create() {
     m_pPrivate->m_program = glCreateProgram();
 }
 
-void Shader::deleteProgram() {
+void ShaderProgram::destroy() {
+
+    if (!m_pPrivate)
+        return;
 
     if (glIsProgram(m_pPrivate->m_program) == GL_FALSE)
         return;
@@ -244,7 +308,7 @@ void Shader::deleteProgram() {
     glDeleteProgram(m_pPrivate->m_program);
 }
 
-bool Shader::compileAndLink() const {
+bool ShaderProgram::compileAndLink() const {
 
     GLsizei numAttached = 0;
 
@@ -270,33 +334,74 @@ bool Shader::compileAndLink() const {
     if (!m_pPrivate->reportError(m_pPrivate->m_program))
         return false;
 
+    m_pPrivate->readAttributes();
+    m_pPrivate->readUniforms();
+
     return true;
 }
 
-void Shader::useProgram() const {
+void ShaderProgram::use() const {
     glUseProgram(m_pPrivate->m_program);
 }
 
-void Shader::set(const std::string& variable, GLboolean value) const {
+void ShaderProgram::set(const std::string& variable, GLboolean value) const {
     m_pPrivate->set(variable, value);
 }
 
-void Shader::set(const std::string& variable, GLint value) const {
+void ShaderProgram::set(const std::string& variable, GLint value) const {
     m_pPrivate->set(variable, value);
 }
 
-void Shader::set(const std::string& variable, GLfloat value) const {
+void ShaderProgram::set(const std::string& variable, GLfloat value) const {
     m_pPrivate->set(variable, value);
 }
 
-void Shader::set(const std::string& variable, glm::vec3 value) const {
+void ShaderProgram::set(const std::string& variable, glm::vec3 value) const {
     m_pPrivate->set(variable, value);
 }
 
-void Shader::set(const std::string& variable, glm::vec4 value) const {
+void ShaderProgram::set(const std::string& variable, glm::vec4 value) const {
     m_pPrivate->set(variable, value);
 }
 
-void Shader::set(const std::string& variable, glm::mat4 value) const {
+void ShaderProgram::set(const std::string& variable, glm::mat4 value) const {
     m_pPrivate->set(variable, value);
+}
+
+GLuint ShaderProgram::id() const {
+    return m_pPrivate->m_program;
+}
+
+std::unordered_set<std::string_view> ShaderProgram::attributes() const {
+
+    std::unordered_set<std::string_view> attributes;
+    std::ranges::transform(m_pPrivate->m_attributes, std::inserter(attributes, attributes.cbegin()),
+        [](const std::pair<std::string, GLuint>& pair) { return pair.first; });
+
+    return attributes;
+}
+
+std::unordered_set<std::string_view> ShaderProgram::uniforms() const {
+
+    std::unordered_set<std::string_view> uniforms;
+    std::ranges::transform(m_pPrivate->m_uniforms, std::inserter(uniforms, uniforms.cbegin()),
+        [](const std::string& uniform) { return uniform; });
+
+    return uniforms;
+}
+
+std::optional<GLuint> ShaderProgram::attributeLocation(const std::string& attributeName) const {
+
+    if (m_pPrivate->m_attributes.contains(attributeName))
+        return m_pPrivate->m_attributes.at(attributeName);
+
+    return std::nullopt;
+}
+
+bool ShaderProgram::hasAttribute(const std::string& name) const {
+    return m_pPrivate->m_attributes.contains(name);
+}
+
+bool ShaderProgram::hasUniform(const std::string& name) const {
+    return m_pPrivate->m_uniforms.contains(name);
 }

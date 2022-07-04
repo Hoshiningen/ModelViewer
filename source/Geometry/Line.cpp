@@ -4,6 +4,8 @@ Line::Line(const glm::vec3& start, const glm::vec3& end) {
 
     m_buffer.addVertex(start);
     m_buffer.addVertex(end);
+
+    primativeType(VertexBuffered::PrimativeType::Lines);
 }
 
 Line::Line(const Line& other) {

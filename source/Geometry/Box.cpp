@@ -58,6 +58,7 @@ void Box::Private::buildNonIndexed(float width, float height, float length, Vert
 
         const auto vertices = plane.vertices();
         const auto normals = plane.normals();
+        const auto texels = plane.texels();
 
         if (!vertices.has_value() || !normals.has_value())
             return;
@@ -67,6 +68,9 @@ void Box::Private::buildNonIndexed(float width, float height, float length, Vert
 
         for (const glm::vec3& normal : *normals)
             buffer.addNormal(normal);
+
+        for (const glm::vec2& texel : *texels)
+            buffer.addTexel(texel);
     };
 
     Unite(top, buffer);
@@ -118,6 +122,7 @@ void Box::Private::buildIndexed(float width, float height, float length, VertexB
         const auto vertices = plane.vertices();
         const auto normals = plane.normals();
         const auto indices = plane.indices();
+        const auto texels = plane.texels();
 
         if (!vertices.has_value() || !normals.has_value() || !indices.has_value())
             return;
@@ -132,6 +137,9 @@ void Box::Private::buildIndexed(float width, float height, float length, VertexB
 
         for (const GLuint& index : *indices)
             buffer.addIndex(indexOffset + index);
+
+        for (const glm::vec2& texel : *texels)
+            buffer.addTexel(texel);
     };
 
     Unite(top, buffer);
