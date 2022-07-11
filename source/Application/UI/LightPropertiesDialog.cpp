@@ -57,8 +57,8 @@ void LightPropertiesDialog::defineUI() {
         m_lightChanged(m_light);
     }
 
-    if (ImGui::SliderAngle("Yaw", &m_lightModel.yaw)) {
-        m_lightModel.direction = computeDirection(m_lightModel.pitch, m_lightModel.yaw );
+    if (ImGui::SliderAngle("Yaw", &m_lightModel.yaw, 0.f)) {
+        m_lightModel.direction = computeDirection(m_lightModel.pitch, m_lightModel.yaw);
         m_light.direction(m_lightModel.direction);
         m_lightChanged(m_light);
     }

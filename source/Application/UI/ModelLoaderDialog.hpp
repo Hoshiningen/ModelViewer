@@ -29,8 +29,15 @@ private:
     std::array<char, kTextBufferSize> m_pathBuffer;
     std::forward_list<VertexBuffered> m_model;
 
-    bool m_hasColors = false;
-    bool m_hasNormals = false;
-    bool m_hasPositions = false;
-    bool m_hasTexels = false;
+    struct ModelMetadata {
+        bool hasColors = false;
+        bool hasIndices = false;
+        bool hasNormals = false;
+        bool hasPositions = false;
+        bool hasTexels = false;
+        std::size_t vertexCount = 0;
+        std::size_t faceCount = 0;
+    } m_modelMetadata;
+
+    ModelMetadata parseModel(const std::forward_list<VertexBuffered>& model) const;
 };
