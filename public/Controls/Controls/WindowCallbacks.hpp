@@ -16,11 +16,6 @@ public:
 
     virtual ~WindowCallbacks() = default;
 
-    enum class ProjectionChange {
-        Perspective,
-        Orthographic
-    };
-
     template<typename... CallArgs>
     sigslot::connection connectProjectionChanged(CallArgs&&... args) {
         return m_projectionChanged.connect(std::forward<CallArgs>(args)...);
@@ -28,7 +23,7 @@ public:
 
     template<typename... CallArgs>
     sigslot::connection connectWireframeModeChanged(CallArgs&&... args) {
-        return m_wireframeModeChanged.connect(std::forward<CallArgs>(args)...);
+        return m_wireframeChanged.connect(std::forward<CallArgs>(args)...);
     }
 
 protected:
@@ -38,6 +33,6 @@ protected:
     virtual void KeyboardImpl(GLFWwindow* pWindow, int key, int scanCode, int action, int modifiers) {}
     virtual void ScrollImpl(GLFWwindow* pWindow, double xOffset, double yOffset) {}
 
-    sigslot::signal<ProjectionChange> m_projectionChanged;
-    sigslot::signal<bool> m_wireframeModeChanged;
+    sigslot::signal<int> m_projectionChanged;
+    sigslot::signal<bool> m_wireframeChanged;
 };

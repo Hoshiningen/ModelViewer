@@ -1,4 +1,4 @@
-#include "Material/MeshMaterial.hpp"
+#include "Material/PhongTexturedMaterial.hpp"
 
 #include "Shader/ShaderProgram.hpp"
 #include "Texture/Texture.hpp"
@@ -7,7 +7,7 @@
 
 #include <glad/glad.h>
 
-struct MeshMaterial::Private {
+struct PhongTexturedMaterial::Private {
     std::optional<Texture> m_diffuseMap;
     std::optional<Texture> m_specularMap;
     std::optional<Texture> m_emissiveMap;
@@ -22,16 +22,16 @@ struct MeshMaterial::Private {
     bool m_wireframe = false;
 };
 
-MeshMaterial::MeshMaterial()
+PhongTexturedMaterial::PhongTexturedMaterial()
     : m_pPrivate(std::make_unique<Private>()) {}
 
-MeshMaterial::~MeshMaterial() noexcept {}
+PhongTexturedMaterial::~PhongTexturedMaterial() noexcept {}
 
-MeshMaterial::MeshMaterial(const MeshMaterial& other) {
+PhongTexturedMaterial::PhongTexturedMaterial(const PhongTexturedMaterial& other) {
     *this = other;
 }
 
-MeshMaterial& MeshMaterial::operator=(const MeshMaterial& other) {
+PhongTexturedMaterial& PhongTexturedMaterial::operator=(const PhongTexturedMaterial& other) {
 
     if (this != &other)
         m_pPrivate = std::make_unique<Private>(*other.m_pPrivate);
@@ -39,11 +39,11 @@ MeshMaterial& MeshMaterial::operator=(const MeshMaterial& other) {
     return *this;
 }
 
-MeshMaterial::MeshMaterial(MeshMaterial&& other) noexcept {
+PhongTexturedMaterial::PhongTexturedMaterial(PhongTexturedMaterial&& other) noexcept {
     *this = std::move(other);
 }
 
-MeshMaterial& MeshMaterial::operator=(MeshMaterial&& other) noexcept {
+PhongTexturedMaterial& PhongTexturedMaterial::operator=(PhongTexturedMaterial&& other) noexcept {
 
     if (this != &other)
         m_pPrivate = std::exchange(other.m_pPrivate, nullptr);
@@ -51,7 +51,7 @@ MeshMaterial& MeshMaterial::operator=(MeshMaterial&& other) noexcept {
     return *this;
 }
 
-void MeshMaterial::apply(ShaderProgram* pShader) const {
+void PhongTexturedMaterial::apply(ShaderProgram* pShader) const {
 
     if (!pShader)
         return;
@@ -95,62 +95,62 @@ void MeshMaterial::apply(ShaderProgram* pShader) const {
     pShader->set("wireframe", m_pPrivate->m_wireframe);
 }
 
-void MeshMaterial::wireframe(bool value) {
+void PhongTexturedMaterial::wireframe(bool value) {
     m_pPrivate->m_wireframe = value;
 }
 
-void MeshMaterial::diffuseMap(const Texture& value) {
+void PhongTexturedMaterial::diffuseMap(const Texture& value) {
     m_pPrivate->m_diffuseMap = value;
 }
 
-const std::optional<Texture>& MeshMaterial::diffuseMap() const {
+const std::optional<Texture>& PhongTexturedMaterial::diffuseMap() const {
     return m_pPrivate->m_diffuseMap;
 }
 
-std::optional<Texture>& MeshMaterial::diffuseMap() {
+std::optional<Texture>& PhongTexturedMaterial::diffuseMap() {
     return m_pPrivate->m_diffuseMap;
 }
 
-void MeshMaterial::specularMap(const Texture& value) {
+void PhongTexturedMaterial::specularMap(const Texture& value) {
     m_pPrivate->m_specularMap = value;
 }
 
-const std::optional<Texture>& MeshMaterial::specularMap() const {
+const std::optional<Texture>& PhongTexturedMaterial::specularMap() const {
     return m_pPrivate->m_specularMap;
 }
 
-std::optional<Texture>& MeshMaterial::specularMap() {
+std::optional<Texture>& PhongTexturedMaterial::specularMap() {
     return m_pPrivate->m_specularMap;
 }
 
-void MeshMaterial::emissiveMap(const Texture& value) {
+void PhongTexturedMaterial::emissiveMap(const Texture& value) {
     m_pPrivate->m_emissiveMap = value;
 }
 
-const std::optional<Texture>& MeshMaterial::emissiveMap() const {
+const std::optional<Texture>& PhongTexturedMaterial::emissiveMap() const {
     return m_pPrivate->m_emissiveMap;
 }
 
-std::optional<Texture>& MeshMaterial::emissiveMap() {
+std::optional<Texture>& PhongTexturedMaterial::emissiveMap() {
     return m_pPrivate->m_emissiveMap;
 }
 
-void MeshMaterial::shininess(float value) {
+void PhongTexturedMaterial::shininess(float value) {
     m_pPrivate->m_shininess = value;
 }
 
-void MeshMaterial::ambientIntensity(float value) {
+void PhongTexturedMaterial::ambientIntensity(float value) {
     m_pPrivate->m_ambientIntensity = value;
 }
 
-void MeshMaterial::diffuseIntensity(float value) {
+void PhongTexturedMaterial::diffuseIntensity(float value) {
     m_pPrivate->m_diffuseIntensity = value;
 }
 
-void MeshMaterial::emissiveIntensity(float value) {
+void PhongTexturedMaterial::emissiveIntensity(float value) {
     m_pPrivate->m_emissiveIntensity = value;
 }
 
-void MeshMaterial::specularIntensity(float value) {
+void PhongTexturedMaterial::specularIntensity(float value) {
     m_pPrivate->m_specularIntensity = value;
 }

@@ -4,6 +4,8 @@
 
 #include <memory>
 
+#include <glm/vec3.hpp>
+
 struct GLFWwindow;
 
 class Application {
@@ -22,8 +24,9 @@ public:
     bool setUp();
     void run();
 
-    void onProjectionChange(WindowCallbacks::ProjectionChange projection);
-    void onWireframeModeChange(bool wireframe);
+    void onProjectionChange(int projection);
+    void onWireframeModeChange(bool wireframe) const;
+    void onClearColorChange(const glm::vec3& clearColor);
 
 private:
     struct Private;

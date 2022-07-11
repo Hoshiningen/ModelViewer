@@ -16,6 +16,7 @@ struct OrbitalControls::Private {
 
     Camera* m_pCamera = nullptr;
 
+    bool m_navigationEnabled = true;
     bool m_leftDrag = false;
     bool m_rightDrag = false;
 };
@@ -54,6 +55,10 @@ void OrbitalControls::camera(Camera* pCamera) {
     m_pPrivate->m_pCamera = pCamera;
 }
 
+void OrbitalControls::navigationEnabled(bool isEnabled) {
+    m_pPrivate->m_navigationEnabled = isEnabled;
+}
+
 void OrbitalControls::FrameBufferSizeImpl(GLFWwindow*, int width, int height) {
 
     glViewport(0, 0, width, height);
@@ -63,6 +68,9 @@ void OrbitalControls::FrameBufferSizeImpl(GLFWwindow*, int width, int height) {
 }
 
 void OrbitalControls::CursorPositionImpl(GLFWwindow* pWindow, double xPos, double yPos) {
+
+    if (!m_pPrivate->m_navigationEnabled)
+        return;
 
     static auto [lastX, lastY] = std::make_tuple(static_cast<float>(xPos), static_cast<float>(yPos));
 
@@ -111,21 +119,17 @@ void OrbitalControls::KeyboardImpl(GLFWwindow* pWindow, int key, int scanCode, i
     if (key == GLFW_KEY_ESCAPE && action == GLFW_PRESS)
         glfwSetWindowShouldClose(pWindow, true);
 
-    // set perspective
-    if (key == GLFW_KEY_1 && action == GLFW_PRESS)
-        m_projectionChanged(ProjectionChange::Perspective);
+    if (key == GLFW_KEY_P && action == GLFW_PRESS)
+        m_projectionChanged(0);
 
-    // set orthographic
-    if (key == GLFW_KEY_2 && action == GLFW_PRESS)
-        m_projectionChanged(ProjectionChange::Orthographic);
+    if (key == GLFW_KEY_O && action == GLFW_PRESS)
+        m_projectionChanged(1);
 
-    // Turn wireframe on
-    if (key == GLFW_KEY_W && action == GLFW_PRESS)
-        m_wireframeModeChanged(true);
-
-    // Turn wireframe off
-    if (key == GLFW_KEY_S && action == GLFW_PRESS)
-        m_wireframeModeChanged(false);
+    static bool m_wireframe = false;
+    if (key == GLFW_KEY_W && action == GLFW_PRESS) {
+        m_wireframe = !m_wireframe;
+        m_wireframeChanged(m_wireframe);
+    }
 }
 
 void OrbitalControls::ScrollImpl(GLFWwindow*, double, double) {}

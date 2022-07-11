@@ -17,13 +17,13 @@ struct DirectionalLight {
 uniform DirectionalLight directionalLight;
 
 struct Material {
-    vec3 ambientColor;
+    vec4 ambientColor;
     float ambientIntensity;
 
-    vec3 diffuseColor;
+    vec4 diffuseColor;
     float diffuseIntensity;
 
-    vec3 specularColor;
+    vec4 specularColor;
     float specularIntensity;
     
     float shininess;
@@ -37,6 +37,7 @@ uniform bool includeDiffuse = false;
 uniform bool includeSpecular = false;
 
 uniform bool wireframe = false;
+uniform bool hasVertexColor = false;
 
 void main() {
  
@@ -58,25 +59,28 @@ void main() {
 
     vec3 scatteredLight; // ambient and diffuse light
     if (includeAmbient && !wireframe)
-        scatteredLight = ambientColor * material.ambientColor * material.ambientIntensity;
+        scatteredLight = ambientColor * material.ambientColor.rgb * material.ambientIntensity;
 
     if (includeDiffuse && !wireframe) {
         scatteredLight += directionalLight.color * lightAngle * directionalLight.intensity;
-        scatteredLight *= material.diffuseColor * material.diffuseIntensity;
+        scatteredLight *= material.diffuseColor.rgb * material.diffuseIntensity;
+
+        if (hasVertexColor)
+            scatteredLight *= fragIn.color.rgb;
     }
 
     vec3 reflectedLight; // specular highlights
     if (includeSpecular && !wireframe) {
         reflectedLight = directionalLight.color * specularAngle * directionalLight.intensity;
-        reflectedLight *= material.specularColor * material.specularIntensity;
+        reflectedLight *= material.specularColor.rgb * material.specularIntensity;
     }
 
     // Final pixel color
     vec3 pixelColor;
-    if (wireframe || (!includeAmbient && !includeDiffuse && !includeSpecular))
+    if ((wireframe || (!includeAmbient && !includeDiffuse && !includeSpecular)) && hasVertexColor)
         pixelColor = fragIn.color.rgb;
     else
-        pixelColor = min(fragIn.color.rgb * scatteredLight + reflectedLight, vec3(1.f));
+        pixelColor = min(scatteredLight + reflectedLight, vec3(1.f));
 
-    fragColor = vec4(pixelColor, fragIn.color.a);
+    fragColor = vec4(pixelColor, hasVertexColor ? fragIn.color.a : 1.f);
 }

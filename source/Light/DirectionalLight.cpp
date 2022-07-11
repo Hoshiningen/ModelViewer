@@ -2,9 +2,9 @@
 #include "Shader/ShaderProgram.hpp"
 
 struct DirectionalLight::Private {
-    glm::vec3 m_direction{ 0.f, -1.f, 0.f };
-    glm::vec3 m_color{ 1.f, 1.f, 1.f };
-    float m_intensity = 1.f;
+    glm::vec3 m_direction;
+    glm::vec3 m_color;
+    float m_intensity = 0.f;
 };
 
 

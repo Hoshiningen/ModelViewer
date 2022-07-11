@@ -47,8 +47,10 @@ Texture::Texture(const Texture& other) {
 
 Texture& Texture::operator=(const Texture& other) {
 
-    if (this != &other)
+    if (this != &other) {
+        destroy();
         m_pPrivate = std::make_unique<Private>(*other.m_pPrivate);
+    }
 
     return *this;
 }
@@ -59,8 +61,10 @@ Texture::Texture(Texture&& other) noexcept {
 
 Texture& Texture::operator=(Texture&& other) noexcept {
     
-    if (this != &other)
+    if (this != &other) {
+        destroy();
         m_pPrivate = std::exchange(other.m_pPrivate, nullptr);
+    }
 
     return *this;
 }
@@ -149,4 +153,10 @@ void Texture::initialize() {
 
 bool Texture::initialized() const {
     return m_pPrivate->m_initialized;
+}
+
+void Texture::destroy() const {
+
+    if (m_pPrivate && m_pPrivate->m_initialized)
+        glDeleteTextures(1, &m_pPrivate->m_id);
 }

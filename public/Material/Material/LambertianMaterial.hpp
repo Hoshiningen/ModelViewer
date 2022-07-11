@@ -4,7 +4,7 @@
 
 #include <memory>
 
-#include <glm/vec3.hpp>
+#include <glm/vec4.hpp>
 
 class ShaderProgram;
 
@@ -22,7 +22,7 @@ public:
     virtual void apply(ShaderProgram* pShader) const override;
 
     void diffuseIntensity(float value);
-    void diffuseColor(const glm::vec3& value);
+    void diffuseColor(const glm::vec4& value);
 
     virtual void wireframe(bool value) override;
 

@@ -20,6 +20,8 @@ public:
     Camera(Camera&& other) noexcept;
     Camera& operator=(Camera&& other) noexcept;
 
+    static glm::vec3 worldUp();
+
     glm::vec3 position() const;
     void position(const glm::vec3& value);
 
@@ -47,8 +49,6 @@ public:
     glm::vec3 forward() const;
     glm::vec3 right() const;
     glm::vec3 up() const;
-
-    glm::vec3 worldUp() const;
 
 protected:
     virtual glm::mat4 projection() const;

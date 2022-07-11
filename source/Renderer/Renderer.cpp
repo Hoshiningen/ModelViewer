@@ -10,10 +10,9 @@
 
 #include "Material/IMaterial.hpp"
 #include "Material/LambertianMaterial.hpp"
-#include "Material/MeshMaterial.hpp"
 #include "Material/PhongMaterial.hpp"
+#include "Material/PhongTexturedMaterial.hpp"
 #include "Material/SolidMaterial.hpp"
-#include "Material/SolidPointLineMaterial.hpp"
 
 #include "Shader/VertexAttribute.hpp"
 #include "Shader/ShaderProgram.hpp"
@@ -29,26 +28,22 @@
 namespace {
 std::vector<VertexAttribute> DefineAttributes(const VertexBuffered& geometry) {
 
-    const auto colors = geometry.colors();
-    const auto indices = geometry.indices();
-    const auto normals = geometry.normals();
-    const auto texels = geometry.texels();
-    const auto vertices = geometry.vertices();
-
     std::vector<VertexAttribute> attributes;
 
     // Construct attribute schematics
-    if (colors)
+    if (geometry.colors())
         attributes.emplace_back("color", 4, GL_FLOAT, GL_FALSE, sizeof(glm::vec4), 0);
 
-    if (normals)
+    if (geometry.normals())
         attributes.emplace_back("normal", 3, GL_FLOAT, GL_FALSE, sizeof(glm::vec3), 0);
 
-    if (texels)
+    if (geometry.texels())
         attributes.emplace_back("texel", 2, GL_FLOAT, GL_FALSE, sizeof(glm::uvec2), 0);
 
-    if (vertices)
+    if (geometry.vertices())
         attributes.emplace_back("position", 3, GL_FLOAT, GL_FALSE, sizeof(glm::vec3), 0);
+    else
+        std::cerr << "Error: Unable to define vertex positions for the given geometry.\n";
 
     return attributes;
 }
@@ -99,7 +94,7 @@ bool ConfigureAttributes(const VertexBuffered& geometry, const ShaderProgram* pP
     return true;
 }
 
-bool LoadBufferData(const VertexBuffered& geometry) {
+bool LoadBufferData(const VertexBuffered& geometry, const ShaderProgram* pProgram) {
 
     if (!geometry.initialized()) {
         std::cerr << "Error: Unable to load buffer data for geometry that isn't initialized.\n";
@@ -119,19 +114,20 @@ bool LoadBufferData(const VertexBuffered& geometry) {
 
     glBindVertexArray(geometry.id());
 
-    if (colors)
+    if (colors && pProgram->hasAttribute("color"))
         LoadBuffer(geometry.colorBufferId(), sizeof(glm::vec4) * colors->size(), colors->data());
 
-    if (normals)
+    if (normals && pProgram->hasAttribute("normal"))
         LoadBuffer(geometry.normalBufferId(), sizeof(glm::vec3) * normals->size(), normals->data());
 
-    if (texels)
+    if (texels && pProgram->hasAttribute("texel"))
         LoadBuffer(geometry.texelBufferId(), sizeof(glm::uvec2) * texels->size(), texels->data());
 
-    if (vertices)
+    if (vertices && pProgram->hasAttribute("position"))
         LoadBuffer(geometry.vertexBufferId(), sizeof(glm::vec3) * vertices->size(), vertices->data());
 
-    if (indices) {
+    // Don't push up any index data if we have no vertex positions.
+    if (indices && pProgram->hasAttribute("position")) {
         const GLsizeiptr bufferSize = sizeof(uint32_t) * indices->size();
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, geometry.indexBufferId());
         glBufferData(GL_ELEMENT_ARRAY_BUFFER, bufferSize, geometry.indices()->data(), GL_STATIC_DRAW);
@@ -142,40 +138,6 @@ bool LoadBufferData(const VertexBuffered& geometry) {
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
 
     return true;
-}
-
-void InitializeMaterial(const IMaterial& material) {
-
-    const MeshMaterial* pMaterial = dynamic_cast<const MeshMaterial*>(&material);
-    if (!pMaterial)
-        return;
-
-    const auto ConfigureTexture = [](const Texture& texture) {
-
-        glBindTexture(static_cast<GLenum>(texture.target()), texture.id());
-
-        if (texture.mipmap())
-            glGenerateMipmap(static_cast<GLenum>(texture.target()));
-
-        glTexParameteri(static_cast<GLenum>(texture.target()), GL_TEXTURE_MIN_FILTER, static_cast<GLint>(texture.minFilter()));
-        glTexParameteri(static_cast<GLenum>(texture.target()), GL_TEXTURE_MAG_FILTER, static_cast<GLint>(texture.magFilter()));
-        glTexParameteri(static_cast<GLenum>(texture.target()), GL_TEXTURE_WRAP_S, static_cast<GLint>(texture.wrapS()));
-        glTexParameteri(static_cast<GLenum>(texture.target()), GL_TEXTURE_WRAP_T, static_cast<GLint>(texture.wrapT()));
-
-        if (texture.wrapS() == Texture::Wrap::ClampToBorder || texture.wrapT() == Texture::Wrap::ClampToBorder)
-            glTexParameterfv(static_cast<GLenum>(texture.target()), GL_TEXTURE_BORDER_COLOR, texture.borderColor().data());
-        
-        glBindTexture(static_cast<GLenum>(texture.target()), 0);
-    };
-
-    if (auto& map = pMaterial->diffuseMap(); map && map->initialized())
-        ConfigureTexture(*map);
-
-    if (auto& map = pMaterial->emissiveMap(); map && map->initialized())
-        ConfigureTexture(*map);
-
-    if (auto& map = pMaterial->specularMap(); map && map->initialized())
-        ConfigureTexture(*map);
 }
 } // end unnamed namespace
 
@@ -224,21 +186,16 @@ std::unique_ptr<ShaderProgram> Renderer::Private::loadShaders(const std::filesys
 
 
 Renderer::Renderer()
-    : m_pPrivate(std::make_unique<Private>()) {
-
-    m_pPrivate->m_light.color(kWhite);
-    m_pPrivate->m_light.intensity(0.5f);
-}
+    : m_pPrivate(std::make_unique<Private>()) {}
 
 Renderer::~Renderer() {}
 
 void Renderer::setup() {
 
-    m_pPrivate->m_shaderCache.registerProgram<MeshMaterial>(m_pPrivate->loadShaders("glsl/mesh.vert", "glsl/mesh.frag"));
+    m_pPrivate->m_shaderCache.registerProgram<PhongTexturedMaterial>(m_pPrivate->loadShaders("glsl/phongTextured.vert", "glsl/phongTextured.frag"));
     m_pPrivate->m_shaderCache.registerProgram<LambertianMaterial>(m_pPrivate->loadShaders("glsl/phong.vert", "glsl/phong.frag"));
-    m_pPrivate->m_shaderCache.registerProgram<PhongMaterial>(m_pPrivate->m_shaderCache.get<LambertianMaterial>());
-    m_pPrivate->m_shaderCache.registerProgram<SolidMaterial>(m_pPrivate->m_shaderCache.get<LambertianMaterial>());
-    m_pPrivate->m_shaderCache.registerProgram<SolidPointLineMaterial>(m_pPrivate->m_shaderCache.get<LambertianMaterial>());
+    m_pPrivate->m_shaderCache.registerProgram<PhongMaterial>(m_pPrivate->loadShaders("glsl/phong.vert", "glsl/phong.frag"));
+    m_pPrivate->m_shaderCache.registerProgram<SolidMaterial>(m_pPrivate->loadShaders("glsl/phong.vert", "glsl/phong.frag"));
 
     glEnable(GL_DEPTH_TEST);
     glEnable(GL_MULTISAMPLE);
@@ -250,28 +207,6 @@ void Renderer::setup() {
 
 void Renderer::camera(Camera* pCamera) {
     m_pPrivate->m_pCamera = pCamera;
-}
-
-bool Renderer::initialize(VertexBuffered& geometry, const IMaterial& material) const {
-
-    if (geometry.initialized())
-        return false;
-
-    ShaderProgram* pShader = m_pPrivate->m_shaderCache.get(material);
-    if (!pShader)
-        return false;
-
-    geometry.initialize();
-
-    if (!ConfigureAttributes(geometry, pShader))
-        return false;
-
-    if (!LoadBufferData(geometry))
-        return false;
-
-    InitializeMaterial(material);
-
-    return true;
 }
 
 void Renderer::draw(const VertexBuffered& geometry, const IMaterial& material) const {
@@ -310,4 +245,57 @@ void Renderer::draw(const VertexBuffered& geometry, const IMaterial& material) c
         glDrawArrays(static_cast<GLenum>(primitive), 0, vertices->size());
 
     glBindVertexArray(0);
+}
+
+void Renderer::draw(const std::forward_list<VertexBuffered>& model, const IMaterial& material) const {
+
+    for (const VertexBuffered& geometry : model)
+        draw(geometry, material);
+}
+
+void Renderer::onTextureLoaded(const Texture& texture) const {
+
+    if (!texture.initialized())
+        return;
+
+    glBindTexture(static_cast<GLenum>(texture.target()), texture.id());
+
+    if (texture.mipmap())
+        glGenerateMipmap(static_cast<GLenum>(texture.target()));
+
+    glTexParameteri(static_cast<GLenum>(texture.target()), GL_TEXTURE_MIN_FILTER, static_cast<GLint>(texture.minFilter()));
+    glTexParameteri(static_cast<GLenum>(texture.target()), GL_TEXTURE_MAG_FILTER, static_cast<GLint>(texture.magFilter()));
+    glTexParameteri(static_cast<GLenum>(texture.target()), GL_TEXTURE_WRAP_S, static_cast<GLint>(texture.wrapS()));
+    glTexParameteri(static_cast<GLenum>(texture.target()), GL_TEXTURE_WRAP_T, static_cast<GLint>(texture.wrapT()));
+
+    if (texture.wrapS() == Texture::Wrap::ClampToBorder || texture.wrapT() == Texture::Wrap::ClampToBorder)
+        glTexParameterfv(static_cast<GLenum>(texture.target()), GL_TEXTURE_BORDER_COLOR, texture.borderColor().data());
+
+    glBindTexture(static_cast<GLenum>(texture.target()), 0);
+}
+
+void Renderer::onModelLoaded(const IMaterial* pMaterial, std::forward_list<VertexBuffered>* pModel) const {
+
+    if (!pMaterial || !pModel)
+        return;
+
+    ShaderProgram* pProgram = m_pPrivate->m_shaderCache.get(*pMaterial);
+    if (!pProgram)
+        return;
+
+    for (VertexBuffered& geometry : *pModel) {
+
+        // Create any buffers that need to be created.
+        geometry.initialize();
+
+        if (!ConfigureAttributes(geometry, pProgram))
+            return;
+
+        if (!LoadBufferData(geometry, pProgram))
+            return;
+    }
+}
+
+void Renderer::onLightChanged(const DirectionalLight& light) const {
+    m_pPrivate->m_light = light;
 }

@@ -23,6 +23,7 @@ public:
     OrbitalControls& operator=(OrbitalControls&& other) noexcept = delete;
 
     void camera(Camera* pCamera);
+    void navigationEnabled(bool isEnabled);
 
 protected:
     virtual void FrameBufferSizeImpl(GLFWwindow* pWindow, int width, int height) override;
