@@ -76,6 +76,8 @@ public:
     void initialize();
     bool initialized() const;
 
+    void destroy() const;
+
 private:
     struct Private;
     std::unique_ptr<Private> m_pPrivate;

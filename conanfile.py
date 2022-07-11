@@ -9,7 +9,8 @@ class ModelViewerRecipe(ConanFile):
         "nlohmann_json/3.10.5",
         "sigslot/1.2.1",
         "assimp/5.2.2",
-        "stb/cci.20200203"
+        "stb/cci.20200203",
+        "imgui/cci.20220621+1.88.docking"
     )
     generators = "cmake_multi"
 
@@ -17,3 +18,10 @@ class ModelViewerRecipe(ConanFile):
         cmake = CMake(self)
         cmake.configure()
         cmake.build()
+
+    def imports(self):
+        self.copy("imgui_impl_glfw.h", src="./res/bindings", dst="../bindings")
+        self.copy("imgui_impl_glfw.cpp", src="./res/bindings", dst="../bindings")
+        self.copy("imgui_impl_opengl3_loader.h", src="./res/bindings", dst="../bindings")
+        self.copy("imgui_impl_opengl3.h", src="./res/bindings", dst="../bindings")
+        self.copy("imgui_impl_opengl3.cpp", src="./res/bindings", dst="../bindings")

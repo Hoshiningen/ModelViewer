@@ -4,7 +4,7 @@
 
 #include <memory>
 
-#include <glm/vec3.hpp>
+#include <glm/vec4.hpp>
 
 class ShaderProgram;
 
@@ -21,7 +21,9 @@ public:
 
     virtual void apply(ShaderProgram* pShader) const override;
 
-    void color(const glm::vec3& value);
+    void color(const glm::vec4& value);
+    glm::vec4 color() const;
+
     virtual void wireframe(bool value) override {}
 
 private:

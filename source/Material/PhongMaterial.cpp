@@ -2,16 +2,16 @@
 #include "Shader/ShaderProgram.hpp"
 
 struct PhongMaterial::Private {
-    glm::vec3 m_ambientColor{ 1.f, 1.f, 1.f };
-    float m_ambientIntensity = 1.f;
+    glm::vec4 m_ambientColor;
+    float m_ambientIntensity = 0.f;
 
-    glm::vec3 m_diffuseColor{ 1.f, 1.f, 1.f };
-    float m_diffuseIntensity = 1.f;
+    glm::vec4 m_diffuseColor;
+    float m_diffuseIntensity = 0.f;
 
-    glm::vec3 m_specularColor{ 1.f, 1.f, 1.f };
-    float m_specularIntensity = 1.f;
+    glm::vec4 m_specularColor;
+    float m_specularIntensity = 0.f;
 
-    float m_shininess = 32.f;
+    float m_shininess = 0.f;
 
     bool m_wireframe = false;
 };
@@ -66,7 +66,7 @@ void PhongMaterial::apply(ShaderProgram* pShader) const {
     pShader->set("wireframe", m_pPrivate->m_wireframe);
 }
 
-void PhongMaterial::ambientColor(const glm::vec3& value) {
+void PhongMaterial::ambientColor(const glm::vec4& value) {
     m_pPrivate->m_ambientColor = value;
 }
 
@@ -74,7 +74,7 @@ void PhongMaterial::ambientIntensity(float value) {
     m_pPrivate->m_ambientIntensity = value;
 }
 
-void PhongMaterial::diffuseColor(const glm::vec3& value) {
+void PhongMaterial::diffuseColor(const glm::vec4& value) {
     m_pPrivate->m_diffuseColor = value;
 }
 
@@ -82,7 +82,7 @@ void PhongMaterial::diffuseIntensity(float value){
     m_pPrivate->m_diffuseIntensity = value;
 }
 
-void PhongMaterial::specularColor(const glm::vec3& value) {
+void PhongMaterial::specularColor(const glm::vec4& value) {
     m_pPrivate->m_specularColor = value;
 }
 

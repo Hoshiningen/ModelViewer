@@ -3,8 +3,8 @@
 #include "Shader/ShaderProgram.hpp"
 
 struct LambertianMaterial::Private {
-    glm::vec3 m_diffuseColor{ 1.f, 1.f, 1.f };
-    float m_diffuseIntensity = 1.f;
+    glm::vec4 m_diffuseColor;
+    float m_diffuseIntensity = 0.f;
 
     bool m_wireframe = false;
 };
@@ -46,7 +46,9 @@ void LambertianMaterial::apply(ShaderProgram* pShader) const {
     pShader->set("material.diffuseColor", m_pPrivate->m_diffuseColor);
     pShader->set("material.diffuseIntensity", m_pPrivate->m_diffuseIntensity);
 
+    pShader->set("includeAmbient", false);
     pShader->set("includeDiffuse", true);
+    pShader->set("includeSpecular", false);
 
     pShader->set("wireframe", m_pPrivate->m_wireframe);
 }
@@ -55,7 +57,7 @@ void LambertianMaterial::diffuseIntensity(float value) {
     m_pPrivate->m_diffuseIntensity = value;
 }
 
-void LambertianMaterial::diffuseColor(const glm::vec3& value) {
+void LambertianMaterial::diffuseColor(const glm::vec4& value) {
     m_pPrivate->m_diffuseColor = value;
 }
 

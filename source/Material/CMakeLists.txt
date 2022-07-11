@@ -1,18 +1,16 @@
 set(SOURCES
     LambertianMaterial.cpp
-    MeshMaterial.cpp
     PhongMaterial.cpp
+    PhongTexturedMaterial.cpp
     SolidMaterial.cpp
-    SolidPointLineMaterial.cpp
 )
 
 set(INCLUDES
     ${PUBLIC_DIR}/Material/Material/IMaterial.hpp
     ${PUBLIC_DIR}/Material/Material/LambertianMaterial.hpp
-    ${PUBLIC_DIR}/Material/Material/MeshMaterial.hpp
     ${PUBLIC_DIR}/Material/Material/PhongMaterial.hpp
+    ${PUBLIC_DIR}/Material/Material/PhongTexturedMaterial.hpp
     ${PUBLIC_DIR}/Material/Material/SolidMaterial.hpp
-    ${PUBLIC_DIR}/Material/Material/SolidPointLineMaterial.hpp
 )
 
 add_library(Material ${SOURCES} ${INCLUDES})

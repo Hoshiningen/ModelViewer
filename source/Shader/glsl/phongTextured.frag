@@ -49,7 +49,7 @@ vec3 ComputeScatteredLight(float lightAngle) {
 
     if (material.hasDiffuse) {
         vec3 diffuseColor = directionalLight.color * lightAngle * directionalLight.intensity;
-        diffuseColor += texture(material.diffuseMap, fragIn.texel).rgb * material.diffuseIntensity;
+        diffuseColor *= texture(material.diffuseMap, fragIn.texel).rgb * material.diffuseIntensity;
         
         color += diffuseColor;
     }

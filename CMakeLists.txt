@@ -5,6 +5,7 @@ include(${CMAKE_BINARY_DIR}/conanbuildinfo_multi.cmake)
 conan_basic_setup(TARGETS)
 
 set(PUBLIC_DIR ${CMAKE_CURRENT_SOURCE_DIR}/public)
+set(IMGUI_BINDINGS_DIR ${CMAKE_CURRENT_SOURCE_DIR}/bindings)
 
 set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 

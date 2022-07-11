@@ -9,16 +9,16 @@
 
 class Texture;
 
-class MeshMaterial : public IMaterial{
+class PhongTexturedMaterial : public IMaterial{
 public:
-    MeshMaterial();
-    virtual ~MeshMaterial() noexcept;
+    PhongTexturedMaterial();
+    virtual ~PhongTexturedMaterial() noexcept;
 
-    MeshMaterial(const MeshMaterial& other);
-    MeshMaterial& operator=(const MeshMaterial& other);
+    PhongTexturedMaterial(const PhongTexturedMaterial& other);
+    PhongTexturedMaterial& operator=(const PhongTexturedMaterial& other);
 
-    MeshMaterial(MeshMaterial&& other) noexcept;
-    MeshMaterial& operator=(MeshMaterial&& other) noexcept;
+    PhongTexturedMaterial(PhongTexturedMaterial&& other) noexcept;
+    PhongTexturedMaterial& operator=(PhongTexturedMaterial&& other) noexcept;
 
     virtual void apply(ShaderProgram* pShader) const override;
     virtual void wireframe(bool value) override;

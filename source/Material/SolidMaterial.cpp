@@ -3,9 +3,7 @@
 #include "Shader/ShaderProgram.hpp"
 
 struct SolidMaterial::Private {
-    glm::vec3 m_color;
-
-    bool m_wireframe = false;
+    glm::vec4 m_color;
 };
 
 
@@ -43,9 +41,15 @@ void SolidMaterial::apply(ShaderProgram* pShader) const {
     if (!pShader)
         return;
 
-    pShader->set("material.color", m_pPrivate->m_color);
+    pShader->set("includeAmbient", false);
+    pShader->set("includeDiffuse", false);
+    pShader->set("includeSpecular", false);
 }
 
-void SolidMaterial::color(const glm::vec3& value) {
+void SolidMaterial::color(const glm::vec4& value) {
     m_pPrivate->m_color = value;
+}
+
+glm::vec4 SolidMaterial::color() const {
+    return m_pPrivate->m_color;
 }

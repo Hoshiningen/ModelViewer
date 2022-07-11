@@ -142,7 +142,7 @@ glm::vec3 Camera::up() const {
     return glm::normalize(glm::cross(right(), forward()));
 }
 
-glm::vec3 Camera::worldUp() const {
+glm::vec3 Camera::worldUp() {
     static const glm::vec3 kUp{ 0.f, 1.f, 0.f };
     return kUp;
 }
