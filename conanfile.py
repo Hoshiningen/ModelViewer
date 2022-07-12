@@ -1,7 +1,7 @@
-from conans import ConanFile, CMake
+from conans import ConanFile, CMake, tools
 
 class ModelViewerRecipe(ConanFile):
-    settings = "os", "compiler", "build_type", "arch"
+    settings = "cppstd", "os", "compiler", "build_type", "arch"
     requires = (
         "glad/0.1.34",
         "glm/0.9.9.8",
@@ -13,6 +13,10 @@ class ModelViewerRecipe(ConanFile):
         "imgui/cci.20220621+1.88.docking"
     )
     generators = "cmake_multi"
+
+    def validate(self):
+        if not tools.valid_min_cppstd(self, "20"):
+            self.output.error("C++20 is required.")
 
     def build(self):
         cmake = CMake(self)
