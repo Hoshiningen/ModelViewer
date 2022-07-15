@@ -1,14 +1,12 @@
-name:  'Windows'
+# Currently disabled to fix later need to install libgl-dev and maybe other dependencies.
+
+name:  'Linux'
 on:
   workflow_dispatch:
-  pull_request:
-    branches: [ master ]
-  push:
-    branches: [ master ]
 
 jobs:
   build:
-    runs-on: windows-latest
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
 
@@ -22,10 +20,9 @@ jobs:
         run: |
           conan config set general.default_package_id_mode=full_version_mode
           conan profile new default --detect
-          conan profile update settings.compiler="Visual Studio" default
-          conan profile update settings.compiler.version=17 default
+          conan profile update settings.compiler=gcc default
+          conan profile update settings.compiler.version=9 default
           conan profile update settings.compiler.cppstd=20 default
-          conan profile update settings.compiler.toolset=v143 default
 
       # Just build all dependencies on every build.
       - name: Install Dependencies
