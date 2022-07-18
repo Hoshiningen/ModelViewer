@@ -1,5 +1,7 @@
 #pragma once
 
+#include "Common/ClassMacros.hpp"
+
 #include "Geometry/VertexBuffered.hpp"
 
 #include <glm/vec3.hpp>
@@ -10,12 +12,8 @@ public:
 
     virtual ~Line() noexcept = default;
 
-    Line(const Line& other);
-    Line& operator=(const Line& other);
+    COPY_MOVE_ENABLED(Line)
 
-    Line(Line&& other) noexcept;
-    Line& operator=(Line&& other) noexcept;
-
-    glm::vec3 start() const;
-    glm::vec3 end() const;
+    DECLARE_GETTER_IMMUTABLE_COPY(start, glm::vec3)
+    DECLARE_GETTER_IMMUTABLE_COPY(end, glm::vec3)
 };

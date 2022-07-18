@@ -3,6 +3,9 @@
 #include "Camera/OrthographicCamera.hpp"
 #include "Camera/PerspectiveCamera.hpp"
 
+#include "Common/IRestorable.hpp"
+#include "Common/SignalMacros.hpp"
+
 #include "Controls/OrbitalControls.hpp"
 
 #include "Geometry/Box.hpp"
@@ -25,6 +28,7 @@
 #include "UI/ModelLoaderDialog.hpp"
 #include "UI/ScenePropertiesDialog.hpp"
 
+#include <fstream>
 #include <iostream>
 #include <string>
 #include <tuple>
@@ -40,22 +44,40 @@
 #include <imgui_impl_opengl3.h>
 
 namespace {
+static constexpr const char* kSettingsFileName = "settings.json";
 static constexpr ImGuiWindowFlags kWindowFlags = ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoCollapse;
 } // end unnamed namespace
 
-struct Application::Private {
+struct Application::Private : private IRestorable {
     Private();
+    
+    // Ensures API shutdown happens after everything has been destroyed.
+    static struct Destructor {
+        ~Destructor();
+    } kDestructor;
 
     void render();
     void update();
 
     GLFWwindow* createWindow(const glm::ivec2& dimensions, const std::string& title);
 
-    std::vector<Line> debugFrustum(const OrthographicCamera* pCamera) const;
-    std::vector<Line> debugFrustum(const PerspectiveCamera* pCamera) const;
+    // Inherited via IRestorable
+    virtual std::string_view id() const override;
+    virtual nlohmann::json save() const override;
+    virtual void restore(const nlohmann::json& settings) override;
 
-    void drawOrthographicFrustrum(OrthographicCamera* pCamera, Renderer* pRenderer) const;
-    void drawPerspectiveFrustrum(PerspectiveCamera* pCamera, Renderer* pRenderer) const;
+    // Signals
+    DEFINE_CONNECTION(m_signalInitialized, ApplicationInitialized)
+
+    // Handlers
+    void onClearColorChange(const glm::vec3& clearColor);
+    void onProjectionChange(int projection);
+    void onWireframeModeChange(bool wireframe) const;
+
+    void onInitialized();
+
+public:
+    sigslot::signal<> m_signalInitialized;
 
     Renderer m_renderer;
     std::unique_ptr<Camera> m_pCamera;
@@ -78,10 +100,10 @@ struct Application::Private {
 
     glm::vec4 m_clearColor{ 0.f, 0.f, 0.f, 1.f };
 
-    // Ensures API shutdown happens after everything has been destroyed.
-    static struct Destructor {
-        ~Destructor();
-    } kDestructor;
+    glm::vec2 m_windowSize{ 800, 600 };
+    glm::vec2 m_windowPosition{ 800, 600 };
+
+    bool m_windowMaximized = false;
 };
 
 Application::Private::Private()
@@ -90,21 +112,46 @@ Application::Private::Private()
       m_lightPropDialog("Light Properties", kWindowFlags),
       m_scenePropDialog("Scene Properties", kWindowFlags) {
 
-    m_loaderDialog.connectModelLoaded([this](std::forward_list<VertexBuffered>* pModel) {
-        m_pActiveModel = pModel;
+    // Camera setup
+    m_pCamera = [this] {
+        std::unique_ptr<PerspectiveCamera> pCamera = std::make_unique<PerspectiveCamera>();
+        pCamera->aspectRatio(m_windowSize.x / m_windowSize.y);
+        pCamera->fovY(glm::radians(45.f));
+        pCamera->far(150.f);
+        pCamera->near(0.01f);
+        pCamera->position({ 0.f, 0.f, 5.f });
 
-        m_renderer.onModelLoaded(m_pActiveMaterial, m_pActiveModel);
-        m_materialPropDialog.onModelLoaded(m_pActiveModel);
-        m_lightPropDialog.onModelLoaded(m_pActiveModel);
+        return std::move(pCamera);
+    }();
+
+    m_callbacks.camera(m_pCamera.get());
+
+    m_persp = *static_cast<PerspectiveCamera*>(m_pCamera.get());
+    m_ortho = m_persp;
+
+    // Signals
+    connectApplicationInitialized(&Application::Private::onInitialized, this);
+    
+    m_callbacks.connectWindowMaximized([this](bool maximized) {
+        m_windowMaximized = maximized;
     });
 
-    m_materialPropDialog.connectMaterialSelected([this](IMaterial* pMaterial) {
-        m_pActiveMaterial = pMaterial;
-        m_renderer.onModelLoaded(m_pActiveMaterial, m_pActiveModel);
+    m_callbacks.connectWindowSizeChanged([this](const glm::ivec2& size) {
+        m_windowSize = size;
     });
 
-    m_materialPropDialog.connectTextureLoaded(&Renderer::onTextureLoaded, &m_renderer);
-    m_lightPropDialog.connectLightChanged(&Renderer::onLightChanged, &m_renderer);
+    m_callbacks.connectWindowPositionChanged([this](const glm::ivec2& position) {
+        m_windowPosition = position;
+    });
+}
+
+Application::Private::Destructor::~Destructor() {
+
+    ImGui_ImplOpenGL3_Shutdown();
+    ImGui_ImplGlfw_Shutdown();
+    ImGui::DestroyContext();
+
+    glfwTerminate();
 }
 
 void Application::Private::render() {
@@ -159,179 +206,163 @@ GLFWwindow* Application::Private::createWindow(const glm::ivec2& dimensions, con
     return pWindow;
 }
 
-std::vector<Line> Application::Private::debugFrustum(const OrthographicCamera* pCamera) const {
-
-    const float farZ = (pCamera->position() + pCamera->forward() * pCamera->far()).z * 0.1f;
-    const float nearZ = (pCamera->position() + pCamera->forward() * pCamera->near()).z;
-
-    const glm::vec3 farTopLeft{ pCamera->leftExtent(), pCamera->topExtent(), farZ };
-    const glm::vec3 farTopRight{ pCamera->rightExtent(), pCamera->topExtent(), farZ };
-    const glm::vec3 farBottomLeft{ pCamera->leftExtent(), pCamera->bottomExtent(), farZ };
-    const glm::vec3 farBottomRight{ pCamera->rightExtent(), pCamera->bottomExtent(), farZ };
-
-    const glm::vec3 nearTopLeft{ pCamera->leftExtent(), pCamera->topExtent(), nearZ };
-    const glm::vec3 nearTopRight{ pCamera->rightExtent(), pCamera->topExtent(), nearZ };
-    const glm::vec3 nearBottomLeft{ pCamera->leftExtent(), pCamera->bottomExtent(), nearZ };
-    const glm::vec3 nearBottomRight{ pCamera->rightExtent(), pCamera->bottomExtent(), nearZ };
-
-    std::vector<Line> lines;
-
-    // Frustum lines
-    lines.emplace_back(nearBottomLeft, farBottomLeft);
-    lines.emplace_back(nearBottomRight, farBottomRight);
-    lines.emplace_back(nearTopRight, farTopRight);
-    lines.emplace_back(nearTopLeft, farTopLeft);
-
-    // Far endcap
-    lines.emplace_back(farTopLeft, farTopRight);
-    lines.emplace_back(farTopRight, farBottomRight);
-    lines.emplace_back(farBottomRight, farBottomLeft);
-    lines.emplace_back(farBottomLeft, farTopLeft);
-
-    // Near endcap
-    lines.emplace_back(nearTopLeft, nearTopRight);
-    lines.emplace_back(nearTopRight, nearBottomRight);
-    lines.emplace_back(nearBottomRight, nearBottomLeft);
-    lines.emplace_back(nearBottomLeft, nearTopLeft);
-
-    return lines;
-};
-
-std::vector<Line> Application::Private::debugFrustum(const PerspectiveCamera* pCamera) const {
-
-    const glm::vec3 eyePoint = pCamera->position();
-
-    const auto ComputeOffsets2D = [&eyePoint, pCamera](float distFromCamera, float scalar = 1.f) {
-
-        const glm::vec3 point = (eyePoint + pCamera->forward() * distFromCamera) * scalar;
-        const float len = glm::length(point - eyePoint);
-
-        const float yOffset = len * glm::tan(pCamera->fovY() / 2);
-        const float xOffset = yOffset * pCamera->aspectRatio();
-
-        return std::make_tuple(xOffset, yOffset, point.z);
-    };
-
-    const auto MakeBox = [&ComputeOffsets2D](float distFromCamera, float scalar = 1.f) {
-
-        struct Box {
-            glm::vec3 bottomLeft;
-            glm::vec3 bottomRight;
-            glm::vec3 topRight;
-            glm::vec3 topLeft;
-        } box;
-
-        const auto [xOffset, yOffset, z] = ComputeOffsets2D(distFromCamera, scalar);
-
-        box.bottomLeft = { -xOffset, -yOffset, z };
-        box.bottomRight = { xOffset, -yOffset, z };
-        box.topRight = { xOffset, yOffset, z };
-        box.topLeft = { -xOffset, yOffset, z };
-
-        return box;
-    };
-
-    const auto farBox = MakeBox(pCamera->far(), 0.1f);
-    const auto originBox = MakeBox(glm::length(pCamera->target() - eyePoint));
-    const auto nearBox = MakeBox(pCamera->near());
-
-    std::vector<Line> lines;
-
-    // Frustum lines
-    lines.emplace_back(eyePoint, farBox.bottomLeft);
-    lines.emplace_back(eyePoint, farBox.bottomRight);
-    lines.emplace_back(eyePoint, farBox.topRight);
-    lines.emplace_back(eyePoint, farBox.topLeft);
-
-    // Far endcap
-    lines.emplace_back(farBox.topLeft, farBox.topRight);
-    lines.emplace_back(farBox.topRight, farBox.bottomRight);
-    lines.emplace_back(farBox.bottomRight, farBox.bottomLeft);
-    lines.emplace_back(farBox.bottomLeft, farBox.topLeft);
-
-    // Near endcap
-    lines.emplace_back(nearBox.topLeft, nearBox.topRight);
-    lines.emplace_back(nearBox.topRight, nearBox.bottomRight);
-    lines.emplace_back(nearBox.bottomRight, nearBox.bottomLeft);
-    lines.emplace_back(nearBox.bottomLeft, nearBox.topLeft);
-
-    return lines;
-};
-
-void Application::Private::drawPerspectiveFrustrum(PerspectiveCamera* pCamera, Renderer* pRenderer) const {
-
-    if (!pCamera || !pRenderer)
-        return;
-
-    static SolidMaterial lineMaterial = [] {
-        SolidMaterial mat;
-        mat.color({1.f, 0.f, 1.f, 1.f});
-
-        return mat;
-    }();
-
-    for (const Line& line : debugFrustum(pCamera))
-        pRenderer->draw(line, lineMaterial);
+std::string_view Application::Private::id() const {
+    return "Application";
 }
 
-void Application::Private::drawOrthographicFrustrum(OrthographicCamera* pCamera, Renderer* pRenderer) const {
+nlohmann::json Application::Private::save() const {
 
-    if (!pCamera || !pRenderer)
-        return;
+    nlohmann::json json;
+    nlohmann::json& obj = json[id().data()];
 
-    static SolidMaterial lineMaterial = [] {
-        SolidMaterial mat;
-        mat.color({ 0.f, 1.f, 1.f, 1.f });
+    obj["windowSize"] = m_windowSize;
+    obj["windowPosition"] = m_windowPosition;
+    obj["windowMaximized"] = m_windowMaximized;
 
-        return mat;
-    }();
+    if (const auto json = m_lightPropDialog.save(); json.is_object())
+        obj.update(json);
 
-   for (const Line& line : debugFrustum(pCamera))
-       pRenderer->draw(line, lineMaterial);
+    if (const auto json = m_loaderDialog.save(); json.is_object())
+        obj.update(json);
+
+    if (const auto json = m_materialPropDialog.save(); json.is_object())
+        obj.update(json);
+
+    if (const auto json = m_scenePropDialog.save(); json.is_object())
+        obj.update(json);
+
+    return json;
 }
 
-Application::Private::Destructor::~Destructor() {
+void Application::Private::restore(const nlohmann::json& settings) {
+
+    if (settings.is_null() || !settings.is_object())
+        return;
+
+    if (settings.contains("windowSize"))
+        settings["windowSize"].get_to(m_windowSize);
+
+    if (settings.contains("windowPosition"))
+        settings["windowPosition"].get_to(m_windowPosition);
+
+    if (settings.contains("windowMaximized"))
+        settings["windowMaximized"].get_to(m_windowMaximized);
+
+    if (settings.contains(m_lightPropDialog.id()))
+        m_lightPropDialog.restore(settings.at(m_lightPropDialog.id().data()));
+
+    if (settings.contains(m_loaderDialog.id()))
+        m_loaderDialog.restore(settings.at(m_loaderDialog.id().data()));
+
+    if (settings.contains(m_materialPropDialog.id()))
+        m_materialPropDialog.restore(settings.at(m_materialPropDialog.id().data()));
+
+    if (settings.contains(m_scenePropDialog.id()))
+        m_scenePropDialog.restore(settings.at(m_scenePropDialog.id().data()));
+
+    if (m_windowMaximized)
+        glfwMaximizeWindow(m_pWindow);
+
+    glfwSetWindowSize(m_pWindow, m_windowSize.x, m_windowSize.y);
+    glfwSetWindowPos(m_pWindow, m_windowPosition.x, m_windowPosition.y);
+    glViewport(0, 0, m_windowSize.x, m_windowSize.y);
+}
+
+void Application::Private::onProjectionChange(int projection) {
+
+    if (projection == ScenePropertiesDialog::Projection::eOrthographic) {
+
+        const PerspectiveCamera* pCamera = dynamic_cast<const PerspectiveCamera*>(m_pCamera.get());
+        if (pCamera) {
+            m_pCamera = std::make_unique<OrthographicCamera>(*pCamera);
+            m_callbacks.camera(m_pCamera.get());
+            m_renderer.camera(m_pCamera.get());
+        }
+    }
+
+    if (projection == ScenePropertiesDialog::Projection::ePerspective) {
+
+        const OrthographicCamera* pCamera = dynamic_cast<const OrthographicCamera*>(m_pCamera.get());
+        if (pCamera) {
+            m_pCamera = std::make_unique<PerspectiveCamera>(*pCamera);
+            m_callbacks.camera(m_pCamera.get());
+            m_renderer.camera(m_pCamera.get());
+        }
+    }
+}
+
+void Application::Private::onWireframeModeChange(bool wireframe) const {
+
+    if (wireframe)
+        glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+    else
+        glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+}
+
+void Application::Private::onClearColorChange(const glm::vec3& clearColor) {
+
+    m_clearColor.r = clearColor.r;
+    m_clearColor.g = clearColor.g;
+    m_clearColor.b = clearColor.b;
+}
+
+void Application::Private::onInitialized() {
+
+    m_loaderDialog.connectModelLoaded([this](std::forward_list<VertexBuffered>* pModel) {
+        m_pActiveModel = pModel;
+
+        m_renderer.onModelLoaded(m_pActiveMaterial, m_pActiveModel);
+        m_materialPropDialog.onModelLoaded(m_pActiveModel);
+        m_lightPropDialog.onModelLoaded(m_pActiveModel);
+    });
+
+    m_materialPropDialog.connectMaterialSelected([this](IMaterial* pMaterial) {
+        m_pActiveMaterial = pMaterial;
+        m_renderer.onModelLoaded(m_pActiveMaterial, m_pActiveModel);
+    });
+
+    m_materialPropDialog.connectTextureLoaded(&Renderer::onTextureLoaded, &m_renderer);
+    m_lightPropDialog.connectLightChanged(&Renderer::onLightChanged, &m_renderer);
+
+    m_scenePropDialog.connectClearColorChanged(&Application::Private::onClearColorChange, this);
     
-    ImGui_ImplOpenGL3_Shutdown();
-    ImGui_ImplGlfw_Shutdown();
-    ImGui::DestroyContext();
+    m_callbacks.connectProjectionChanged(&Application::Private::onProjectionChange, this);
+    m_callbacks.connectProjectionChanged(&ScenePropertiesDialog::onProjectionChange, &m_scenePropDialog);
+    
+    m_callbacks.connectWireframeChanged(&Application::Private::onWireframeModeChange, this);
+    m_callbacks.connectWireframeChanged(&ScenePropertiesDialog::onWireframeModeChange, &m_scenePropDialog);
+    
+    m_callbacks.connectApplicationSaved([this] {
+        std::ofstream file{ kSettingsFileName };
+        file << save();
+    });
 
-    glfwTerminate();
+    // Restore application settings
+    if (std::filesystem::is_regular_file(kSettingsFileName) && std::filesystem::file_size(kSettingsFileName) > 0) {
+
+        std::ifstream file{ kSettingsFileName };
+        nlohmann::json settings;
+        file >> settings;
+
+        try {
+            if (settings.is_object() && settings.contains(id()))
+                restore(settings.at(id().data()));
+        }
+        catch (nlohmann::detail::type_error& error) {
+            std::cerr << error.what();
+        }
+        catch (nlohmann::detail::out_of_range& error) {
+            std::cerr << error.what();
+        }
+        catch (nlohmann::detail::other_error& error) {
+            std::cerr << "An unknown nlohmann error occurred.\n";
+        }
+    }
 }
 
 
 Application::Application()
-    : m_pPrivate(std::make_unique<Private>()) {
-
-    const float width = 800.f;
-    const float height = 600.f;
-
-    m_pPrivate->m_pCamera = [&width, &height] {
-        std::unique_ptr<PerspectiveCamera> pCamera = std::make_unique<PerspectiveCamera>();
-        pCamera->aspectRatio(width / height);
-        pCamera->fovY(glm::radians(45.f));
-        pCamera->far(150.f);
-        pCamera->near(0.01f);
-        pCamera->position({ 0.f, 0.f, 5.f });
-
-        return std::move(pCamera);
-    }();
-
-    // Signals
-    m_pPrivate->m_scenePropDialog.connectClearColorChanged(&Application::onClearColorChange, this);
-
-    m_pPrivate->m_callbacks.connectProjectionChanged(&Application::onProjectionChange, this);
-    m_pPrivate->m_callbacks.connectProjectionChanged(&ScenePropertiesDialog::onProjectionChange, &m_pPrivate->m_scenePropDialog);
-    
-    m_pPrivate->m_callbacks.connectWireframeModeChanged(&Application::onWireframeModeChange, this);
-    m_pPrivate->m_callbacks.connectWireframeModeChanged(&ScenePropertiesDialog::onWireframeModeChange, &m_pPrivate->m_scenePropDialog);
-
-    // Camera setup
-    m_pPrivate->m_callbacks.camera(m_pPrivate->m_pCamera.get());
-
-    m_pPrivate->m_persp = *static_cast<PerspectiveCamera*>(m_pPrivate->m_pCamera.get());
-    m_pPrivate->m_ortho = m_pPrivate->m_persp;
-}
+    : m_pPrivate(std::make_unique<Private>()) {}
 
 Application::~Application() noexcept {}
 
@@ -344,7 +375,7 @@ bool Application::setUp() {
         m_pPrivate->m_pWindow = nullptr;
     }
 
-    m_pPrivate->m_pWindow = m_pPrivate->createWindow({ 800, 600 }, "Model Viewer");
+    m_pPrivate->m_pWindow = m_pPrivate->createWindow({ m_pPrivate->m_windowSize.x, m_pPrivate->m_windowSize.y}, "Model Viewer");
     if (!m_pPrivate->m_pWindow) {
         std::cerr << "Failed to create a window.\n";
         return false;
@@ -358,15 +389,20 @@ bool Application::setUp() {
     m_pPrivate->m_renderer.setup();
     m_pPrivate->m_renderer.camera(m_pPrivate->m_pCamera.get());
 
-    glViewport(0, 0, 800, 600);
+    glViewport(0, 0, m_pPrivate->m_windowSize.x, m_pPrivate->m_windowSize.y);
 
     // Setup window callbacks for modular window controls.
     glfwSetWindowUserPointer(m_pPrivate->m_pWindow, &m_pPrivate->m_callbacks);
     glfwSetFramebufferSizeCallback(m_pPrivate->m_pWindow, WindowCallbacks::FrameBufferSizeCallback);
+    
     glfwSetCursorPosCallback(m_pPrivate->m_pWindow, WindowCallbacks::CursorPositionCallback);
     glfwSetMouseButtonCallback(m_pPrivate->m_pWindow, WindowCallbacks::MouseButtonCallback);
     glfwSetKeyCallback(m_pPrivate->m_pWindow, WindowCallbacks::KeyboardCallback);
     glfwSetScrollCallback(m_pPrivate->m_pWindow, WindowCallbacks::ScrollCallback);
+    
+    glfwSetWindowMaximizeCallback(m_pPrivate->m_pWindow, WindowCallbacks::WindowMaximizedCallback);
+    glfwSetWindowSizeCallback(m_pPrivate->m_pWindow, WindowCallbacks::WindowSizeCallback);
+    glfwSetWindowPosCallback(m_pPrivate->m_pWindow, WindowCallbacks::WindowPositionCallback);
 
     IMGUI_CHECKVERSION();
     ImGui::CreateContext();
@@ -376,6 +412,8 @@ bool Application::setUp() {
 
     ImGui_ImplGlfw_InitForOpenGL(m_pPrivate->m_pWindow, true);
     ImGui_ImplOpenGL3_Init("#version 330");
+
+    m_pPrivate->m_signalInitialized();
 
     return true;
 }
@@ -388,42 +426,4 @@ void Application::run() {
         m_pPrivate->update();
         m_pPrivate->render();
     }
-}
-
-void Application::onProjectionChange(int projection) {
-
-    if (projection == ScenePropertiesDialog::Projection::eOrthographic) {
-
-        const PerspectiveCamera* pCamera = dynamic_cast<const PerspectiveCamera*>(m_pPrivate->m_pCamera.get());
-        if (pCamera) {
-            m_pPrivate->m_pCamera = std::make_unique<OrthographicCamera>(*pCamera);
-            m_pPrivate->m_callbacks.camera(m_pPrivate->m_pCamera.get());
-            m_pPrivate->m_renderer.camera(m_pPrivate->m_pCamera.get());
-        }
-    }
-
-    if (projection == ScenePropertiesDialog::Projection::ePerspective) {
-
-        const OrthographicCamera* pCamera = dynamic_cast<const OrthographicCamera*>(m_pPrivate->m_pCamera.get());
-        if (pCamera) {
-            m_pPrivate->m_pCamera = std::make_unique<PerspectiveCamera>(*pCamera);
-            m_pPrivate->m_callbacks.camera(m_pPrivate->m_pCamera.get());
-            m_pPrivate->m_renderer.camera(m_pPrivate->m_pCamera.get());
-        }
-    }
-}
-
-void Application::onWireframeModeChange(bool wireframe) const {
-
-    if (wireframe)
-        glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-    else
-        glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-}
-
-void Application::onClearColorChange(const glm::vec3& clearColor) {
-
-    m_pPrivate->m_clearColor.r = clearColor.r;
-    m_pPrivate->m_clearColor.g = clearColor.g;
-    m_pPrivate->m_clearColor.b = clearColor.b;
 }

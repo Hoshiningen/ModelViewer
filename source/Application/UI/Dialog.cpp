@@ -1,20 +1,18 @@
 #include "Dialog.hpp"
 
-Dialog::Dialog() { initializeUI(); }
+Dialog::Dialog() { }
 
 Dialog::Dialog(const std::string& title)
-    : m_title(title) { initializeUI(); }
+    : m_title(title) { }
 
 Dialog::Dialog(const std::string& title, ImGuiWindowFlags flags)
-    : m_title(title), m_windowFlags(flags) {
-    initializeUI();
-}
+    : m_title(title), m_windowFlags(flags) { }
 
 Dialog::Dialog(const std::string& title, const ImVec2& position, ImGuiWindowFlags flags)
-    : m_title(title), m_position(position), m_windowFlags(flags) { initializeUI(); }
+    : m_title(title), m_position(position), m_windowFlags(flags) { }
 
 Dialog::Dialog(const std::string& title, const ImVec2& position, const ImVec2& size, ImGuiWindowFlags flags)
-    : m_title(title), m_position(position), m_size(size), m_windowFlags(flags) { initializeUI(); }
+    : m_title(title), m_position(position), m_size(size), m_windowFlags(flags) { }
 
 void Dialog::render() {
 

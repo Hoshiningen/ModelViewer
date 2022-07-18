@@ -17,6 +17,10 @@ add_library(${PROJECT_NAME}::Camera ALIAS Camera)
 target_include_directories(Camera PRIVATE .)
 target_include_directories(Camera PUBLIC ${PUBLIC_DIR}/Camera)
 
+target_link_libraries(Camera PRIVATE
+    ${PROJECT_NAME}::Common
+)
+
 target_link_libraries(Camera PUBLIC
     CONAN_PKG::glm
 )

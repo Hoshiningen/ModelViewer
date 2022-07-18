@@ -1,7 +1,8 @@
 #pragma once
 
+#include "Common/ClassMacros.hpp"
+
 #include <forward_list>
-#include <memory>
 
 #include <glm/vec4.hpp>
 
@@ -14,9 +15,7 @@ class VertexBuffered;
 
 class Renderer {
 public:
-
     Renderer();
-    virtual ~Renderer();
 
     void setup();
     void camera(Camera* pCamera);
@@ -29,6 +28,5 @@ public:
     void onLightChanged(const DirectionalLight& light) const;
 
 private:
-    struct Private;
-    std::unique_ptr<Private> m_pPrivate;
+    COMPILATION_FIREWALL(Renderer)
 };

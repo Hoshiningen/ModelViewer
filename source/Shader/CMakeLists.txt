@@ -25,6 +25,10 @@ target_sources(Shader PRIVATE ${SHADERS})
 target_include_directories(Shader PRIVATE .)
 target_include_directories(Shader PUBLIC ${PUBLIC_DIR}/Shader)
 
+target_link_libraries(Shader PRIVATE
+    ${PROJECT_NAME}::Common
+)
+
 target_link_libraries(Shader PUBLIC
     CONAN_PKG::glad
     CONAN_PKG::glm

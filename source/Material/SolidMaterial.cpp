@@ -3,7 +3,11 @@
 #include "Shader/ShaderProgram.hpp"
 
 struct SolidMaterial::Private {
-    glm::vec4 m_color;
+    glm::vec4 color;
+
+    NLOHMANN_DEFINE_TYPE_INTRUSIVE(SolidMaterial::Private,
+        color
+    )
 };
 
 
@@ -46,10 +50,25 @@ void SolidMaterial::apply(ShaderProgram* pShader) const {
     pShader->set("includeSpecular", false);
 }
 
-void SolidMaterial::color(const glm::vec4& value) {
-    m_pPrivate->m_color = value;
+std::string_view SolidMaterial::id() const {
+    return "SolidMaterial";
 }
 
-glm::vec4 SolidMaterial::color() const {
-    return m_pPrivate->m_color;
+nlohmann::json SolidMaterial::save() const {
+
+    nlohmann::json json;
+    json[id().data()] = *m_pPrivate;
+
+    return json;
 }
+
+void SolidMaterial::restore(const nlohmann::json& settings) {
+
+    if (!settings.is_object())
+        return;
+
+    *m_pPrivate = settings;
+}
+
+DEFINE_GETTER_CONST_CORRECT(SolidMaterial, color, glm::vec4, m_pPrivate->color)
+DEFINE_SETTER_CONSTREF(SolidMaterial, color, m_pPrivate->color)

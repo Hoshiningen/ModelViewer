@@ -16,6 +16,7 @@ target_include_directories(IO PRIVATE .)
 target_include_directories(IO PUBLIC ${PUBLIC_DIR}/IO)
 
 target_link_libraries(IO PRIVATE
+    ${PROJECT_NAME}::Common
     CONAN_PKG::assimp
     CONAN_PKG::glm
     CONAN_PKG::stb

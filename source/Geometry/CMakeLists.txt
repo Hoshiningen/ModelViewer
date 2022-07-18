@@ -23,6 +23,10 @@ add_library(${PROJECT_NAME}::Geometry ALIAS Geometry)
 target_include_directories(Geometry PRIVATE .)
 target_include_directories(Geometry PUBLIC ${PUBLIC_DIR}/Geometry)
 
+target_link_libraries(Geometry PRIVATE
+    ${PROJECT_NAME}::Common
+)
+
 target_link_libraries(Geometry PUBLIC
     CONAN_PKG::glm
     CONAN_PKG::glad

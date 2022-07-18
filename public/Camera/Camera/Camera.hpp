@@ -1,6 +1,6 @@
 #pragma once
 
-#include <memory>
+#include "Common/ClassMacros.hpp"
 
 #include <glm/vec3.hpp>
 #include <glm/trigonometric.hpp>
@@ -11,30 +11,22 @@ public:
     Camera();
     Camera(float aspectRatio, float fovY, float nearZ, float farZ);
     Camera(const glm::vec3& position, float aspectRatio, float fovY, float nearZ, float farZ);
-    
-    virtual ~Camera() noexcept;
-
-    Camera(const Camera& other);
-    Camera& operator=(const Camera& other);
-
-    Camera(Camera&& other) noexcept;
-    Camera& operator=(Camera&& other) noexcept;
 
     static glm::vec3 worldUp();
 
-    glm::vec3 position() const;
-    void position(const glm::vec3& value);
+    DECLARE_GETTER_IMMUTABLE(position, glm::vec3)
+    DECLARE_SETTER_CONSTREF(position, glm::vec3)
 
-    glm::vec3 target() const;
-    void target(const glm::vec3& value);
+    DECLARE_GETTER_IMMUTABLE(target, glm::vec3)
+    DECLARE_SETTER_CONSTREF(target, glm::vec3)
 
-    float near() const;
-    void near(float value);
+    DECLARE_GETTER_IMMUTABLE(near, float)
+    DECLARE_SETTER_COPY(near, float)
 
-    float far() const;
-    void far(float value);
+    DECLARE_GETTER_IMMUTABLE(far, float)
+    DECLARE_SETTER_COPY(far, float)
 
-    float fovX() const;
+    DECLARE_GETTER_IMMUTABLE_COPY(fovX, float)
 
     virtual float fovY() const;
     virtual void fovY(float value);
@@ -42,13 +34,13 @@ public:
     virtual float aspectRatio() const;
     virtual void aspectRatio(float value);
 
-    glm::mat4 viewProjection() const;
+    DECLARE_GETTER_IMMUTABLE(viewProjection, glm::mat4)
 
     void update();
 
-    glm::vec3 forward() const;
-    glm::vec3 right() const;
-    glm::vec3 up() const;
+    DECLARE_GETTER_IMMUTABLE_COPY(forward, glm::vec3)
+    DECLARE_GETTER_IMMUTABLE_COPY(right, glm::vec3)
+    DECLARE_GETTER_IMMUTABLE_COPY(up, glm::vec3)
 
 protected:
     virtual glm::mat4 projection() const;
@@ -61,6 +53,5 @@ protected:
     glm::mat4 m_viewProjection = glm::identity<glm::mat4>();
 
 private:
-    struct Private;
-    std::unique_ptr<Private> m_pPrivate;
+    COMPILATION_FIREWALL_COPY_MOVE(Camera)
 };

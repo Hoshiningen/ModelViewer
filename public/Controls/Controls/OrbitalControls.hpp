@@ -1,8 +1,8 @@
 #pragma once
 
-#include "Controls/WindowCallbacks.hpp"
+#include "Common/ClassMacros.hpp"
 
-#include <memory>
+#include "Controls/WindowCallbacks.hpp"
 
 struct GLFWwindow;
 
@@ -12,18 +12,10 @@ class OrbitalControls : public WindowCallbacks {
 public:
     OrbitalControls();
 
-    virtual ~OrbitalControls() noexcept;
+    COPY_MOVE_DISABLED(OrbitalControls)
 
-    // Disable copy semantics.
-    OrbitalControls(const OrbitalControls& other) = delete;
-    OrbitalControls& operator=(const OrbitalControls& other) = delete;
-
-    // Disable move semantics.
-    OrbitalControls(OrbitalControls&& other) noexcept = delete;
-    OrbitalControls& operator=(OrbitalControls&& other) noexcept = delete;
-
-    void camera(Camera* pCamera);
-    void navigationEnabled(bool isEnabled);
+    DECLARE_SETTER_COPY(camera, Camera*)
+    DECLARE_SETTER_COPY(navigationEnabled, bool)
 
 protected:
     virtual void FrameBufferSizeImpl(GLFWwindow* pWindow, int width, int height) override;
@@ -32,8 +24,11 @@ protected:
     virtual void MouseButtonImpl(GLFWwindow* pWindow, int button, int action, int modifiers) override;
     virtual void KeyboardImpl(GLFWwindow* pWindow, int key, int scanCode, int action, int modifiers) override;
     virtual void ScrollImpl(GLFWwindow* pWindow, double xOffset, double yOffset) override;
+    
+    virtual void WindowMaximizedImpl(GLFWwindow* pWindow, int maximized) override;
+    virtual void WindowSizeImpl(GLFWwindow* pWindow, int width, int height) override;
+    virtual void WindowPositionImpl(GLFWwindow* pWindow, int xPos, int yPos) override;
 
 private:
-    class Private;
-    std::unique_ptr<Private> m_pPrivate;
+    COMPILATION_FIREWALL(OrbitalControls)
 };

@@ -11,6 +11,7 @@ set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 
 add_subdirectory(source/Application)
 add_subdirectory(source/Camera)
+add_subdirectory(source/Common)
 add_subdirectory(source/Controls)
 add_subdirectory(source/Geometry)
 add_subdirectory(source/IO)

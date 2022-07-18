@@ -108,29 +108,12 @@ std::optional<std::vector<glm::vec3>> VertexBuffered::vertices() const {
     return m_buffer.vertices();
 }
 
-GLuint VertexBuffered::id() const {
-    return m_pPrivate->m_bufferId;
-}
-
-GLuint VertexBuffered::colorBufferId() const {
-    return m_pPrivate->m_colorId;
-}
-
-GLuint VertexBuffered::indexBufferId() const {
-    return m_pPrivate->m_indexId;
-}
-
-GLuint VertexBuffered::normalBufferId() const {
-    return m_pPrivate->m_normalId;
-}
-
-GLuint VertexBuffered::texelBufferId() const {
-    return m_pPrivate->m_texelId;
-}
-
-GLuint VertexBuffered::vertexBufferId() const {
-    return m_pPrivate->m_vertexId;
-}
+DEFINE_GETTER_IMMUTABLE_COPY(VertexBuffered, id, GLuint, m_pPrivate->m_bufferId)
+DEFINE_GETTER_IMMUTABLE_COPY(VertexBuffered, colorBufferId, GLuint, m_pPrivate->m_colorId)
+DEFINE_GETTER_IMMUTABLE_COPY(VertexBuffered, indexBufferId, GLuint, m_pPrivate->m_indexId)
+DEFINE_GETTER_IMMUTABLE_COPY(VertexBuffered, normalBufferId, GLuint, m_pPrivate->m_normalId)
+DEFINE_GETTER_IMMUTABLE_COPY(VertexBuffered, texelBufferId, GLuint, m_pPrivate->m_texelId)
+DEFINE_GETTER_IMMUTABLE_COPY(VertexBuffered, vertexBufferId, GLuint, m_pPrivate->m_vertexId)
 
 std::optional<GLuint> VertexBuffered::attributeBufferId(const std::string& name) const {
 
@@ -149,13 +132,8 @@ std::optional<GLuint> VertexBuffered::attributeBufferId(const std::string& name)
     return std::nullopt;
 }
 
-void VertexBuffered::primativeType(PrimativeType type) {
-    m_pPrivate->m_primativeType = type;
-}
-
-VertexBuffered::PrimativeType VertexBuffered::primativeType() const {
-    return m_pPrivate->m_primativeType;
-}
+DEFINE_GETTER_IMMUTABLE_COPY(VertexBuffered, primativeType, VertexBuffered::PrimativeType, m_pPrivate->m_primativeType)
+DEFINE_SETTER_COPY(VertexBuffered, primativeType, m_pPrivate->m_primativeType)
 
 void VertexBuffered::initialize() {
 
@@ -180,9 +158,7 @@ void VertexBuffered::initialize() {
     m_pPrivate->m_initialized = true;
 }
 
-bool VertexBuffered::initialized() const {
-    return m_pPrivate->m_initialized;
-}
+DEFINE_GETTER_IMMUTABLE_COPY(VertexBuffered, initialized, bool, m_pPrivate->m_initialized)
 
 void VertexBuffered::color(const glm::vec4& color) {
 

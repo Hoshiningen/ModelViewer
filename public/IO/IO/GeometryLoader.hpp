@@ -1,25 +1,18 @@
 #pragma once
 
+#include "Common/ClassMacros.hpp"
+
 #include "Geometry/VertexBuffered.hpp"
 
 #include <filesystem>
-#include <memory>
 #include <forward_list>
 
 class GeometryLoader {
 public:
     GeometryLoader();
-    virtual ~GeometryLoader() noexcept;
-
-    GeometryLoader(const GeometryLoader& other);
-    GeometryLoader& operator=(const GeometryLoader& other);
-
-    GeometryLoader(GeometryLoader&& other) noexcept;
-    GeometryLoader& operator=(GeometryLoader&& other) noexcept;
 
     std::forward_list<VertexBuffered> load(const std::filesystem::path& path) const;
 
 private:
-    struct Private;
-    std::unique_ptr<Private> m_pPrivate;
+    COMPILATION_FIREWALL_COPY_MOVE(GeometryLoader)
 };

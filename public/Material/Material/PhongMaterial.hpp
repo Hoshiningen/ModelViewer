@@ -2,7 +2,7 @@
 
 #include "Material/IMaterial.hpp"
 
-#include <memory>
+#include "Common/ClassMacros.hpp"
 
 #include <glm/vec4.hpp>
 
@@ -11,30 +11,34 @@ class ShaderProgram;
 class PhongMaterial : public IMaterial {
 public:
     PhongMaterial();
-    virtual ~PhongMaterial() noexcept;
-
-    PhongMaterial(const PhongMaterial& other);
-    PhongMaterial& operator=(const PhongMaterial& other);
-
-    PhongMaterial(PhongMaterial&& other) noexcept;
-    PhongMaterial& operator=(PhongMaterial&& other) noexcept;
 
     virtual void apply(ShaderProgram* pShader) const override;
 
-    void ambientColor(const glm::vec4& value);
-    void ambientIntensity(float value);
+    virtual std::string_view id() const override;
+    virtual nlohmann::json save() const override;
+    virtual void restore(const nlohmann::json& settings) override;
 
-    void diffuseColor(const glm::vec4& value);
-    void diffuseIntensity(float value);
-    
-    void specularColor(const glm::vec4& value);
-    void specularIntensity(float value);
+    DECLARE_GETTER_MUTABLE(ambientColor, glm::vec4)
+    DECLARE_SETTER_CONSTREF(ambientColor, glm::vec4)
 
-    void shininess(float value);
+    DECLARE_GETTER_MUTABLE(diffuseColor, glm::vec4)
+    DECLARE_SETTER_CONSTREF(diffuseColor, glm::vec4)
 
-    virtual void wireframe(bool value) override;
+    DECLARE_GETTER_MUTABLE(specularColor, glm::vec4)
+    DECLARE_SETTER_CONSTREF(specularColor, glm::vec4)
+
+    DECLARE_GETTER_MUTABLE(ambientIntensity, float)
+    DECLARE_SETTER_COPY(ambientIntensity, float)
+
+    DECLARE_GETTER_MUTABLE(diffuseIntensity, float)
+    DECLARE_SETTER_COPY(diffuseIntensity, float)
+
+    DECLARE_GETTER_MUTABLE(specularIntensity, float)
+    DECLARE_SETTER_COPY(specularIntensity, float)
+
+    DECLARE_GETTER_MUTABLE(shininess, float)
+    DECLARE_SETTER_COPY(shininess, float)
 
 private:
-    struct Private;
-    std::unique_ptr<Private> m_pPrivate;
+    COMPILATION_FIREWALL_COPY_MOVE(PhongMaterial)
 };

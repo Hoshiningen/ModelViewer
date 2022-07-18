@@ -38,6 +38,7 @@ target_include_directories(Application PRIVATE . ${IMGUI_BINDINGS_DIR})
 
 target_link_libraries(Application PRIVATE
     ${PROJECT_NAME}::Camera
+    ${PROJECT_NAME}::Common
     ${PROJECT_NAME}::Controls
     ${PROJECT_NAME}::Geometry
     ${PROJECT_NAME}::IO
@@ -49,5 +50,6 @@ target_link_libraries(Application PRIVATE
     CONAN_PKG::glfw
     CONAN_PKG::glm
     CONAN_PKG::imgui
+    CONAN_PKG::nlohmann_json
     CONAN_PKG::sigslot
 )

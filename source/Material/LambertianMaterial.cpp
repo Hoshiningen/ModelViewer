@@ -3,10 +3,13 @@
 #include "Shader/ShaderProgram.hpp"
 
 struct LambertianMaterial::Private {
-    glm::vec4 m_diffuseColor;
-    float m_diffuseIntensity = 0.f;
+    glm::vec4 diffuseColor{};
+    float diffuseIntensity = 0.f;
 
-    bool m_wireframe = false;
+    NLOHMANN_DEFINE_TYPE_INTRUSIVE(LambertianMaterial::Private,
+        diffuseColor,
+        diffuseIntensity
+    )
 };
 
 LambertianMaterial::LambertianMaterial()
@@ -43,24 +46,36 @@ void LambertianMaterial::apply(ShaderProgram* pShader) const {
     if (!pShader)
         return;
 
-    pShader->set("material.diffuseColor", m_pPrivate->m_diffuseColor);
-    pShader->set("material.diffuseIntensity", m_pPrivate->m_diffuseIntensity);
+    pShader->set("material.diffuseColor", m_pPrivate->diffuseColor);
+    pShader->set("material.diffuseIntensity", m_pPrivate->diffuseIntensity);
 
     pShader->set("includeAmbient", false);
     pShader->set("includeDiffuse", true);
     pShader->set("includeSpecular", false);
-
-    pShader->set("wireframe", m_pPrivate->m_wireframe);
 }
 
-void LambertianMaterial::diffuseIntensity(float value) {
-    m_pPrivate->m_diffuseIntensity = value;
+std::string_view LambertianMaterial::id() const {
+    return "LambertianMaterial";
 }
 
-void LambertianMaterial::diffuseColor(const glm::vec4& value) {
-    m_pPrivate->m_diffuseColor = value;
+nlohmann::json LambertianMaterial::save() const {
+
+    nlohmann::json json;
+    json[id().data()] = *m_pPrivate;
+
+    return json;
 }
 
-void LambertianMaterial::wireframe(bool value) {
-    m_pPrivate->m_wireframe = value;
+void LambertianMaterial::restore(const nlohmann::json& settings) {
+
+    if (!settings.is_object())
+        return;
+
+    *m_pPrivate = settings;
 }
+
+DEFINE_GETTER_MUTABLE(LambertianMaterial, diffuseColor, glm::vec4, m_pPrivate->diffuseColor)
+DEFINE_SETTER_CONSTREF(LambertianMaterial, diffuseColor, m_pPrivate->diffuseColor)
+
+DEFINE_GETTER_MUTABLE(LambertianMaterial, diffuseIntensity, float, m_pPrivate->diffuseIntensity)
+DEFINE_SETTER_COPY(LambertianMaterial, diffuseIntensity, m_pPrivate->diffuseIntensity)

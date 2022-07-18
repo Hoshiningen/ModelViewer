@@ -2,7 +2,7 @@
 
 #include "Material/IMaterial.hpp"
 
-#include <memory>
+#include "Common/ClassMacros.hpp"
 
 #include <glm/vec4.hpp>
 
@@ -11,22 +11,16 @@ class ShaderProgram;
 class SolidMaterial : public IMaterial {
 public:
     SolidMaterial();
-    virtual ~SolidMaterial() noexcept;
-
-    SolidMaterial(const SolidMaterial& other);
-    SolidMaterial& operator=(const SolidMaterial& other);
-
-    SolidMaterial(SolidMaterial&& other) noexcept;
-    SolidMaterial& operator=(SolidMaterial&& other) noexcept;
 
     virtual void apply(ShaderProgram* pShader) const override;
 
-    void color(const glm::vec4& value);
-    glm::vec4 color() const;
+    virtual std::string_view id() const override;
+    virtual nlohmann::json save() const override;
+    virtual void restore(const nlohmann::json& settings) override;
 
-    virtual void wireframe(bool value) override {}
+    DECLARE_GETTER_CONST_CORRECT(color, glm::vec4)
+    DECLARE_SETTER_CONSTREF(color, glm::vec4)
 
 private:
-    struct Private;
-    std::unique_ptr<Private> m_pPrivate;
+    COMPILATION_FIREWALL_COPY_MOVE(SolidMaterial)
 };

@@ -2,7 +2,7 @@
 
 #include "Camera/Camera.hpp"
 
-#include <memory>
+#include "Common/ClassMacros.hpp"
 
 #include <glm/vec3.hpp>
 
@@ -14,26 +14,18 @@ public:
     OrthographicCamera(float left, float right, float bottom, float top, float nearZ, float farZ);
     OrthographicCamera(const glm::vec3& position, float aspectRatio, float fovY, float nearZ, float farZ);
     OrthographicCamera(const PerspectiveCamera& camera);
+
+    DECLARE_GETTER_IMMUTABLE(leftExtent, float)
+    DECLARE_SETTER_COPY(leftExtent, float)
+
+    DECLARE_GETTER_IMMUTABLE(rightExtent, float)
+    DECLARE_SETTER_COPY(rightExtent, float)
     
-    virtual ~OrthographicCamera() noexcept;
-
-    OrthographicCamera(const OrthographicCamera& other);
-    OrthographicCamera& operator=(const OrthographicCamera& other);
-
-    OrthographicCamera(OrthographicCamera&& other) noexcept;
-    OrthographicCamera& operator=(OrthographicCamera&& other) noexcept;
-
-    float leftExtent() const;
-    void leftExtent(float value);
-
-    float rightExtent() const;
-    void rightExtent(float value);
+    DECLARE_GETTER_IMMUTABLE(bottomExtent, float)
+    DECLARE_SETTER_COPY(bottomExtent, float)
     
-    float bottomExtent() const;
-    void bottomExtent(float value);
-    
-    float topExtent() const;
-    void topExtent(float value);
+    DECLARE_GETTER_IMMUTABLE(topExtent, float)
+    DECLARE_SETTER_COPY(topExtent, float)
 
     virtual float fovY() const override;
     virtual void fovY(float value) override;
@@ -45,6 +37,5 @@ protected:
     virtual glm::mat4 projection() const override;
 
 private:
-    struct Private;
-    std::unique_ptr<Private> m_pPrivate;
+    COMPILATION_FIREWALL_COPY_MOVE(OrthographicCamera)
 };

@@ -2,7 +2,7 @@
 
 #include "Material/IMaterial.hpp"
 
-#include <memory>
+#include "Common/ClassMacros.hpp"
 
 #include <glm/vec4.hpp>
 
@@ -11,22 +11,19 @@ class ShaderProgram;
 class LambertianMaterial : public IMaterial {
 public:
     LambertianMaterial();
-    virtual ~LambertianMaterial() noexcept;
-
-    LambertianMaterial(const LambertianMaterial& other);
-    LambertianMaterial& operator=(const LambertianMaterial& other);
-
-    LambertianMaterial(LambertianMaterial&& other) noexcept;
-    LambertianMaterial& operator=(LambertianMaterial&& other) noexcept;
 
     virtual void apply(ShaderProgram* pShader) const override;
 
-    void diffuseIntensity(float value);
-    void diffuseColor(const glm::vec4& value);
+    virtual std::string_view id() const override;
+    virtual nlohmann::json save() const override;
+    virtual void restore(const nlohmann::json& settings) override;
 
-    virtual void wireframe(bool value) override;
+    DECLARE_GETTER_MUTABLE(diffuseIntensity, float)
+    DECLARE_SETTER_COPY(diffuseIntensity, float)
+
+    DECLARE_GETTER_MUTABLE(diffuseColor, glm::vec4)
+    DECLARE_SETTER_CONSTREF(diffuseColor, glm::vec4)
 
 private:
-    struct Private;
-    std::unique_ptr<Private> m_pPrivate;
+    COMPILATION_FIREWALL_COPY_MOVE(LambertianMaterial)
 };

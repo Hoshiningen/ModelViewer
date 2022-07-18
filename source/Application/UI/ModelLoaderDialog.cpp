@@ -16,6 +16,27 @@ std::forward_list<VertexBuffered> LoadModel(const std::filesystem::path& filePat
 }
 } // end unnamed namespace
 
+std::string_view ModelLoaderDialog::id() const {
+    return "ModelLoaderDialog";
+}
+
+nlohmann::json ModelLoaderDialog::save() const {
+
+    nlohmann::json json;
+    json[id().data()]["modelPath"] = m_pathBuffer;
+
+    return json;
+}
+
+void ModelLoaderDialog::restore(const nlohmann::json& settings) {
+
+    if (!settings.is_object())
+        return;
+
+    if (settings.contains("modelPath"))
+        settings["modelPath"].get_to(m_pathBuffer);
+}
+
 void ModelLoaderDialog::defineUI() {
 
     ImGui::InputTextWithHint("", "Model file path...", m_pathBuffer.data(), m_pathBuffer.size());
@@ -25,42 +46,41 @@ void ModelLoaderDialog::defineUI() {
     if (ImGui::Button("Load")) {
 
         m_model = LoadModel(m_pathBuffer.data());
-        m_modelMetadata = parseModel(m_model);
+        parseModel(m_model);
 
         if (!m_model.empty())
-            m_modelLoaded(&m_model);
+            m_signalModelLoaded(&m_model);
     }
     ImGui::EndDisabled();
 
     ImGui::Separator();
 
-    ImGui::LabelText("Vertices", "%d", m_modelMetadata.vertexCount);
-    ImGui::LabelText("Faces", "%d", m_modelMetadata.faceCount);
+    ImGui::LabelText("Vertices", "%d", m_vertexCount);
+    ImGui::LabelText("Faces", "%d", m_faceCount);
 
     if (ImGui::BeginTable("", 3)) {
 
         ImGui::BeginDisabled();
         ImGui::TableNextColumn();
-        ImGui::Checkbox("Has Colors", &m_modelMetadata.hasColors);
+        ImGui::Checkbox("Has Colors", &m_hasColors);
         ImGui::TableNextColumn();
-        ImGui::Checkbox("Has Indices", &m_modelMetadata.hasIndices);
+        ImGui::Checkbox("Has Indices", &m_hasIndices);
         ImGui::TableNextColumn();
-        ImGui::Checkbox("Has Normals", &m_modelMetadata.hasNormals);
+        ImGui::Checkbox("Has Normals", &m_hasNormals);
         ImGui::TableNextColumn();
-        ImGui::Checkbox("Has Positions", &m_modelMetadata.hasPositions);
+        ImGui::Checkbox("Has Positions", &m_hasPositions);
         ImGui::TableNextColumn();
-        ImGui::Checkbox("Has Texels", &m_modelMetadata.hasTexels);
+        ImGui::Checkbox("Has Texels", &m_hasTexels);
         ImGui::EndDisabled();
 
         ImGui::EndTable();
     }
 }
 
-ModelLoaderDialog::ModelMetadata ModelLoaderDialog::parseModel(const std::forward_list<VertexBuffered>& model) const {
+void  ModelLoaderDialog::parseModel(const std::forward_list<VertexBuffered>& model) {
 
-    ModelMetadata metadata;
     if (model.empty())
-        return metadata;
+        return;
 
     std::size_t indexCount = 0;
     for (const VertexBuffered& buffer : m_model) {
@@ -68,17 +88,15 @@ ModelLoaderDialog::ModelMetadata ModelLoaderDialog::parseModel(const std::forwar
         const auto vertices = buffer.vertices();
         const auto indices = buffer.indices();
 
-        metadata.vertexCount += vertices->size();
+        m_vertexCount += vertices->size();
         indexCount += indices->size();
 
-        metadata.hasColors |= buffer.colors().has_value();
-        metadata.hasNormals |= buffer.normals().has_value();
-        metadata.hasTexels |= buffer.texels().has_value();
+        m_hasColors |= buffer.colors().has_value();
+        m_hasNormals |= buffer.normals().has_value();
+        m_hasTexels |= buffer.texels().has_value();
     }
 
-    metadata.hasPositions = metadata.vertexCount > 0;
-    metadata.hasIndices = indexCount > 0;
-    metadata.faceCount = metadata.hasIndices ? indexCount / 3 : 0;
-
-    return metadata;
+    m_hasPositions = m_vertexCount > 0;
+    m_hasIndices = indexCount > 0;
+    m_faceCount = m_hasIndices ? indexCount / 3 : 0;
 }

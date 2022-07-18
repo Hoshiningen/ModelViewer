@@ -11,6 +11,8 @@
 #include <glm/trigonometric.hpp>
 #include <glm/gtc/quaternion.hpp>
 
+#include <iostream>
+
 struct OrbitalControls::Private {
     void updateCamera(const glm::vec3& forward, float deltaX, float deltaY);
 
@@ -51,13 +53,8 @@ OrbitalControls::OrbitalControls()
 
 OrbitalControls::~OrbitalControls() noexcept {}
 
-void OrbitalControls::camera(Camera* pCamera) {
-    m_pPrivate->m_pCamera = pCamera;
-}
-
-void OrbitalControls::navigationEnabled(bool isEnabled) {
-    m_pPrivate->m_navigationEnabled = isEnabled;
-}
+DEFINE_SETTER_COPY(OrbitalControls, camera, m_pPrivate->m_pCamera)
+DEFINE_SETTER_COPY(OrbitalControls, navigationEnabled, m_pPrivate->m_navigationEnabled)
 
 void OrbitalControls::FrameBufferSizeImpl(GLFWwindow*, int width, int height) {
 
@@ -120,16 +117,33 @@ void OrbitalControls::KeyboardImpl(GLFWwindow* pWindow, int key, int scanCode, i
         glfwSetWindowShouldClose(pWindow, true);
 
     if (key == GLFW_KEY_P && action == GLFW_PRESS)
-        m_projectionChanged(0);
+        m_signalProjectionChanged(0);
 
     if (key == GLFW_KEY_O && action == GLFW_PRESS)
-        m_projectionChanged(1);
+        m_signalProjectionChanged(1);
 
     static bool m_wireframe = false;
     if (key == GLFW_KEY_W && action == GLFW_PRESS) {
         m_wireframe = !m_wireframe;
-        m_wireframeChanged(m_wireframe);
+        m_signalWireframeChanged(m_wireframe);
+    }
+
+    if (key == GLFW_KEY_S && action == GLFW_PRESS) {
+        if (modifiers & GLFW_MOD_CONTROL)
+            m_signalSaved();
     }
 }
 
 void OrbitalControls::ScrollImpl(GLFWwindow*, double, double) {}
+
+void OrbitalControls::WindowMaximizedImpl(GLFWwindow* pWindow, int maximized) {
+    m_signalWindowMaximized(maximized != 0 ? true : false);
+}
+
+void OrbitalControls::WindowSizeImpl(GLFWwindow* pWindow, int width, int height) {
+    m_signalWindowSizeChanged(glm::ivec2{ width, height });
+}
+
+void OrbitalControls::WindowPositionImpl(GLFWwindow* pWindow, int xPos, int yPos) {
+    m_signalWindowPositionChanged(glm::ivec2{ xPos, yPos });
+}
