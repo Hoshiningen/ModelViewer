@@ -1,8 +1,6 @@
 #include "Geometry/VertexBuffer.hpp"
 
 struct VertexBuffer::Private {
-    //Private() = default;
-
     std::vector<glm::vec4> m_colors;
     std::vector<uint32_t> m_indices;
     std::vector<glm::vec3> m_normals;
@@ -60,42 +58,8 @@ void VertexBuffer::addIndex(uint32_t index) {
     m_pPrivate->m_indices.push_back(index);
 }
 
-const std::vector<uint32_t>& VertexBuffer::indices() const {
-    return m_pPrivate->m_indices;
-}
-
-std::vector<uint32_t>& VertexBuffer::indices() {
-    return m_pPrivate->m_indices;
-}
-
-const std::vector<glm::vec3>& VertexBuffer::vertices() const {
-    return m_pPrivate->m_vertices;
-}
-
-std::vector<glm::vec3>& VertexBuffer::vertices() {
-    return m_pPrivate->m_vertices;
-}
-
-const std::vector<glm::vec3>& VertexBuffer::normals() const {
-    return m_pPrivate->m_normals;
-}
-
-std::vector<glm::vec3>& VertexBuffer::normals() {
-    return m_pPrivate->m_normals;
-}
-
-const std::vector<glm::vec2>& VertexBuffer::texels() const {
-    return m_pPrivate->m_texels;
-}
-
-std::vector<glm::vec2>& VertexBuffer::texels() {
-    return m_pPrivate->m_texels;
-}
-
-const std::vector<glm::vec4>& VertexBuffer::colors() const {
-    return m_pPrivate->m_colors;
-}
-
-std::vector<glm::vec4>& VertexBuffer::colors() {
-    return m_pPrivate->m_colors;
-}
+DEFINE_GETTER_CONST_CORRECT(VertexBuffer, colors, std::vector<glm::vec4>, m_pPrivate->m_colors)
+DEFINE_GETTER_CONST_CORRECT(VertexBuffer, indices, std::vector<uint32_t>, m_pPrivate->m_indices)
+DEFINE_GETTER_CONST_CORRECT(VertexBuffer, normals, std::vector<glm::vec3>, m_pPrivate->m_normals)
+DEFINE_GETTER_CONST_CORRECT(VertexBuffer, texels, std::vector<glm::vec2>, m_pPrivate->m_texels)
+DEFINE_GETTER_CONST_CORRECT(VertexBuffer, vertices, std::vector<glm::vec3>, m_pPrivate->m_vertices)

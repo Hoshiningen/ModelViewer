@@ -15,6 +15,7 @@ target_include_directories(Light PRIVATE .)
 target_include_directories(Light PUBLIC ${PUBLIC_DIR}/Light)
 
 target_link_libraries(Light PRIVATE
+    ${PROJECT_NAME}::Common
     ${PROJECT_NAME}::Shader
     CONAN_PKG::glm
 )

@@ -119,37 +119,17 @@ OrthographicCamera& OrthographicCamera::operator=(OrthographicCamera&& other) no
 
 OrthographicCamera::~OrthographicCamera() noexcept {}
 
-float OrthographicCamera::leftExtent() const {
-    return m_pPrivate->m_leftExtent;
-}
+DEFINE_GETTER_IMMUTABLE(OrthographicCamera, leftExtent, float, m_pPrivate->m_leftExtent)
+DEFINE_SETTER_COPY(OrthographicCamera, leftExtent, m_pPrivate->m_leftExtent)
 
-void OrthographicCamera::leftExtent(float value) {
-    m_pPrivate->m_leftExtent = value;
-}
+DEFINE_GETTER_IMMUTABLE(OrthographicCamera, rightExtent, float, m_pPrivate->m_rightExtent)
+DEFINE_SETTER_COPY(OrthographicCamera, rightExtent, m_pPrivate->m_rightExtent)
 
-float OrthographicCamera::rightExtent() const {
-    return m_pPrivate->m_rightExtent;
-}
+DEFINE_GETTER_IMMUTABLE(OrthographicCamera, bottomExtent, float, m_pPrivate->m_bottomExtent)
+DEFINE_SETTER_COPY(OrthographicCamera, bottomExtent, m_pPrivate->m_bottomExtent)
 
-void OrthographicCamera::rightExtent(float value) {
-    m_pPrivate->m_rightExtent = value;
-}
-
-float OrthographicCamera::bottomExtent() const {
-    return m_pPrivate->m_bottomExtent;
-}
-
-void OrthographicCamera::bottomExtent(float value) {
-    m_pPrivate->m_bottomExtent = value;
-}
-
-float OrthographicCamera::topExtent() const {
-    return m_pPrivate->m_topExtent;
-}
-
-void OrthographicCamera::topExtent(float value) {
-    m_pPrivate->m_topExtent = value;
-}
+DEFINE_GETTER_IMMUTABLE(OrthographicCamera, topExtent, float, m_pPrivate->m_topExtent)
+DEFINE_SETTER_COPY(OrthographicCamera, topExtent, m_pPrivate->m_topExtent)
 
 float OrthographicCamera::fovY() const {
     return Camera::fovY();

@@ -2,12 +2,14 @@
 
 #include "Camera/Camera.hpp"
 
+#include <fstream>
+
 #include <glm/geometric.hpp>
 #include <glm/gtc/quaternion.hpp>
 #include <glm/gtc/type_ptr.hpp>
 
 namespace {
-glm::vec3 computeDirection(float pitchRad, float yawRad) {
+glm::vec3 ComputeDirection(float pitchRad, float yawRad) {
     
     const glm::quat yawQuat = glm::angleAxis(yawRad, Camera::worldUp());
     const glm::vec3 newDir = yawQuat * glm::vec3{ 0.f, 0.f, 1.f };
@@ -20,59 +22,60 @@ glm::vec3 computeDirection(float pitchRad, float yawRad) {
 }
 } // end unnamed namespace
 
-LightPropertiesDialog::LightPropertiesDialog()
-    : Dialog() { initializeUI(); }
+std::string_view LightPropertiesDialog::id() const {
+    return "LightPropertiesDialog";
+}
 
-LightPropertiesDialog::LightPropertiesDialog(const std::string& title)
-    : Dialog(title) { initializeUI(); }
+nlohmann::json LightPropertiesDialog::save() const {
 
-LightPropertiesDialog::LightPropertiesDialog(const std::string& title, ImGuiWindowFlags flags)
-    : Dialog(title, flags) { initializeUI(); }
+    nlohmann::json json;
+    json[id().data()]["pitch"] = m_pitch;
+    json[id().data()]["yaw"] = m_yaw;
+    json[id().data()].update(m_light.save());
+    
+    return json;
+}
 
-LightPropertiesDialog::LightPropertiesDialog(const std::string& title, const ImVec2& position, ImGuiWindowFlags flags)
-    : Dialog(title, position, flags) { initializeUI(); }
+void LightPropertiesDialog::restore(const nlohmann::json& settings) {
 
-LightPropertiesDialog::LightPropertiesDialog(const std::string& title, const ImVec2& position, const ImVec2& size, ImGuiWindowFlags flags)
-    : Dialog(title, position, size, flags) { initializeUI(); }
+    if (!settings.is_object())
+        return;
+
+    if (settings.contains("pitch"))
+        settings["pitch"].get_to(m_pitch);
+
+    if (settings.contains("yaw"))
+        settings["yaw"].get_to(m_yaw);
+
+    if (settings.contains(m_light.id()))
+        m_light.restore(settings[m_light.id().data()]);
+
+    m_signalLightChanged(m_light);
+}
 
 void LightPropertiesDialog::onModelLoaded(std::forward_list<VertexBuffered>*) {
-    m_lightChanged(m_light);
+    m_signalLightChanged(m_light);
 }
 
 void LightPropertiesDialog::defineUI() {
 
-    if (ImGui::ColorEdit3("Color", glm::value_ptr(m_lightModel.color))) {
-        m_light.color(m_lightModel.color);
-        m_lightChanged(m_light);
+    if (ImGui::ColorEdit3("Color", glm::value_ptr(m_light.color())))
+        m_signalLightChanged(m_light);
+
+    if (ImGui::SliderFloat("Intensity", &m_light.intensity(), 0.f, 1.f))
+        m_signalLightChanged(m_light);
+
+    if (ImGui::SliderAngle("Pitch", &m_pitch, -90.f, 90.f)) {
+        m_light.direction(ComputeDirection(m_pitch, m_yaw));
+        m_signalLightChanged(m_light);
     }
 
-    if (ImGui::SliderFloat("Intensity", &m_lightModel.intensity, 0.f, 1.f)) {
-        m_light.intensity(m_lightModel.intensity);
-        m_lightChanged(m_light);
-    }
-
-    if (ImGui::SliderAngle("Pitch", &m_lightModel.pitch, -90.f, 90.f)) {
-        m_lightModel.direction = computeDirection(m_lightModel.pitch, m_lightModel.yaw);
-        m_light.direction(m_lightModel.direction);
-        m_lightChanged(m_light);
-    }
-
-    if (ImGui::SliderAngle("Yaw", &m_lightModel.yaw, 0.f)) {
-        m_lightModel.direction = computeDirection(m_lightModel.pitch, m_lightModel.yaw);
-        m_light.direction(m_lightModel.direction);
-        m_lightChanged(m_light);
+    if (ImGui::SliderAngle("Yaw", &m_yaw, 0.f)) {
+        m_light.direction(ComputeDirection(m_pitch, m_yaw));
+        m_signalLightChanged(m_light);
     }
 
     ImGui::BeginDisabled();
-    ImGui::InputFloat3("Direction", glm::value_ptr(m_lightModel.direction));
+    ImGui::InputFloat3("Direction", glm::value_ptr(m_light.direction()));
     ImGui::EndDisabled();
-}
-
-void LightPropertiesDialog::initializeUI() {
-
-    m_lightModel.direction = computeDirection(m_lightModel.pitch, m_lightModel.yaw);
-
-    m_light.color(m_lightModel.color);
-    m_light.direction(m_lightModel.direction);
-    m_light.intensity(m_lightModel.intensity);
 }

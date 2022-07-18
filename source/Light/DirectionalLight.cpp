@@ -2,9 +2,15 @@
 #include "Shader/ShaderProgram.hpp"
 
 struct DirectionalLight::Private {
-    glm::vec3 m_direction;
-    glm::vec3 m_color;
-    float m_intensity = 0.f;
+    glm::vec3 direction{};
+    glm::vec3 color{};
+    float intensity = 0.f;
+
+    NLOHMANN_DEFINE_TYPE_INTRUSIVE(DirectionalLight::Private,
+        direction,
+        color,
+        intensity
+    )
 };
 
 
@@ -42,19 +48,36 @@ void DirectionalLight::apply(ShaderProgram* pShader) const {
     if (!pShader)
         return;
     
-    pShader->set("directionalLight.direction", m_pPrivate->m_direction);
-    pShader->set("directionalLight.color", m_pPrivate->m_color);
-    pShader->set("directionalLight.intensity", m_pPrivate->m_intensity);
+    pShader->set("directionalLight.direction", m_pPrivate->direction);
+    pShader->set("directionalLight.color", m_pPrivate->color);
+    pShader->set("directionalLight.intensity", m_pPrivate->intensity);
 }
 
-void DirectionalLight::direction(const glm::vec3& value) {
-    m_pPrivate->m_direction = value;
+std::string_view DirectionalLight::id() const {
+    return "DirectionalLight";
 }
 
-void DirectionalLight::color(const glm::vec3& value) {
-    m_pPrivate->m_color = value;
+nlohmann::json DirectionalLight::save() const {
+
+    nlohmann::json json;
+    json[id().data()] = *m_pPrivate;
+
+    return json;
 }
 
-void DirectionalLight::intensity(float value) {
-    m_pPrivate->m_intensity = value;
+void DirectionalLight::restore(const nlohmann::json& settings) {
+
+    if (!settings.is_object())
+        return;
+
+    *m_pPrivate = settings;
 }
+
+DEFINE_GETTER_MUTABLE(DirectionalLight, direction, glm::vec3, m_pPrivate->direction)
+DEFINE_SETTER_CONSTREF(DirectionalLight, direction, m_pPrivate->direction)
+
+DEFINE_GETTER_MUTABLE(DirectionalLight, color, glm::vec3, m_pPrivate->color)
+DEFINE_SETTER_CONSTREF(DirectionalLight, color, m_pPrivate->color)
+
+DEFINE_GETTER_MUTABLE(DirectionalLight, intensity, float, m_pPrivate->intensity)
+DEFINE_SETTER_COPY(DirectionalLight, intensity, m_pPrivate->intensity)

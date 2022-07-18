@@ -70,37 +70,22 @@ Camera& Camera::operator=(Camera&& other) noexcept {
 
 Camera::~Camera() noexcept {}
 
-glm::vec3 Camera::position() const {
-    return m_pPrivate->m_position;
+glm::vec3 Camera::worldUp() {
+    static const glm::vec3 kUp{ 0.f, 1.f, 0.f };
+    return kUp;
 }
 
-void Camera::position(const glm::vec3& value) {
-    m_pPrivate->m_position = value;
-}
+DEFINE_GETTER_IMMUTABLE(Camera, position, glm::vec3, m_pPrivate->m_position)
+DEFINE_SETTER_CONSTREF(Camera, position, m_pPrivate->m_position)
 
-glm::vec3 Camera::target() const {
-    return m_pPrivate->m_target;
-}
+DEFINE_GETTER_IMMUTABLE(Camera, target, glm::vec3, m_pPrivate->m_target)
+DEFINE_SETTER_CONSTREF(Camera, target, m_pPrivate->m_target)
 
-void Camera::target(const glm::vec3& value) {
-    m_pPrivate->m_target = value;
-}
+DEFINE_GETTER_IMMUTABLE(Camera, near, float, m_nearZ)
+DEFINE_SETTER_COPY(Camera, near, m_nearZ)
 
-float Camera::near() const {
-    return m_nearZ;
-}
-
-void Camera::near(float value) {
-    m_nearZ = value;
-}
-
-float Camera::far() const {
-    return m_farZ;
-}
-
-void Camera::far(float value) {
-    m_farZ = value;
-}
+DEFINE_GETTER_IMMUTABLE(Camera, far, float, m_farZ)
+DEFINE_SETTER_COPY(Camera, far, m_farZ)
 
 float Camera::fovX() const {
     return glm::atan(glm::tan(m_fovY / 2) * m_aspectRatio) * 2;
@@ -122,9 +107,7 @@ void Camera::aspectRatio(float value) {
     m_aspectRatio = value;
 }
 
-glm::mat4 Camera::viewProjection() const {
-    return m_viewProjection;
-}
+DEFINE_GETTER_IMMUTABLE(Camera, viewProjection, glm::mat4, m_viewProjection)
 
 void Camera::update() {
     m_viewProjection = projection() * m_pPrivate->view(up());
@@ -140,11 +123,6 @@ glm::vec3 Camera::right() const {
 
 glm::vec3 Camera::up() const {
     return glm::normalize(glm::cross(right(), forward()));
-}
-
-glm::vec3 Camera::worldUp() {
-    static const glm::vec3 kUp{ 0.f, 1.f, 0.f };
-    return kUp;
 }
 
 glm::mat4 Camera::projection() const {

@@ -1,5 +1,7 @@
 #pragma once
 
+#include "Common/ClassMacros.hpp"
+
 #include "Geometry/VertexBuffer.hpp"
 
 #include <memory>
@@ -17,14 +19,6 @@ public:
     VertexBuffered();
     VertexBuffered(const VertexBuffer& buffer);
 
-    virtual ~VertexBuffered() noexcept;
-
-    VertexBuffered(const VertexBuffered& other);
-    VertexBuffered& operator=(const VertexBuffered& other);
-
-    VertexBuffered(VertexBuffered&& other) noexcept;
-    VertexBuffered& operator=(VertexBuffered&& other) noexcept;
-
     enum class PrimativeType {
         Point = GL_POINTS,
         Lines = GL_LINES,
@@ -35,33 +29,32 @@ public:
         TriangleFan = GL_TRIANGLE_FAN
     };
 
-    std::optional<std::vector<glm::vec4>> colors() const;
-    std::optional<std::vector<uint32_t>> indices() const;
-    std::optional<std::vector<glm::vec3>> normals() const;
-    std::optional<std::vector<glm::vec2>> texels() const;
-    std::optional<std::vector<glm::vec3>> vertices() const;
+    DECLARE_GETTER_IMMUTABLE_COPY(colors, std::optional<std::vector<glm::vec4>>)
+    DECLARE_GETTER_IMMUTABLE_COPY(indices, std::optional<std::vector<uint32_t>>)
+    DECLARE_GETTER_IMMUTABLE_COPY(normals, std::optional<std::vector<glm::vec3>>)
+    DECLARE_GETTER_IMMUTABLE_COPY(texels, std::optional<std::vector<glm::vec2>>)
+    DECLARE_GETTER_IMMUTABLE_COPY(vertices, std::optional<std::vector<glm::vec3>>)
 
-    GLuint id() const;
-    GLuint colorBufferId() const;
-    GLuint indexBufferId() const;
-    GLuint normalBufferId() const;
-    GLuint texelBufferId() const;
-    GLuint vertexBufferId() const;
+    DECLARE_GETTER_IMMUTABLE_COPY(id, GLuint)
+    DECLARE_GETTER_IMMUTABLE_COPY(colorBufferId, GLuint)
+    DECLARE_GETTER_IMMUTABLE_COPY(indexBufferId, GLuint)
+    DECLARE_GETTER_IMMUTABLE_COPY(normalBufferId, GLuint)
+    DECLARE_GETTER_IMMUTABLE_COPY(texelBufferId, GLuint)
+    DECLARE_GETTER_IMMUTABLE_COPY(vertexBufferId, GLuint)
 
     std::optional<GLuint> attributeBufferId(const std::string& name) const;
 
-    void primativeType(PrimativeType type);
-    PrimativeType primativeType() const;
+    DECLARE_GETTER_IMMUTABLE_COPY(primativeType, PrimativeType)
+    DECLARE_SETTER_COPY(primativeType, PrimativeType)
 
     void initialize();
-    bool initialized() const;
+    DECLARE_GETTER_IMMUTABLE_COPY(initialized, bool)
 
-    void color(const glm::vec4& color);
+    DECLARE_SETTER_CONSTREF(color, glm::vec4)
 
 protected:
     VertexBuffer m_buffer;
 
 private:
-    struct Private;
-    std::unique_ptr<Private> m_pPrivate;
+    COMPILATION_FIREWALL_COPY_MOVE(VertexBuffered)
 };

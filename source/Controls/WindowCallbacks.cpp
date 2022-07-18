@@ -38,6 +38,33 @@ void WindowCallbacks::ScrollCallback(GLFWwindow* pWindow, double xOffset, double
     pCallbacks->ScrollImpl(pWindow, xOffset, yOffset);
 }
 
+void WindowCallbacks::WindowMaximizedCallback(GLFWwindow* pWindow, int maximized) {
+
+    WindowCallbacks* pCallbacks = static_cast<WindowCallbacks*>(glfwGetWindowUserPointer(pWindow));
+    if (!pCallbacks)
+        return;
+
+    pCallbacks->WindowMaximizedImpl(pWindow, maximized);
+}
+
+void WindowCallbacks::WindowSizeCallback(GLFWwindow* pWindow, int width, int height) {
+
+    WindowCallbacks* pCallbacks = static_cast<WindowCallbacks*>(glfwGetWindowUserPointer(pWindow));
+    if (!pCallbacks)
+        return;
+
+    pCallbacks->WindowSizeImpl(pWindow, width, height);
+}
+
+void WindowCallbacks::WindowPositionCallback(GLFWwindow* pWindow, int xPos, int yPos) {
+
+    WindowCallbacks* pCallbacks = static_cast<WindowCallbacks*>(glfwGetWindowUserPointer(pWindow));
+    if (!pCallbacks)
+        return;
+
+    pCallbacks->WindowPositionImpl(pWindow, xPos, yPos);
+}
+
 void WindowCallbacks::FrameBufferSizeCallback(GLFWwindow* pWindow, int width, int height) {
 
     WindowCallbacks* pCallbacks = static_cast<WindowCallbacks*>(glfwGetWindowUserPointer(pWindow));

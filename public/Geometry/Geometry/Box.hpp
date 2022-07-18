@@ -1,29 +1,18 @@
 #pragma once
 
+#include "Common/ClassMacros.hpp"
+
 #include "Geometry/VertexBuffered.hpp"
-
-#include <memory>
-
-#include <glm/vec3.hpp>
 
 class Box : public VertexBuffered {
 public:
     Box();
     Box(float width, float height, float length);
-    
-    virtual ~Box() noexcept;
 
-    Box(const Box& other);
-    Box& operator=(const Box& other);
-
-    Box(Box&& other) noexcept;
-    Box& operator=(Box&& other) noexcept;
-
-    float width() const;
-    float height() const;
-    float length() const;
+    DECLARE_GETTER_IMMUTABLE_COPY(width, float)
+    DECLARE_GETTER_IMMUTABLE_COPY(height, float)
+    DECLARE_GETTER_IMMUTABLE_COPY(length, float)
 
 private:
-    struct Private;
-    std::unique_ptr<Private> m_pPrivate;
+    COMPILATION_FIREWALL_COPY_MOVE(Box)
 };

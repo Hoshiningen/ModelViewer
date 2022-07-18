@@ -1,5 +1,7 @@
 #pragma once
 
+#include "Common/ClassMacros.hpp"
+
 #include <array>
 #include <memory>
 
@@ -37,48 +39,40 @@ public:
 
     Texture();
     Texture(unsigned int width, unsigned int height, Channels textureFormat, Channels pixelFormat, Target target);
-    virtual ~Texture() noexcept;
 
-    Texture(const Texture& other);
-    Texture& operator=(const Texture& other);
+    DECLARE_GETTER_IMMUTABLE(width, unsigned int)
+    DECLARE_GETTER_IMMUTABLE(height, unsigned int)
+    DECLARE_GETTER_IMMUTABLE(textureFormat, Channels)
+    DECLARE_GETTER_IMMUTABLE(pixelFormat, Channels)
 
-    Texture(Texture&& other) noexcept;
-    Texture& operator=(Texture&& other) noexcept;
+    DECLARE_GETTER_IMMUTABLE(id, GLuint)
+    DECLARE_GETTER_IMMUTABLE(target, Target)
 
-    unsigned int width() const;
-    unsigned int height() const;
-    Channels textureFormat() const;
-    Channels pixelFormat() const;
+    DECLARE_GETTER_IMMUTABLE(minFilter, Filter)
+    DECLARE_SETTER_COPY(minFilter, Filter)
 
-    GLuint id() const;
-    Target target() const;
+    DECLARE_GETTER_IMMUTABLE(magFilter, Filter)
+    DECLARE_SETTER_COPY(magFilter, Filter)
 
-    void minFilter(Filter value);
-    Filter minFilter() const;
+    DECLARE_SETTER_COPY(wrap, Wrap)
 
-    void magFilter(Filter value);
-    Filter magFilter() const;
+    DECLARE_GETTER_IMMUTABLE(wrapS, Wrap)
+    DECLARE_SETTER_COPY(wrapS, Wrap)
 
-    void wrap(Wrap value);
+    DECLARE_GETTER_IMMUTABLE(wrapT, Wrap)
+    DECLARE_SETTER_COPY(wrapT, Wrap)
 
-    void wrapS(Wrap value);
-    Wrap wrapS() const;
+    DECLARE_GETTER_IMMUTABLE(mipmap, bool)
+    DECLARE_SETTER_COPY(wrapT, bool)
 
-    void wrapT(Wrap value);
-    Wrap wrapT() const;
-
-    void mipmap(bool value);
-    bool mipmap() const;
-
-    void borderColor(const glm::vec4& color);
     std::array<float, 4> borderColor() const;
+    DECLARE_SETTER_CONSTREF(borderColor, glm::vec4)
 
     void initialize();
-    bool initialized() const;
+    DECLARE_GETTER_IMMUTABLE(initialized, bool)
 
     void destroy() const;
 
 private:
-    struct Private;
-    std::unique_ptr<Private> m_pPrivate;
+    COMPILATION_FIREWALL_COPY_MOVE(Texture)
 };

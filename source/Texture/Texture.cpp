@@ -19,7 +19,7 @@ struct Texture::Private {
     Wrap m_wrapS = Wrap::Repeat;
     Wrap m_wrapT = Wrap::Repeat;
 
-    bool m_needsMipmap = true;
+    bool m_mipmap = false;
     bool m_initialized = false;
 
     Target m_target = Target::Texture2D;
@@ -69,74 +69,33 @@ Texture& Texture::operator=(Texture&& other) noexcept {
     return *this;
 }
 
-void Texture::minFilter(Filter value) {
-    m_pPrivate->m_minFilter = value;
-}
+DEFINE_GETTER_IMMUTABLE(Texture, width, unsigned int, m_pPrivate->m_width)
+DEFINE_GETTER_IMMUTABLE(Texture, height, unsigned int, m_pPrivate->m_height)
+DEFINE_GETTER_IMMUTABLE(Texture, textureFormat, Texture::Channels, m_pPrivate->m_textureFormat)
+DEFINE_GETTER_IMMUTABLE(Texture, pixelFormat, Texture::Channels, m_pPrivate->m_pixelFormat)
 
-unsigned int Texture::width() const {
-    return m_pPrivate->m_width;
-}
+DEFINE_GETTER_IMMUTABLE(Texture, id, GLuint, m_pPrivate->m_id)
+DEFINE_GETTER_IMMUTABLE(Texture, target, Texture::Target, m_pPrivate->m_target)
 
-unsigned int Texture::height() const {
-    return m_pPrivate->m_height;
-}
+DEFINE_GETTER_IMMUTABLE(Texture, minFilter, Texture::Filter, m_pPrivate->m_minFilter)
+DEFINE_SETTER_COPY(Texture, minFilter, m_pPrivate->m_minFilter)
 
-Texture::Channels Texture::textureFormat() const {
-    return m_pPrivate->m_textureFormat;
-}
-
-Texture::Channels Texture::pixelFormat() const {
-    return m_pPrivate->m_pixelFormat;
-}
-
-GLuint Texture::id() const {
-    return m_pPrivate->m_id;
-}
-
-Texture::Target Texture::target() const {
-    return m_pPrivate->m_target;
-}
-
-Texture::Filter Texture::minFilter() const {
-    return m_pPrivate->m_minFilter;
-}
-
-void Texture::magFilter(Filter value) {
-    m_pPrivate->m_magFilter = value;
-}
-
-Texture::Filter Texture::magFilter() const {
-    return m_pPrivate->m_magFilter;
-}
+DEFINE_GETTER_IMMUTABLE(Texture, magFilter, Texture::Filter, m_pPrivate->m_magFilter)
+DEFINE_SETTER_COPY(Texture, magFilter, m_pPrivate->m_magFilter)
 
 void Texture::wrap(Wrap value) {
     m_pPrivate->m_wrapS = value;
     m_pPrivate->m_wrapT = value;
 }
 
-void Texture::wrapS(Wrap value) {
-    m_pPrivate->m_wrapS = value;
-}
+DEFINE_GETTER_IMMUTABLE(Texture, wrapS, Texture::Wrap, m_pPrivate->m_wrapS)
+DEFINE_SETTER_COPY(Texture, wrapS, m_pPrivate->m_wrapS)
 
-Texture::Wrap Texture::wrapS() const {
-    return m_pPrivate->m_wrapS;
-}
+DEFINE_GETTER_IMMUTABLE(Texture, wrapT, Texture::Wrap, m_pPrivate->m_wrapT)
+DEFINE_SETTER_COPY(Texture, wrapT, m_pPrivate->m_wrapT)
 
-void Texture::wrapT(Wrap value) {
-    m_pPrivate->m_wrapT = value;
-}
-
-Texture::Wrap Texture::wrapT() const {
-    return m_pPrivate->m_wrapT;
-}
-
-void Texture::mipmap(bool value) {
-    m_pPrivate->m_needsMipmap = value;
-}
-
-bool Texture::mipmap() const {
-    return m_pPrivate->m_needsMipmap;
-}
+DEFINE_GETTER_IMMUTABLE(Texture, mipmap, bool, m_pPrivate->m_mipmap)
+DEFINE_SETTER_COPY(Texture, wrapT, m_pPrivate->m_mipmap)
 
 void Texture::borderColor(const glm::vec4& color) {
     m_pPrivate->m_borderColor = { color.r, color.g, color.b, color.a };
@@ -151,9 +110,7 @@ void Texture::initialize() {
     m_pPrivate->m_initialized = true;
 }
 
-bool Texture::initialized() const {
-    return m_pPrivate->m_initialized;
-}
+DEFINE_GETTER_IMMUTABLE(Texture, initialized, bool, m_pPrivate->m_initialized)
 
 void Texture::destroy() const {
 

@@ -17,6 +17,7 @@ target_include_directories(Controls PUBLIC ${PUBLIC_DIR}/Controls)
 
 target_link_libraries(Controls PRIVATE
     ${PROJECT_NAME}::Camera
+    ${PROJECT_NAME}::Common
     CONAN_PKG::glad
     CONAN_PKG::glm
     CONAN_PKG::glfw

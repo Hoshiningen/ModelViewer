@@ -1,7 +1,8 @@
 #pragma once
 
+#include "Common/ClassMacros.hpp"
+
 #include <filesystem>
-#include <memory>
 #include <optional>
 #include <string_view>
 #include <unordered_set>
@@ -15,13 +16,6 @@
 class ShaderProgram final {
 public:
     ShaderProgram();
-    ~ShaderProgram() noexcept;
-
-    ShaderProgram(const ShaderProgram& other);
-    ShaderProgram& operator=(const ShaderProgram& other);
-
-    ShaderProgram(ShaderProgram&& other) noexcept;
-    ShaderProgram& operator=(ShaderProgram&& other) noexcept;
 
     std::optional<GLuint> loadShader(const std::filesystem::path& path, GLenum ShaderProgramType);
     
@@ -44,10 +38,10 @@ public:
     void set(const std::string& variable, glm::vec4 value) const;
     void set(const std::string& variable, glm::mat4 value) const;
 
-    GLuint id() const;
+    DECLARE_GETTER_IMMUTABLE_COPY(id, GLuint)
 
-    std::unordered_set<std::string_view> attributes() const;
-    std::unordered_set<std::string_view> uniforms() const;
+    DECLARE_GETTER_IMMUTABLE_COPY(attributes, std::unordered_set<std::string_view>)
+    DECLARE_GETTER_IMMUTABLE_COPY(uniforms, std::unordered_set<std::string_view>)
 
     bool hasAttribute(const std::string& name) const;
     bool hasUniform(const std::string& name) const;
@@ -55,6 +49,5 @@ public:
     std::optional<GLuint> attributeLocation(const std::string& attributeName) const;
 
 private:
-    struct Private;
-    std::unique_ptr<Private> m_pPrivate;
+    COMPILATION_FIREWALL_COPY_MOVE(ShaderProgram)
 };

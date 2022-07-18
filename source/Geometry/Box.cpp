@@ -197,14 +197,6 @@ Box& Box::operator=(Box&& other) noexcept {
     return *this;
 }
 
-float Box::width() const {
-    return m_pPrivate->m_width;
-}
-
-float Box::height() const {
-    return m_pPrivate->m_height;
-}
-
-float Box::length() const {
-    return m_pPrivate->m_length;
-}
+DEFINE_GETTER_IMMUTABLE_COPY(Box, width, float, m_pPrivate->m_width)
+DEFINE_GETTER_IMMUTABLE_COPY(Box, height, float, m_pPrivate->m_height)
+DEFINE_GETTER_IMMUTABLE_COPY(Box, length, float, m_pPrivate->m_length)

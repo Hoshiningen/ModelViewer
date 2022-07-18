@@ -1,5 +1,7 @@
 #pragma once
 
+#include "Common/ClassMacros.hpp"
+
 #include "Geometry/VertexBuffered.hpp"
 
 #include <glm/vec3.hpp>
@@ -10,11 +12,7 @@ public:
 
     virtual ~Point() noexcept = default;
 
-    Point(const Point& other);
-    Point& operator=(const Point& other);
+    COPY_MOVE_ENABLED(Point)
 
-    Point(Point&& other) noexcept;
-    Point& operator=(Point&& other) noexcept;
-
-    glm::vec3 position() const;
+    DECLARE_GETTER_IMMUTABLE(position, glm::vec3)
 };

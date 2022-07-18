@@ -2,27 +2,18 @@
 
 #include "VertexBuffered.hpp"
 
-#include <memory>
+#include "Common/ClassMacros.hpp"
 
 #include <glm/vec3.hpp>
 
 class Plane : public VertexBuffered {
 public:
     Plane(const glm::vec3& ll, const glm::vec3& lr, const glm::vec3& ur);
-    
-    virtual ~Plane() noexcept;
 
-    Plane(const Plane& other);
-    Plane& operator=(const Plane& other);
-
-    Plane(Plane&& other) noexcept;
-    Plane& operator=(Plane&& other) noexcept;
-
-    glm::vec3 normal() const;
-    float width() const;
-    float height() const;
+    DECLARE_GETTER_IMMUTABLE_COPY(normal, glm::vec3)
+    DECLARE_GETTER_IMMUTABLE_COPY(width, float)
+    DECLARE_GETTER_IMMUTABLE_COPY(height, float)
 
 private:
-    struct Private;
-    std::unique_ptr<Private> m_pPrivate;
+    COMPILATION_FIREWALL_COPY_MOVE(Plane)
 };

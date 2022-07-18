@@ -28,6 +28,6 @@ Point& Point::operator=(Point&& other) noexcept {
     return *this;
 }
 
-glm::vec3 Point::position() const {
+const glm::vec3& Point::position() const {
     return m_buffer.vertices().front();
 }

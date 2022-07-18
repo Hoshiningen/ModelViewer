@@ -1,10 +1,11 @@
 #pragma once
 
+#include "Common/IRestorable.hpp"
+
 class ShaderProgram;
 
-class IMaterial {
+class IMaterial : public IRestorable {
 public:
     virtual ~IMaterial() = default;
     virtual void apply(ShaderProgram* pShader) const = 0;
-    virtual void wireframe(bool value) = 0;
 };

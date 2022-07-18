@@ -14,6 +14,7 @@ target_include_directories(Texture PRIVATE .)
 target_include_directories(Texture PUBLIC ${PUBLIC_DIR}/Texture)
 
 target_link_libraries(Texture PRIVATE
+    ${PROJECT_NAME}::Common
     CONAN_PKG::stb
 )
 

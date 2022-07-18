@@ -2,18 +2,26 @@
 #include "Shader/ShaderProgram.hpp"
 
 struct PhongMaterial::Private {
-    glm::vec4 m_ambientColor;
-    float m_ambientIntensity = 0.f;
+    glm::vec4 ambientColor{};
+    float ambientIntensity = 0.f;
 
-    glm::vec4 m_diffuseColor;
-    float m_diffuseIntensity = 0.f;
+    glm::vec4 diffuseColor{};
+    float diffuseIntensity = 0.f;
 
-    glm::vec4 m_specularColor;
-    float m_specularIntensity = 0.f;
+    glm::vec4 specularColor{};
+    float specularIntensity = 0.f;
 
-    float m_shininess = 0.f;
+    float shininess = 0.f;
 
-    bool m_wireframe = false;
+    NLOHMANN_DEFINE_TYPE_INTRUSIVE(PhongMaterial::Private,
+        ambientColor,
+        ambientIntensity,
+        diffuseColor,
+        diffuseIntensity,
+        specularColor,
+        specularIntensity,
+        shininess
+    )
 };
 
 
@@ -51,49 +59,56 @@ void PhongMaterial::apply(ShaderProgram* pShader) const {
     if (!pShader)
         return;
 
-    pShader->set("material.diffuseIntensity", m_pPrivate->m_diffuseIntensity);
-    pShader->set("material.ambientIntensity", m_pPrivate->m_ambientIntensity);
-    pShader->set("material.specularIntensity", m_pPrivate->m_specularIntensity);
-    pShader->set("material.shininess", m_pPrivate->m_shininess);
-    pShader->set("material.ambientColor", m_pPrivate->m_ambientColor);
-    pShader->set("material.diffuseColor", m_pPrivate->m_diffuseColor);
-    pShader->set("material.specularColor", m_pPrivate->m_specularColor);
+    pShader->set("material.diffuseIntensity", m_pPrivate->diffuseIntensity);
+    pShader->set("material.ambientIntensity", m_pPrivate->ambientIntensity);
+    pShader->set("material.specularIntensity", m_pPrivate->specularIntensity);
+    pShader->set("material.shininess", m_pPrivate->shininess);
+    pShader->set("material.ambientColor", m_pPrivate->ambientColor);
+    pShader->set("material.diffuseColor", m_pPrivate->diffuseColor);
+    pShader->set("material.specularColor", m_pPrivate->specularColor);
 
     pShader->set("includeAmbient", true);
     pShader->set("includeDiffuse", true);
     pShader->set("includeSpecular", true);
-
-    pShader->set("wireframe", m_pPrivate->m_wireframe);
 }
 
-void PhongMaterial::ambientColor(const glm::vec4& value) {
-    m_pPrivate->m_ambientColor = value;
+std::string_view PhongMaterial::id() const {
+    return "PhongMaterial";
 }
 
-void PhongMaterial::ambientIntensity(float value) {
-    m_pPrivate->m_ambientIntensity = value;
+nlohmann::json PhongMaterial::save() const {
+
+    nlohmann::json json;
+    json[id().data()] = *m_pPrivate;
+
+    return json;
 }
 
-void PhongMaterial::diffuseColor(const glm::vec4& value) {
-    m_pPrivate->m_diffuseColor = value;
+void PhongMaterial::restore(const nlohmann::json& settings) {
+
+    if (!settings.is_object())
+        return;
+
+    *m_pPrivate = settings;
 }
 
-void PhongMaterial::diffuseIntensity(float value){
-    m_pPrivate->m_diffuseIntensity = value;
-}
+DEFINE_GETTER_MUTABLE(PhongMaterial, ambientColor, glm::vec4, m_pPrivate->ambientColor)
+DEFINE_SETTER_CONSTREF(PhongMaterial, ambientColor, m_pPrivate->ambientColor)
 
-void PhongMaterial::specularColor(const glm::vec4& value) {
-    m_pPrivate->m_specularColor = value;
-}
+DEFINE_GETTER_MUTABLE(PhongMaterial, diffuseColor, glm::vec4, m_pPrivate->diffuseColor)
+DEFINE_SETTER_CONSTREF(PhongMaterial, diffuseColor, m_pPrivate->diffuseColor)
 
-void PhongMaterial::specularIntensity(float value) {
-    m_pPrivate->m_specularIntensity = value;
-}
+DEFINE_GETTER_MUTABLE(PhongMaterial, specularColor, glm::vec4, m_pPrivate->specularColor)
+DEFINE_SETTER_CONSTREF(PhongMaterial, specularColor, m_pPrivate->specularColor)
 
-void PhongMaterial::shininess(float value) {
-    m_pPrivate->m_shininess = value;
-}
+DEFINE_GETTER_MUTABLE(PhongMaterial, ambientIntensity, float, m_pPrivate->ambientIntensity)
+DEFINE_SETTER_COPY(PhongMaterial, ambientIntensity, m_pPrivate->ambientIntensity)
 
-void PhongMaterial::wireframe(bool value) {
-    m_pPrivate->m_wireframe = value;
-}
+DEFINE_GETTER_MUTABLE(PhongMaterial, diffuseIntensity, float, m_pPrivate->diffuseIntensity)
+DEFINE_SETTER_COPY(PhongMaterial, diffuseIntensity, m_pPrivate->diffuseIntensity)
+
+DEFINE_GETTER_MUTABLE(PhongMaterial, specularIntensity, float, m_pPrivate->specularIntensity)
+DEFINE_SETTER_COPY(PhongMaterial, specularIntensity, m_pPrivate->specularIntensity)
+
+DEFINE_GETTER_MUTABLE(PhongMaterial, shininess, float, m_pPrivate->shininess)
+DEFINE_SETTER_COPY(PhongMaterial, shininess, m_pPrivate->shininess)

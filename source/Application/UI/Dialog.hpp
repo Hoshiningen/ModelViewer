@@ -1,11 +1,13 @@
 #pragma once
 
+#include "Common/IRestorable.hpp"
+
 #include <optional>
 #include <string>
 
 #include <imgui.h>
 
-class Dialog {
+class Dialog : public IRestorable {
 public:
     Dialog();
     Dialog(const std::string& title);
@@ -26,7 +28,6 @@ protected:
     static constexpr std::size_t kTextBufferSize = 256;
 
     virtual void defineUI() = 0;
-    virtual void initializeUI() {}
 
     std::string m_title;
     std::optional<ImVec2> m_position;
