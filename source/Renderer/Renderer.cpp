@@ -4,6 +4,8 @@
 
 #include "Camera/Camera.hpp"
 
+#include "Common/Constants.hpp"
+
 #include "Geometry/VertexBuffered.hpp"
 
 #include "Light/DirectionalLight.hpp"
@@ -19,6 +21,7 @@
 
 #include "Texture/Texture.hpp"
 
+#include <array>
 #include <forward_list>
 #include <iostream>
 #include <set>
@@ -144,7 +147,12 @@ bool LoadBufferData(const VertexBuffered& geometry, const ShaderProgram* pProgra
 struct Renderer::Private {
     std::unique_ptr<ShaderProgram> loadShaders(const std::filesystem::path& vertexShader, const std::filesystem::path& fragmentShader);
 
-    DirectionalLight m_light;
+    std::array<DirectionalLight, kMaxLights> m_lights;
+    std::array<bool, kMaxLights> m_enabledLights;
+
+    glm::vec3 m_ambientColor{};
+    float m_ambientIntensity = 0.f;
+
     Camera* m_pCamera = nullptr;
     ShaderCache m_shaderCache;
 };
@@ -192,7 +200,7 @@ Renderer::~Renderer() {}
 
 void Renderer::setup() {
 
-    m_pPrivate->m_shaderCache.registerProgram<PhongTexturedMaterial>(m_pPrivate->loadShaders("glsl/phongTextured.vert", "glsl/phongTextured.frag"));
+    m_pPrivate->m_shaderCache.registerProgram<PhongTexturedMaterial>(m_pPrivate->loadShaders("glsl/phong.vert", "glsl/phong.frag"));
     m_pPrivate->m_shaderCache.registerProgram<LambertianMaterial>(m_pPrivate->loadShaders("glsl/phong.vert", "glsl/phong.frag"));
     m_pPrivate->m_shaderCache.registerProgram<PhongMaterial>(m_pPrivate->loadShaders("glsl/phong.vert", "glsl/phong.frag"));
     m_pPrivate->m_shaderCache.registerProgram<SolidMaterial>(m_pPrivate->loadShaders("glsl/phong.vert", "glsl/phong.frag"));
@@ -226,9 +234,15 @@ void Renderer::draw(const VertexBuffered& geometry, const IMaterial& material) c
     pShader->set("matrices.model", glm::identity<glm::mat4>());
     pShader->set("matrices.viewProjection", m_pPrivate->m_pCamera->viewProjection());
     pShader->set("eyePoint", m_pPrivate->m_pCamera->position());
+    pShader->set("ambientColor", m_pPrivate->m_ambientColor);
+    pShader->set("ambientIntensity", m_pPrivate->m_ambientIntensity);
 
     material.apply(pShader);
-    m_pPrivate->m_light.apply(pShader);
+
+    for (std::size_t lightIdx = 0; lightIdx < kMaxLights; ++lightIdx) {
+        pShader->set(std::format("enabledLights[{}]", lightIdx), m_pPrivate->m_enabledLights.at(lightIdx));
+        m_pPrivate->m_lights.at(lightIdx).apply(pShader, lightIdx);
+    }
 
     const auto indices = geometry.indices();
     const auto vertices = geometry.vertices();
@@ -296,6 +310,12 @@ void Renderer::onModelLoaded(const IMaterial* pMaterial, std::forward_list<Verte
     }
 }
 
-void Renderer::onLightChanged(const DirectionalLight& light) const {
-    m_pPrivate->m_light = light;
+void Renderer::onLightChanged(const DirectionalLight& light, uint8_t index, bool enabled) const {
+    m_pPrivate->m_lights.at(index) = light;
+    m_pPrivate->m_enabledLights.at(index) = enabled;
+}
+
+void Renderer::onAmbientColorChanged(const glm::vec3& color, float intensity) const {
+    m_pPrivate->m_ambientColor = color;
+    m_pPrivate->m_ambientIntensity = intensity;
 }

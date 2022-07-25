@@ -3,12 +3,15 @@
 #include "UI/Dialog.hpp"
 
 #include "Common/SignalMacros.hpp"
+#include "Common/Constants.hpp"
 
 #include "Light/DirectionalLight.hpp"
 
+#include <array>
 #include <forward_list>
 
 #include <glm/gtc/constants.hpp>
+#include <glm/trigonometric.hpp>
 #include <glm/vec3.hpp>
 #include <nlohmann/json.hpp>
 #include <sigslot/signal.hpp>
@@ -32,10 +35,17 @@ protected:
 
 private:
     // Signals
-    sigslot::signal<const DirectionalLight&> m_signalLightChanged;
-    
-    float m_pitch = -glm::half_pi<float>();
-    float m_yaw = 0.f;
+    sigslot::signal<const DirectionalLight&, uint8_t, bool> m_signalLightChanged;
 
-    DirectionalLight m_light;
+    std::array<bool, kMaxLights> m_enabledLights{ true, false, false };
+
+    std::array<float, kMaxLights> m_yaws{
+        glm::radians(0.f), glm::radians(120.f), glm::radians(240.f)
+    };
+
+    std::array<float, kMaxLights> m_pitches{
+        glm::radians(-60.f), glm::radians(-60.f), glm::radians(-60.f)
+    };
+
+    std::array<DirectionalLight, kMaxLights> m_lights;
 };

@@ -50,11 +50,12 @@ static constexpr ImGuiWindowFlags kWindowFlags = ImGuiWindowFlags_AlwaysAutoResi
 
 struct Application::Private : private IRestorable {
     Private();
+    ~Private();
     
     // Ensures API shutdown happens after everything has been destroyed.
-    static struct Destructor {
-        ~Destructor();
-    } kDestructor;
+    static struct APICleanUp {
+        ~APICleanUp();
+    } kAPICleanUp;
 
     void render();
     void update();
@@ -75,6 +76,7 @@ struct Application::Private : private IRestorable {
     void onWireframeModeChange(bool wireframe) const;
 
     void onInitialized();
+    void onSaved();
 
 public:
     sigslot::signal<> m_signalInitialized;
@@ -109,7 +111,7 @@ public:
 Application::Private::Private()
     : m_loaderDialog("Model Loader", kWindowFlags),
       m_materialPropDialog("Material Properties", kWindowFlags),
-      m_lightPropDialog("Light Properties", kWindowFlags),
+      m_lightPropDialog("Directional Light Properties", kWindowFlags),
       m_scenePropDialog("Scene Properties", kWindowFlags) {
 
     // Camera setup
@@ -145,7 +147,11 @@ Application::Private::Private()
     });
 }
 
-Application::Private::Destructor::~Destructor() {
+Application::Private::~Private() {
+    onSaved();
+}
+
+Application::Private::APICleanUp::~APICleanUp() {
 
     ImGui_ImplOpenGL3_Shutdown();
     ImGui_ImplGlfw_Shutdown();
@@ -325,6 +331,7 @@ void Application::Private::onInitialized() {
     m_lightPropDialog.connectLightChanged(&Renderer::onLightChanged, &m_renderer);
 
     m_scenePropDialog.connectClearColorChanged(&Application::Private::onClearColorChange, this);
+    m_scenePropDialog.connectAmbientColorChanged(&Renderer::onAmbientColorChanged, &m_renderer);
     
     m_callbacks.connectProjectionChanged(&Application::Private::onProjectionChange, this);
     m_callbacks.connectProjectionChanged(&ScenePropertiesDialog::onProjectionChange, &m_scenePropDialog);
@@ -332,10 +339,7 @@ void Application::Private::onInitialized() {
     m_callbacks.connectWireframeChanged(&Application::Private::onWireframeModeChange, this);
     m_callbacks.connectWireframeChanged(&ScenePropertiesDialog::onWireframeModeChange, &m_scenePropDialog);
     
-    m_callbacks.connectApplicationSaved([this] {
-        std::ofstream file{ kSettingsFileName };
-        file << save();
-    });
+    m_callbacks.connectApplicationSaved(&Application::Private::onSaved, this);
 
     // Restore application settings
     if (std::filesystem::is_regular_file(kSettingsFileName) && std::filesystem::file_size(kSettingsFileName) > 0) {
@@ -358,6 +362,12 @@ void Application::Private::onInitialized() {
             std::cerr << "An unknown nlohmann error occurred.\n";
         }
     }
+}
+
+void Application::Private::onSaved() {
+
+    std::ofstream file{ kSettingsFileName };
+    file << save();
 }
 
 

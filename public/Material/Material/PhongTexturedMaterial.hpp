@@ -32,9 +32,6 @@ public:
     DECLARE_GETTER_MUTABLE(shininess, float)
     DECLARE_SETTER_COPY(shininess, float)
 
-    DECLARE_GETTER_MUTABLE(ambientIntensity, float)
-    DECLARE_SETTER_COPY(ambientIntensity, float)
-
     DECLARE_GETTER_MUTABLE(diffuseIntensity, float)
     DECLARE_SETTER_COPY(diffuseIntensity, float)
 
