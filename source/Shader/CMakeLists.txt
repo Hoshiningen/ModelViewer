@@ -11,8 +11,6 @@ set(INCLDUES
 set(SHADERS
     glsl/phong.vert
     glsl/phong.frag
-    glsl/phongTextured.vert
-    glsl/phongTextured.frag
 )
 
 add_library(Shader ${SOURCES} ${INCLDUES} ${SHADERS})

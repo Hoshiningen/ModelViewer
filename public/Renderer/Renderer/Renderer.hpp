@@ -4,6 +4,7 @@
 
 #include <forward_list>
 
+#include <glm/vec3.hpp>
 #include <glm/vec4.hpp>
 
 class Camera;
@@ -25,7 +26,8 @@ public:
 
     void onTextureLoaded(const Texture& texture) const;
     void onModelLoaded(const IMaterial* pMaterial, std::forward_list<VertexBuffered>* pModel) const;
-    void onLightChanged(const DirectionalLight& light) const;
+    void onLightChanged(const DirectionalLight& light, uint8_t index, bool enabled) const;
+    void onAmbientColorChanged(const glm::vec3& color, float intensity) const;
 
 private:
     COMPILATION_FIREWALL(Renderer)

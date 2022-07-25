@@ -1,4 +1,7 @@
 #include "Light/DirectionalLight.hpp"
+
+#include "Common/Constants.hpp"
+
 #include "Shader/ShaderProgram.hpp"
 
 struct DirectionalLight::Private {
@@ -47,10 +50,22 @@ void DirectionalLight::apply(ShaderProgram* pShader) const {
 
     if (!pShader)
         return;
-    
+
     pShader->set("directionalLight.direction", m_pPrivate->direction);
     pShader->set("directionalLight.color", m_pPrivate->color);
     pShader->set("directionalLight.intensity", m_pPrivate->intensity);
+}
+
+void DirectionalLight::apply(ShaderProgram* pShader, std::size_t index) const {
+
+    if (!pShader)
+        return;
+
+    assert(index > 0 && index < kMaxLights);
+
+    pShader->set(std::format("directionalLights[{}].direction", index), m_pPrivate->direction);
+    pShader->set(std::format("directionalLights[{}].color", index), m_pPrivate->color);
+    pShader->set(std::format("directionalLights[{}].intensity", index), m_pPrivate->intensity);
 }
 
 std::string_view DirectionalLight::id() const {

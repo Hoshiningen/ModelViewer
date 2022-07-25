@@ -3,15 +3,15 @@
 
 struct PhongMaterial::Private {
     glm::vec4 ambientColor{};
-    float ambientIntensity = 0.f;
+    float ambientIntensity = 1.f;
 
     glm::vec4 diffuseColor{};
-    float diffuseIntensity = 0.f;
+    float diffuseIntensity = 1.f;
 
     glm::vec4 specularColor{};
-    float specularIntensity = 0.f;
+    float specularIntensity = 1.f;
 
-    float shininess = 0.f;
+    float shininess = 28.f;
 
     NLOHMANN_DEFINE_TYPE_INTRUSIVE(PhongMaterial::Private,
         ambientColor,
@@ -59,17 +59,19 @@ void PhongMaterial::apply(ShaderProgram* pShader) const {
     if (!pShader)
         return;
 
-    pShader->set("material.diffuseIntensity", m_pPrivate->diffuseIntensity);
-    pShader->set("material.ambientIntensity", m_pPrivate->ambientIntensity);
-    pShader->set("material.specularIntensity", m_pPrivate->specularIntensity);
-    pShader->set("material.shininess", m_pPrivate->shininess);
-    pShader->set("material.ambientColor", m_pPrivate->ambientColor);
-    pShader->set("material.diffuseColor", m_pPrivate->diffuseColor);
-    pShader->set("material.specularColor", m_pPrivate->specularColor);
+    pShader->set("phongMaterial.isMapped", false);
 
-    pShader->set("includeAmbient", true);
-    pShader->set("includeDiffuse", true);
-    pShader->set("includeSpecular", true);
+    pShader->set("phongMaterial.diffuseIntensity", m_pPrivate->diffuseIntensity);
+    pShader->set("phongMaterial.ambientIntensity", m_pPrivate->ambientIntensity);
+    pShader->set("phongMaterial.specularIntensity", m_pPrivate->specularIntensity);
+    pShader->set("phongMaterial.shininess", m_pPrivate->shininess);
+    pShader->set("phongMaterial.ambientColor", m_pPrivate->ambientColor);
+    pShader->set("phongMaterial.diffuseColor", m_pPrivate->diffuseColor);
+    pShader->set("phongMaterial.specularColor", m_pPrivate->specularColor);
+
+    pShader->set("phongMaterial.hasAmbient", true);
+    pShader->set("phongMaterial.hasDiffuse", true);
+    pShader->set("phongMaterial.hasSpecular", true);
 }
 
 std::string_view PhongMaterial::id() const {

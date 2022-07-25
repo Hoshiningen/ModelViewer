@@ -46,12 +46,14 @@ void LambertianMaterial::apply(ShaderProgram* pShader) const {
     if (!pShader)
         return;
 
-    pShader->set("material.diffuseColor", m_pPrivate->diffuseColor);
-    pShader->set("material.diffuseIntensity", m_pPrivate->diffuseIntensity);
+    pShader->set("phongMaterial.isMapped", false);
 
-    pShader->set("includeAmbient", false);
-    pShader->set("includeDiffuse", true);
-    pShader->set("includeSpecular", false);
+    pShader->set("phongMaterial.diffuseColor", m_pPrivate->diffuseColor);
+    pShader->set("phongMaterial.diffuseIntensity", m_pPrivate->diffuseIntensity);
+
+    pShader->set("phongMaterial.hasAmbient", false);
+    pShader->set("phongMaterial.hasDiffuse", true);
+    pShader->set("phongMaterial.hasSpecular", false);
 }
 
 std::string_view LambertianMaterial::id() const {

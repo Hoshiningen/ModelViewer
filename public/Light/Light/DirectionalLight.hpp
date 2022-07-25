@@ -13,6 +13,7 @@ public:
     DirectionalLight();
 
     virtual void apply(ShaderProgram* pShader) const override;
+    virtual void apply(ShaderProgram* pShader, std::size_t index) const override;
 
     virtual std::string_view id() const override;
     virtual nlohmann::json save() const override;

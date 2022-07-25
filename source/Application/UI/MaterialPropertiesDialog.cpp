@@ -132,7 +132,6 @@ void MaterialPropertiesDialog::setUpPhong(PhongMaterial& material) {
 
 void MaterialPropertiesDialog::setUpPhongTextured(PhongTexturedMaterial& material) {
 
-    ImGui::SliderFloat("Ambient Intensity", &material.ambientIntensity(), 0.f, 1.f, "%.3f", kSliderFlags);
     ImGui::InputTextWithHint("Diffuse Map", "Texture file path...",
         m_diffusePathBuffer.data(), m_diffusePathBuffer.size());
 

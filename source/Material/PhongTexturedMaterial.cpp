@@ -14,14 +14,12 @@ struct PhongTexturedMaterial::Private {
 
     float shininess = 28.f;
 
-    float ambientIntensity = 1.f;
     float diffuseIntensity = 1.f;
     float emissiveIntensity = 1.f;
     float specularIntensity = 1.f;
     
     NLOHMANN_DEFINE_TYPE_INTRUSIVE(PhongTexturedMaterial::Private,
         shininess,
-        ambientIntensity,
         diffuseIntensity,
         emissiveIntensity,
         specularIntensity
@@ -62,41 +60,41 @@ void PhongTexturedMaterial::apply(ShaderProgram* pShader) const {
     if (!pShader)
         return;
 
-    pShader->set("material.ambientIntensity", m_pPrivate->ambientIntensity);
+    pShader->set("phongMaterial.isMapped", true);
 
     if (m_pPrivate->diffuseMap.has_value() && m_pPrivate->diffuseMap->initialized()) {
         glActiveTexture(GL_TEXTURE0);
         glBindTexture(static_cast<GLenum>(m_pPrivate->diffuseMap->target()), m_pPrivate->diffuseMap->id());
 
-        pShader->set("material.hasDiffuse", true);
-        pShader->set("material.diffuseMap", 0);
-        pShader->set("material.diffuseIntensity", m_pPrivate->diffuseIntensity);
+        pShader->set("phongMaterial.hasDiffuse", true);
+        pShader->set("phongMaterial.diffuseMap", 0);
+        pShader->set("phongMaterial.diffuseIntensity", m_pPrivate->diffuseIntensity);
     }
     else
-        pShader->set("material.hasDiffuse", false);
+        pShader->set("phongMaterial.hasDiffuse", false);
 
     if (m_pPrivate->emissiveMap.has_value() && m_pPrivate->emissiveMap->initialized()) {
         glActiveTexture(GL_TEXTURE1);
         glBindTexture(static_cast<GLenum>(m_pPrivate->emissiveMap->target()), m_pPrivate->emissiveMap->id());
         
-        pShader->set("material.hasEmissive", true);
-        pShader->set("material.emissiveMap", 1);
-        pShader->set("material.emissiveIntensity", m_pPrivate->emissiveIntensity);
+        pShader->set("phongMaterial.hasEmissive", true);
+        pShader->set("phongMaterial.emissiveMap", 1);
+        pShader->set("phongMaterial.emissiveIntensity", m_pPrivate->emissiveIntensity);
     }
     else
-        pShader->set("material.hasEmissive", false);
+        pShader->set("phongMaterial.hasEmissive", false);
 
     if (m_pPrivate->specularMap.has_value() && m_pPrivate->specularMap->initialized()) {
         glActiveTexture(GL_TEXTURE2);
         glBindTexture(static_cast<GLenum>(m_pPrivate->specularMap->target()), m_pPrivate->specularMap->id());
         
-        pShader->set("material.hasSpecular", true);
-        pShader->set("material.specularMap", 2);
-        pShader->set("material.specularIntensity", m_pPrivate->specularIntensity);
-        pShader->set("material.shininess", m_pPrivate->shininess);
+        pShader->set("phongMaterial.hasSpecular", true);
+        pShader->set("phongMaterial.specularMap", 2);
+        pShader->set("phongMaterial.specularIntensity", m_pPrivate->specularIntensity);
+        pShader->set("phongMaterial.shininess", m_pPrivate->shininess);
     }
     else
-        pShader->set("material.hasSpecular", false);
+        pShader->set("phongMaterial.hasSpecular", false);
 }
 
 std::string_view PhongTexturedMaterial::id() const {
@@ -130,9 +128,6 @@ DEFINE_SETTER_CONSTREF_EXPLICIT(PhongTexturedMaterial, specularMap, Texture, m_p
 
 DEFINE_GETTER_MUTABLE(PhongTexturedMaterial, shininess, float, m_pPrivate->shininess)
 DEFINE_SETTER_COPY(PhongTexturedMaterial, shininess, m_pPrivate->shininess)
-
-DEFINE_GETTER_MUTABLE(PhongTexturedMaterial, ambientIntensity, float, m_pPrivate->ambientIntensity)
-DEFINE_SETTER_COPY(PhongTexturedMaterial, ambientIntensity, m_pPrivate->ambientIntensity)
 
 DEFINE_GETTER_MUTABLE(PhongTexturedMaterial, diffuseIntensity, float, m_pPrivate->diffuseIntensity)
 DEFINE_SETTER_COPY(PhongTexturedMaterial, diffuseIntensity, m_pPrivate->diffuseIntensity)
