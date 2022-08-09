@@ -2,9 +2,11 @@
 
 #include "IO/TextureLoader.hpp"
 
+#include <array>
 #include <algorithm>
 #include <ranges>
 #include <string>
+#include <variant>
 #include <vector>
 
 #include <glm/gtc/type_ptr.hpp>
@@ -13,14 +15,33 @@ namespace {
 static constexpr ImGuiSliderFlags kSliderFlags = ImGuiSliderFlags_AlwaysClamp;
 
 Texture LoadTexture(const std::filesystem::path& filePath) {
-
-    return TextureLoader::load(filePath, Texture::Target::Texture2D);
+    return TextureLoader::load(filePath, Texture::Target::Texture2D, false);
 }
+
+template<typename... Handlers>
+struct Visitor : Handlers... {
+    using Handlers::operator()...;
+};
+
+template<typename ...Handlers>
+Visitor(Handlers...) -> Visitor<Handlers...>;
+
 } // end unnamed namespace
 
-const std::vector<const char*> MaterialPropertiesDialog::m_materialTypeNames{
-    "Lambertian", "Phong", "Phong Textured"
-};
+MaterialPropertiesDialog::MaterialPropertiesDialog()
+    : Dialog() { initialize(); }
+
+MaterialPropertiesDialog::MaterialPropertiesDialog(const std::string& title)
+    : Dialog(title) { initialize(); }
+
+MaterialPropertiesDialog::MaterialPropertiesDialog(const std::string& title, ImGuiWindowFlags flags)
+    : Dialog(title, flags) { initialize(); }
+
+MaterialPropertiesDialog::MaterialPropertiesDialog(const std::string& title, const ImVec2& position, ImGuiWindowFlags flags)
+    : Dialog(title, position, flags) { initialize(); }
+
+MaterialPropertiesDialog::MaterialPropertiesDialog(const std::string& title, const ImVec2& position, const ImVec2& size, ImGuiWindowFlags flags)
+    : Dialog(title, position, size, flags) { initialize(); }
 
 std::string_view MaterialPropertiesDialog::id() const {
     return "MaterialPropertiesDialog";
@@ -30,7 +51,7 @@ nlohmann::json MaterialPropertiesDialog::save() const {
 
     nlohmann::json json;
 
-    json[id().data()]["selectedMaterial"] = m_materialTypeNames.at(m_selectedMaterialType);
+    json[id().data()]["selectedMaterial"] = m_materialNames.at(m_selectedMaterialIndex);
     json[id().data()]["diffuseMapPath"] = m_diffusePathBuffer;
     json[id().data()]["emissiveMapPath"] = m_emissivePathBuffer;
     json[id().data()]["specularMapPath"] = m_specularPathBuffer;
@@ -46,10 +67,13 @@ void MaterialPropertiesDialog::restore(const nlohmann::json& settings) {
     if (settings.contains("selectedMaterial")) {
 
         const std::string selectedMaterial = settings["selectedMaterial"].get<std::string>();
-        m_selectedMaterialType = std::distance(
-            m_materialTypeNames.cbegin(),
-            std::ranges::find(m_materialTypeNames, selectedMaterial)
+        m_selectedMaterialIndex = std::distance(
+            m_materialNames.begin(),
+            std::ranges::find(m_materialNames, selectedMaterial)
         );
+
+        if (m_pMesh)
+            m_pMesh->material(materialByIndex(m_selectedMaterialIndex));
     }
 
     if (settings.contains("diffuseMapPath"))
@@ -71,66 +95,68 @@ void MaterialPropertiesDialog::restore(const nlohmann::json& settings) {
         m_phongTexturedMaterial.restore(settings[m_phongTexturedMaterial.id().data()]);
 }
 
-void MaterialPropertiesDialog::onModelLoaded(std::forward_list<VertexBuffered>*) {
+void MaterialPropertiesDialog::mesh(Mesh* pMesh) {
 
-    if (std::strcmp(m_materialTypeNames.at(m_selectedMaterialType), "Lambertian") == 0)
-        m_signalMaterialSelected(&m_lambertianMaterial);
+    m_pMesh = pMesh;
 
-    if (std::strcmp(m_materialTypeNames.at(m_selectedMaterialType), "Phong") == 0)
-        m_signalMaterialSelected(&m_phongMaterial);
-
-    if (std::strcmp(m_materialTypeNames.at(m_selectedMaterialType), "Phong Textured") == 0)
-        m_signalMaterialSelected(&m_phongTexturedMaterial);
+    if (m_pMesh)
+        m_pMesh->material(materialByIndex(m_selectedMaterialIndex));
 }
 
 void MaterialPropertiesDialog::defineUI() {
 
-    if (ImGui::Combo("Material", &m_selectedMaterialType, m_materialTypeNames.data(), m_materialTypeNames.size())) {
+    if (!m_pMesh)
+        return;
 
-        if (std::strcmp(m_materialTypeNames.at(m_selectedMaterialType), "Lambertian") == 0)
-            m_signalMaterialSelected(&m_lambertianMaterial);
+    if (ImGui::Combo("Material", &m_selectedMaterialIndex, m_materialNames.data(), m_materialNames.size())) {
 
-        if (std::strcmp(m_materialTypeNames.at(m_selectedMaterialType), "Phong") == 0)
-            m_signalMaterialSelected(&m_phongMaterial);
-
-        if (std::strcmp(m_materialTypeNames.at(m_selectedMaterialType), "Phong Textured") == 0)
-            m_signalMaterialSelected(&m_phongTexturedMaterial);
+        m_pMesh->material(materialByIndex(m_selectedMaterialIndex));
+        m_signalMaterialSelectionChanged();
     }
 
     ImGui::Separator();
-    ImGui::NewLine();
+    ImGui::Spacing();
 
-    if (m_selectedMaterialType < 0)
-        return;
-
-    if (std::strcmp(m_materialTypeNames.at(m_selectedMaterialType), "Lambertian") == 0)
-        setUpLambertian(m_lambertianMaterial);
-
-    if (std::strcmp(m_materialTypeNames.at(m_selectedMaterialType), "Phong") == 0)
-        setUpPhong(m_phongMaterial);
-
-    if (std::strcmp(m_materialTypeNames.at(m_selectedMaterialType), "Phong Textured") == 0)
-        setUpPhongTextured(m_phongTexturedMaterial);
+    if (m_selectedMaterialIndex >= 0)
+        setUpMaterialUI(materialVariantByIndex(m_selectedMaterialIndex));
 }
 
-void MaterialPropertiesDialog::setUpLambertian(LambertianMaterial& material) {
+void MaterialPropertiesDialog::initialize() {
 
-    ImGui::ColorEdit4("Diffuse Color", glm::value_ptr(material.diffuseColor()));
-    ImGui::SliderFloat("Diffuse Intensity", &material.diffuseIntensity(), 0.f, 1.f, "%.3f", kSliderFlags);
+    m_materials[*m_materialNames.insert(m_materialNames.begin(), "Lambertian")] = &m_lambertianMaterial;
+    m_materials[*m_materialNames.insert(m_materialNames.begin(), "Phong")] = &m_phongMaterial;
+    m_materials[*m_materialNames.insert(m_materialNames.begin(), "Phong Textured")] = &m_phongTexturedMaterial;
+
+    std::ranges::sort(m_materialNames);
 }
 
-void MaterialPropertiesDialog::setUpPhong(PhongMaterial& material) {
+void MaterialPropertiesDialog::setUpMaterialUI(MaterialVariant material) {
 
-    ImGui::ColorEdit4("Ambient Color", glm::value_ptr(material.ambientColor()));
-    ImGui::SliderFloat("Ambient Intensity", &material.ambientIntensity(), 0.f, 1.f, "%.3f", kSliderFlags);
-    ImGui::ColorEdit4("Diffuse Color", glm::value_ptr(material.diffuseColor()));
-    ImGui::SliderFloat("Diffuse Intensity", &material.diffuseIntensity(), 0.f, 1.f, "%.3f", kSliderFlags);
-    ImGui::ColorEdit4("Specular Color", glm::value_ptr(material.specularColor()));
-    ImGui::SliderFloat("Specular Intensity", &material.specularIntensity(), 0.f, 1.f, "%.3f", kSliderFlags);
-    ImGui::SliderFloat("Shininess", &material.shininess(), 1.f, 256.f, "%.0f", kSliderFlags);
+    std::visit(Visitor{
+        [this](LambertianMaterial* pMaterial) { setUpMaterialUI(pMaterial); },
+        [this](PhongMaterial* pMaterial) { setUpMaterialUI(pMaterial); },
+        [this](PhongTexturedMaterial* pMaterial) { setUpMaterialUI(pMaterial); }
+    }, material);
 }
 
-void MaterialPropertiesDialog::setUpPhongTextured(PhongTexturedMaterial& material) {
+void MaterialPropertiesDialog::setUpMaterialUI(LambertianMaterial* pMaterial) {
+
+    ImGui::ColorEdit4("Diffuse Color", glm::value_ptr(pMaterial->diffuseColor()));
+    ImGui::SliderFloat("Diffuse Intensity", &pMaterial->diffuseIntensity(), 0.f, 1.f, "%.3f", kSliderFlags);
+}
+
+void MaterialPropertiesDialog::setUpMaterialUI(PhongMaterial* pMaterial) {
+
+    ImGui::ColorEdit4("Ambient Color", glm::value_ptr(pMaterial->ambientColor()));
+    ImGui::SliderFloat("Ambient Intensity", &pMaterial->ambientIntensity(), 0.f, 1.f, "%.3f", kSliderFlags);
+    ImGui::ColorEdit4("Diffuse Color", glm::value_ptr(pMaterial->diffuseColor()));
+    ImGui::SliderFloat("Diffuse Intensity", &pMaterial->diffuseIntensity(), 0.f, 1.f, "%.3f", kSliderFlags);
+    ImGui::ColorEdit4("Specular Color", glm::value_ptr(pMaterial->specularColor()));
+    ImGui::SliderFloat("Specular Intensity", &pMaterial->specularIntensity(), 0.f, 1.f, "%.3f", kSliderFlags);
+    ImGui::SliderFloat("Shininess", &pMaterial->shininess(), 1.f, 256.f, "%.0f", kSliderFlags);
+}
+
+void MaterialPropertiesDialog::setUpMaterialUI(PhongTexturedMaterial* pMaterial) {
 
     ImGui::InputTextWithHint("Diffuse Map", "Texture file path...",
         m_diffusePathBuffer.data(), m_diffusePathBuffer.size());
@@ -138,13 +164,13 @@ void MaterialPropertiesDialog::setUpPhongTextured(PhongTexturedMaterial& materia
     ImGui::SameLine();
     ImGui::BeginDisabled(!std::filesystem::is_regular_file(m_diffusePathBuffer.data()));
     if (ImGui::Button("Load##DiffuseMap")) {
-        material.diffuseMap(LoadTexture(m_diffusePathBuffer.data()));
+        pMaterial->diffuseMap(LoadTexture(m_diffusePathBuffer.data()));
 
-        m_signalTextureLoaded(*material.diffuseMap());
+        m_signalTextureLoaded(*pMaterial->diffuseMap());
     }
     ImGui::EndDisabled();
 
-    ImGui::SliderFloat("Diffuse Intensity", &material.diffuseIntensity(), 0.f, 1.f, "%.3f", kSliderFlags);
+    ImGui::SliderFloat("Diffuse Intensity", &pMaterial->diffuseIntensity(), 0.f, 1.f, "%.3f", kSliderFlags);
 
     ImGui::InputTextWithHint("Emissive Map", "Texture file path...",
         m_emissivePathBuffer.data(), m_emissivePathBuffer.size());
@@ -152,12 +178,12 @@ void MaterialPropertiesDialog::setUpPhongTextured(PhongTexturedMaterial& materia
     ImGui::SameLine();
     ImGui::BeginDisabled(!std::filesystem::is_regular_file(m_emissivePathBuffer.data()));
     if (ImGui::Button("Load##EmissiveMap")) {
-        material.emissiveMap(LoadTexture(m_emissivePathBuffer.data()));
-        m_signalTextureLoaded(*material.emissiveMap());
+        pMaterial->emissiveMap(LoadTexture(m_emissivePathBuffer.data()));
+        m_signalTextureLoaded(*pMaterial->emissiveMap());
     }
     ImGui::EndDisabled();
 
-    ImGui::SliderFloat("Emissive Intensity", &material.emissiveIntensity(), 0.f, 1.f, "%.3f", kSliderFlags);
+    ImGui::SliderFloat("Emissive Intensity", &pMaterial->emissiveIntensity(), 0.f, 1.f, "%.3f", kSliderFlags);
 
     ImGui::InputTextWithHint("Specular Map", "Texture file path...",
         m_specularPathBuffer.data(), m_specularPathBuffer.size());
@@ -165,11 +191,28 @@ void MaterialPropertiesDialog::setUpPhongTextured(PhongTexturedMaterial& materia
     ImGui::SameLine();
     ImGui::BeginDisabled(!std::filesystem::is_regular_file(m_specularPathBuffer.data()));
     if (ImGui::Button("Load##SpecularMap")) {
-        material.specularMap(LoadTexture(m_specularPathBuffer.data()));
-        m_signalTextureLoaded(*material.specularMap());
+        pMaterial->specularMap(LoadTexture(m_specularPathBuffer.data()));
+        m_signalTextureLoaded(*pMaterial->specularMap());
     }
     ImGui::EndDisabled();
 
-    ImGui::SliderFloat("Specular Intensity", &material.specularIntensity(), 0.f, 1.f, "%.3f", kSliderFlags);
-    ImGui::SliderFloat("Shininess", &material.shininess(), 1.f, 256.f, "%.0f", kSliderFlags);
+    ImGui::SliderFloat("Specular Intensity", &pMaterial->specularIntensity(), 0.f, 1.f, "%.3f", kSliderFlags);
+    ImGui::SliderFloat("Shininess", &pMaterial->shininess(), 1.f, 256.f, "%.0f", kSliderFlags);
+}
+
+MaterialPropertiesDialog::MaterialVariant MaterialPropertiesDialog::materialVariantByIndex(int index) const {
+
+    if (index < 0 || index > m_materialNames.size() - 1)
+        return static_cast<LambertianMaterial*>(nullptr);
+
+    return m_materials.at(m_materialNames.at(index));
+}
+
+IMaterial* MaterialPropertiesDialog::materialByIndex(int index) const {
+
+    return std::visit(Visitor{
+        [](LambertianMaterial* pMaterial) -> IMaterial* { return pMaterial; },
+        [](PhongMaterial* pMaterial) -> IMaterial* { return pMaterial; },
+        [](PhongTexturedMaterial* pMaterial) -> IMaterial* { return pMaterial; }
+    }, materialVariantByIndex(m_selectedMaterialIndex));
 }

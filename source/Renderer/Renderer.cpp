@@ -16,6 +16,8 @@
 #include "Material/PhongTexturedMaterial.hpp"
 #include "Material/SolidMaterial.hpp"
 
+#include "Object/Mesh.hpp"
+
 #include "Shader/VertexAttribute.hpp"
 #include "Shader/ShaderProgram.hpp"
 
@@ -146,12 +148,12 @@ bool LoadBufferData(const VertexBuffered& geometry, const ShaderProgram* pProgra
 
 struct Renderer::Private {
     std::unique_ptr<ShaderProgram> loadShaders(const std::filesystem::path& vertexShader, const std::filesystem::path& fragmentShader);
+    void draw(const VertexBuffered& geometry, const IMaterial& material, const glm::mat4& transform) const;
 
-    std::array<DirectionalLight, kMaxLights> m_lights;
-    std::array<bool, kMaxLights> m_enabledLights;
+    std::array<DirectionalLight**, kMaxLights> m_lights;
 
-    glm::vec3 m_ambientColor{};
-    float m_ambientIntensity = 0.f;
+    glm::vec3* m_pAmbientColor = nullptr;
+    float* m_pAmbientIntensity = nullptr;
 
     Camera* m_pCamera = nullptr;
     ShaderCache m_shaderCache;
@@ -192,6 +194,57 @@ std::unique_ptr<ShaderProgram> Renderer::Private::loadShaders(const std::filesys
     return std::make_unique<ShaderProgram>(std::move(shader));
 }
 
+void Renderer::Private::draw(const VertexBuffered& geometry, const IMaterial& material, const glm::mat4& transform) const {
+
+    ShaderProgram* pShader = m_shaderCache.get(material);
+    if (!pShader) {
+        assert(false);
+        return;
+    }
+
+    if (!geometry.initialized()) {
+        assert(false);
+        return;
+    }
+
+    pShader->use();
+    pShader->set("matrices.model", transform);
+    pShader->set("matrices.viewProjection", m_pCamera->viewProjection());
+    pShader->set("eyePoint", m_pCamera->position());
+
+    if (m_pAmbientColor && m_pAmbientIntensity) {
+        pShader->set("ambientColor", *m_pAmbientColor);
+        pShader->set("ambientIntensity", *m_pAmbientIntensity);
+    }
+
+    material.apply(pShader);
+
+    for (std::size_t lightIndex = 0; lightIndex < kMaxLights; ++lightIndex) {
+
+        DirectionalLight* pLight = *m_lights.at(lightIndex);        
+        pShader->set(std::format("enabledLights[{}]", lightIndex), pLight != nullptr);
+
+        if (pLight)
+            pLight->apply(pShader, lightIndex);
+    }
+
+    const auto indices = geometry.indices();
+    const auto vertices = geometry.vertices();
+    const VertexBuffered::PrimativeType primitive = geometry.primativeType();
+
+    if (geometry.colors().has_value())
+        pShader->set("hasVertexColor", true);
+
+    glBindVertexArray(geometry.id());
+
+    if (indices)
+        glDrawElements(static_cast<GLenum>(primitive), indices->size(), GL_UNSIGNED_INT, reinterpret_cast<void*>(0));
+    else if (vertices)
+        glDrawArrays(static_cast<GLenum>(primitive), 0, vertices->size());
+
+    glBindVertexArray(0);
+}
+
 
 Renderer::Renderer()
     : m_pPrivate(std::make_unique<Private>()) {}
@@ -217,54 +270,13 @@ void Renderer::camera(Camera* pCamera) {
     m_pPrivate->m_pCamera = pCamera;
 }
 
-void Renderer::draw(const VertexBuffered& geometry, const IMaterial& material) const {
+void Renderer::draw(const Mesh& mesh) const {
 
-    ShaderProgram* pShader = m_pPrivate->m_shaderCache.get(material);
-    if (!pShader) {
-        assert(false);
+    if (!mesh.model() || !mesh.material())
         return;
-    }
 
-    if (!geometry.initialized()) {
-        assert(false);
-        return;
-    }
-
-    pShader->use();
-    pShader->set("matrices.model", glm::identity<glm::mat4>());
-    pShader->set("matrices.viewProjection", m_pPrivate->m_pCamera->viewProjection());
-    pShader->set("eyePoint", m_pPrivate->m_pCamera->position());
-    pShader->set("ambientColor", m_pPrivate->m_ambientColor);
-    pShader->set("ambientIntensity", m_pPrivate->m_ambientIntensity);
-
-    material.apply(pShader);
-
-    for (std::size_t lightIdx = 0; lightIdx < kMaxLights; ++lightIdx) {
-        pShader->set(std::format("enabledLights[{}]", lightIdx), m_pPrivate->m_enabledLights.at(lightIdx));
-        m_pPrivate->m_lights.at(lightIdx).apply(pShader, lightIdx);
-    }
-
-    const auto indices = geometry.indices();
-    const auto vertices = geometry.vertices();
-    const VertexBuffered::PrimativeType primitive = geometry.primativeType();
-
-    if (geometry.colors().has_value())
-        pShader->set("hasVertexColor", true);
-
-    glBindVertexArray(geometry.id());
-
-    if (indices)
-        glDrawElements(static_cast<GLenum>(primitive), indices->size(), GL_UNSIGNED_INT, reinterpret_cast<void*>(0));
-    else if (vertices)
-        glDrawArrays(static_cast<GLenum>(primitive), 0, vertices->size());
-
-    glBindVertexArray(0);
-}
-
-void Renderer::draw(const std::forward_list<VertexBuffered>& model, const IMaterial& material) const {
-
-    for (const VertexBuffered& geometry : model)
-        draw(geometry, material);
+    for (const VertexBuffered& geometry : *mesh.model())
+        m_pPrivate->draw(geometry, *mesh.material(), mesh.transform());
 }
 
 void Renderer::onTextureLoaded(const Texture& texture) const {
@@ -288,16 +300,16 @@ void Renderer::onTextureLoaded(const Texture& texture) const {
     glBindTexture(static_cast<GLenum>(texture.target()), 0);
 }
 
-void Renderer::onModelLoaded(const IMaterial* pMaterial, std::forward_list<VertexBuffered>* pModel) const {
+void Renderer::initializeMesh(Mesh& mesh) const {
 
-    if (!pMaterial || !pModel)
+    if (!mesh.model() || !mesh.material())
         return;
 
-    ShaderProgram* pProgram = m_pPrivate->m_shaderCache.get(*pMaterial);
+    ShaderProgram* pProgram = m_pPrivate->m_shaderCache.get(*mesh.material());
     if (!pProgram)
         return;
 
-    for (VertexBuffered& geometry : *pModel) {
+    for (VertexBuffered& geometry : *mesh.model()) {
 
         // Create any buffers that need to be created.
         geometry.initialize();
@@ -310,12 +322,11 @@ void Renderer::onModelLoaded(const IMaterial* pMaterial, std::forward_list<Verte
     }
 }
 
-void Renderer::onLightChanged(const DirectionalLight& light, uint8_t index, bool enabled) const {
-    m_pPrivate->m_lights.at(index) = light;
-    m_pPrivate->m_enabledLights.at(index) = enabled;
+void Renderer::directionalLight(DirectionalLight** light, uint8_t lightIndex) {
+    m_pPrivate->m_lights.at(lightIndex) = light;
 }
 
-void Renderer::onAmbientColorChanged(const glm::vec3& color, float intensity) const {
-    m_pPrivate->m_ambientColor = color;
-    m_pPrivate->m_ambientIntensity = intensity;
+void Renderer::ambientColor(glm::vec3* pAmbientColor, float* pAmbientIntensity) {
+    m_pPrivate->m_pAmbientColor = pAmbientColor;
+    m_pPrivate->m_pAmbientIntensity = pAmbientIntensity;
 }

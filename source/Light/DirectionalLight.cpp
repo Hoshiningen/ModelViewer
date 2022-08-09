@@ -6,8 +6,8 @@
 
 struct DirectionalLight::Private {
     glm::vec3 direction{};
-    glm::vec3 color{};
-    float intensity = 0.f;
+    glm::vec3 color{ 1.f };
+    float intensity = 1.f;
 
     NLOHMANN_DEFINE_TYPE_INTRUSIVE(DirectionalLight::Private,
         direction,

@@ -17,11 +17,9 @@ target_include_directories(Renderer PUBLIC ${PUBLIC_DIR}/Renderer)
 target_link_libraries(Renderer PRIVATE
     ${PROJECT_NAME}::Camera
     ${PROJECT_NAME}::Common
-    ${PROJECT_NAME}::Geometry
     ${PROJECT_NAME}::Light
-    ${PROJECT_NAME}::Material
+    ${PROJECT_NAME}::Object
     ${PROJECT_NAME}::Shader
-    ${PROJECT_NAME}::Texture
     CONAN_PKG::glad
 )
   

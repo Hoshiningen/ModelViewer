@@ -6,6 +6,8 @@
 
 #include "Geometry/VertexBuffered.hpp"
 
+#include "Object/Mesh.hpp"
+
 #include <array>
 #include <forward_list>
 
@@ -23,13 +25,15 @@ public:
 
     DEFINE_CONNECTION(m_signalModelLoaded, ModelLoaded)
 
+    void mesh(Mesh* pMesh);
+
 protected:
     virtual void defineUI() override;
 
 private:
     void parseModel(const std::forward_list<VertexBuffered>& model);
 
-    sigslot::signal<std::forward_list<VertexBuffered>*> m_signalModelLoaded;
+    sigslot::signal<> m_signalModelLoaded;
 
     bool m_hasColors = false;
     bool m_hasIndices = false;
@@ -41,5 +45,6 @@ private:
     std::size_t m_faceCount = 0;
 
     std::array<char, kTextBufferSize> m_pathBuffer;
-    std::forward_list<VertexBuffered> m_model;
+
+    Mesh* m_pMesh = nullptr;
 };

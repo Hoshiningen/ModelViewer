@@ -37,7 +37,14 @@ void ModelLoaderDialog::restore(const nlohmann::json& settings) {
         settings["modelPath"].get_to(m_pathBuffer);
 }
 
+void ModelLoaderDialog::mesh(Mesh* pMesh) {
+    m_pMesh = pMesh;
+}
+
 void ModelLoaderDialog::defineUI() {
+
+    if (!m_pMesh)
+        return;
 
     ImGui::InputTextWithHint("", "Model file path...", m_pathBuffer.data(), m_pathBuffer.size());
 
@@ -45,15 +52,26 @@ void ModelLoaderDialog::defineUI() {
     ImGui::BeginDisabled(!std::filesystem::is_regular_file(m_pathBuffer.data()));
     if (ImGui::Button("Load")) {
 
-        m_model = LoadModel(m_pathBuffer.data());
-        parseModel(m_model);
+        m_vertexCount = 0;
+        m_hasColors = false;
+        m_hasIndices = false;
+        m_hasNormals = false;
+        m_hasPositions = false;
+        m_hasTexels = false;
 
-        if (!m_model.empty())
-            m_signalModelLoaded(&m_model);
+        m_vertexCount = 0;
+        m_faceCount = 0;
+
+        m_pMesh->model(LoadModel(m_pathBuffer.data()));
+        parseModel(*m_pMesh->model());
+
+        if (!m_pMesh->model()->empty())
+            m_signalModelLoaded();
     }
     ImGui::EndDisabled();
 
     ImGui::Separator();
+    ImGui::Spacing();
 
     ImGui::LabelText("Vertices", "%d", m_vertexCount);
     ImGui::LabelText("Faces", "%d", m_faceCount);
@@ -83,7 +101,7 @@ void  ModelLoaderDialog::parseModel(const std::forward_list<VertexBuffered>& mod
         return;
 
     std::size_t indexCount = 0;
-    for (const VertexBuffered& buffer : m_model) {
+    for (const VertexBuffered& buffer : model) {
 
         const auto vertices = buffer.vertices();
         const auto indices = buffer.indices();

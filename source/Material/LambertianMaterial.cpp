@@ -3,8 +3,8 @@
 #include "Shader/ShaderProgram.hpp"
 
 struct LambertianMaterial::Private {
-    glm::vec4 diffuseColor{};
-    float diffuseIntensity = 0.f;
+    glm::vec4 diffuseColor{ 1.f };
+    float diffuseIntensity = 1.f;
 
     NLOHMANN_DEFINE_TYPE_INTRUSIVE(LambertianMaterial::Private,
         diffuseColor,

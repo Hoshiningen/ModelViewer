@@ -44,6 +44,7 @@ target_link_libraries(Application PRIVATE
     ${PROJECT_NAME}::IO
     ${PROJECT_NAME}::Light
     ${PROJECT_NAME}::Material
+    ${PROJECT_NAME}::Object
     ${PROJECT_NAME}::Renderer
     ${PROJECT_NAME}::Texture
     CONAN_PKG::glad
