@@ -39,7 +39,7 @@ jobs:
       
       - name: Build
         working-directory: build
-        run: conan build ..
+        run: conan build .. -b
 
       - uses: actions/upload-artifact@v3
         if: always()

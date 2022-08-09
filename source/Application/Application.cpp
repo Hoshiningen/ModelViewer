@@ -4,6 +4,7 @@
 #include "Camera/PerspectiveCamera.hpp"
 
 #include "Common/IRestorable.hpp"
+#include "Common/Math.hpp"
 #include "Common/SignalMacros.hpp"
 
 #include "Controls/OrbitalControls.hpp"
@@ -20,6 +21,8 @@
 #include "Material/PhongMaterial.hpp"
 #include "Material/PhongTexturedMaterial.hpp"
 #include "Material/SolidMaterial.hpp"
+
+#include "Object/Mesh.hpp"
 
 #include "Renderer/Renderer.hpp"
 
@@ -67,6 +70,8 @@ struct Application::Private : private IRestorable {
     virtual nlohmann::json save() const override;
     virtual void restore(const nlohmann::json& settings) override;
 
+    void fitSceneToModel(std::forward_list<VertexBuffered>* pModel);
+
     // Signals
     DEFINE_CONNECTION(m_signalInitialized, ApplicationInitialized)
 
@@ -74,7 +79,6 @@ struct Application::Private : private IRestorable {
     void onClearColorChange(const glm::vec3& clearColor);
     void onProjectionChange(int projection);
     void onWireframeModeChange(bool wireframe) const;
-
     void onInitialized();
     void onSaved();
 
@@ -97,10 +101,9 @@ public:
     LightPropertiesDialog m_lightPropDialog;
     ScenePropertiesDialog m_scenePropDialog;
 
-    IMaterial* m_pActiveMaterial = nullptr;
-    std::forward_list<VertexBuffered>* m_pActiveModel = nullptr;
+    Mesh m_mesh;
 
-    glm::vec4 m_clearColor{ 0.f, 0.f, 0.f, 1.f };
+    glm::vec3* m_pClearColor = nullptr;
 
     glm::vec2 m_windowSize{ 800, 600 };
     glm::vec2 m_windowPosition{ 800, 600 };
@@ -161,8 +164,10 @@ Application::Private::APICleanUp::~APICleanUp() {
 }
 
 void Application::Private::render() {
-    
-    glClearColor(m_clearColor.r, m_clearColor.g, m_clearColor.b, m_clearColor.a);
+
+    if (m_pClearColor)
+        glClearColor(m_pClearColor->r, m_pClearColor->g, m_pClearColor->b, 1.f);
+
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
     ImGui_ImplOpenGL3_NewFrame();
@@ -174,8 +179,7 @@ void Application::Private::render() {
     m_lightPropDialog.render();
     m_scenePropDialog.render();
 
-    if (m_pActiveModel && m_pActiveMaterial)
-        m_renderer.draw(*m_pActiveModel, *m_pActiveMaterial);
+    m_renderer.draw(m_mesh);
 
     ImGui::Render();
     ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
@@ -237,6 +241,9 @@ nlohmann::json Application::Private::save() const {
     if (const auto json = m_scenePropDialog.save(); json.is_object())
         obj.update(json);
 
+    if (const auto json = m_mesh.save(); json.is_object())
+        obj.update(json);
+
     return json;
 }
 
@@ -265,6 +272,9 @@ void Application::Private::restore(const nlohmann::json& settings) {
 
     if (settings.contains(m_scenePropDialog.id()))
         m_scenePropDialog.restore(settings.at(m_scenePropDialog.id().data()));
+
+    if (settings.contains(m_mesh.id()))
+        m_mesh.restore(settings.at(m_mesh.id().data()));
 
     if (m_windowMaximized)
         glfwMaximizeWindow(m_pWindow);
@@ -305,34 +315,42 @@ void Application::Private::onWireframeModeChange(bool wireframe) const {
         glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 }
 
-void Application::Private::onClearColorChange(const glm::vec3& clearColor) {
+void Application::Private::fitSceneToModel(std::forward_list<VertexBuffered>* pModel) {
 
-    m_clearColor.r = clearColor.r;
-    m_clearColor.g = clearColor.g;
-    m_clearColor.b = clearColor.b;
+    if (!pModel)
+        return;
+
+    m_mesh.position() = -ComputeCenter(pModel);
+    m_mesh.scale() = ComputeScale(pModel, kMaxModelSize);
 }
 
 void Application::Private::onInitialized() {
 
-    m_loaderDialog.connectModelLoaded([this](std::forward_list<VertexBuffered>* pModel) {
-        m_pActiveModel = pModel;
+    // Setup data models for the scene
+    m_materialPropDialog.mesh(&m_mesh);
+    m_loaderDialog.mesh(&m_mesh);
+    m_scenePropDialog.mesh(&m_mesh);
 
-        m_renderer.onModelLoaded(m_pActiveMaterial, m_pActiveModel);
-        m_materialPropDialog.onModelLoaded(m_pActiveModel);
-        m_lightPropDialog.onModelLoaded(m_pActiveModel);
+    m_pClearColor = m_scenePropDialog.clearColor();
+    m_renderer.ambientColor(m_scenePropDialog.ambientColor(), m_scenePropDialog.ambientIntensity());
+
+    for (uint8_t lightIndex = 0; lightIndex < kMaxLights; ++lightIndex)
+        m_renderer.directionalLight(m_lightPropDialog.directionalLight(lightIndex), lightIndex);
+
+    // Model loader signals
+    m_loaderDialog.connectModelLoaded([this]() {
+        fitSceneToModel(m_mesh.model());
+        m_renderer.initializeMesh(m_mesh);
     });
 
-    m_materialPropDialog.connectMaterialSelected([this](IMaterial* pMaterial) {
-        m_pActiveMaterial = pMaterial;
-        m_renderer.onModelLoaded(m_pActiveMaterial, m_pActiveModel);
+    // Material property signals
+    m_materialPropDialog.connectMaterialSelectionChanged([this]() {
+        m_renderer.initializeMesh(m_mesh);
     });
 
     m_materialPropDialog.connectTextureLoaded(&Renderer::onTextureLoaded, &m_renderer);
-    m_lightPropDialog.connectLightChanged(&Renderer::onLightChanged, &m_renderer);
 
-    m_scenePropDialog.connectClearColorChanged(&Application::Private::onClearColorChange, this);
-    m_scenePropDialog.connectAmbientColorChanged(&Renderer::onAmbientColorChanged, &m_renderer);
-    
+    // Window controls signals
     m_callbacks.connectProjectionChanged(&Application::Private::onProjectionChange, this);
     m_callbacks.connectProjectionChanged(&ScenePropertiesDialog::onProjectionChange, &m_scenePropDialog);
     

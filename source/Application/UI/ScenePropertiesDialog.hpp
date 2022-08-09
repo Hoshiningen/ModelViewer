@@ -2,6 +2,8 @@
 
 #include "Common/SignalMacros.hpp"
 
+#include "Object/Mesh.hpp"
+
 #include <glm/vec3.hpp>
 #include <nlohmann/json.hpp>
 #include <sigslot/signal.hpp>
@@ -18,23 +20,25 @@ public:
     virtual nlohmann::json save() const override;
     virtual void restore(const nlohmann::json& settings) override;
 
-    DEFINE_CONNECTION(m_signalClearColorChanged, ClearColorChanged)
-    DEFINE_CONNECTION(m_signalAmbientColorChanged, AmbientColorChanged)
+    glm::vec3* clearColor();
+    glm::vec3* ambientColor();
+    float* ambientIntensity();
 
     void onProjectionChange(int projection);
     void onWireframeModeChange(bool wireframeEnabled);
+
+    void mesh(Mesh* pMesh);
 
 protected:
     virtual void defineUI() override;
 
 private:
-    sigslot::signal<glm::vec3> m_signalClearColorChanged;
-    sigslot::signal<glm::vec3, float> m_signalAmbientColorChanged;
-
-    glm::vec3 m_clearColor{};
-    glm::vec3 m_ambientColor{ 0.1f, 0.1f, 0.1f };
-    float m_ambientIntensity = 1.f;
+    glm::vec3 m_clearColor{ 0.305, 0.520, 0.828 };
+    glm::vec3 m_ambientColor{ 1.f };
+    float m_ambientIntensity = 0.f;
 
     int m_projection = Projection::ePerspective;
     bool m_wireframe = false;
+
+    Mesh* m_pMesh = nullptr;
 };

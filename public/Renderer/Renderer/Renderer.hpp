@@ -10,6 +10,7 @@
 class Camera;
 class DirectionalLight;
 class IMaterial;
+class Mesh;
 class ShaderProgram;
 class Texture;
 class VertexBuffered;
@@ -21,13 +22,14 @@ public:
     void setup();
     void camera(Camera* pCamera);
 
-    void draw(const VertexBuffered& geometry, const IMaterial& material) const;
-    void draw(const std::forward_list<VertexBuffered>& model, const IMaterial& material) const;
+    void draw(const Mesh& mesh) const;
+
+    void initializeMesh(Mesh& mesh) const;
 
     void onTextureLoaded(const Texture& texture) const;
-    void onModelLoaded(const IMaterial* pMaterial, std::forward_list<VertexBuffered>* pModel) const;
-    void onLightChanged(const DirectionalLight& light, uint8_t index, bool enabled) const;
-    void onAmbientColorChanged(const glm::vec3& color, float intensity) const;
+
+    void directionalLight(DirectionalLight** ppLight, uint8_t lightIndex);
+    void ambientColor(glm::vec3* pAmbientColor, float* pAmbientIntensity);
 
 private:
     COMPILATION_FIREWALL(Renderer)

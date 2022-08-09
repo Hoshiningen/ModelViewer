@@ -23,7 +23,7 @@ void main() {
 
     gl_Position = matrices.viewProjection * matrices.model * vec4(position, 1.0f);
     
-    vertOut.normal = normalize(normal);
+    vertOut.normal = mat3(transpose(inverse(matrices.model))) * normalize(normal);
     vertOut.position = vec3(matrices.model * vec4(position, 1.0f));
     vertOut.color = color;
     vertOut.texel = texel;

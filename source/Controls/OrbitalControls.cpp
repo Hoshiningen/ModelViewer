@@ -2,6 +2,8 @@
 
 #include "Camera/Camera.hpp"
 
+#include "Common/Math.hpp"
+
 #include <glad/glad.h>
 
 #include <GLFW/glfw3.h>
@@ -26,7 +28,7 @@ struct OrbitalControls::Private {
 void OrbitalControls::Private::updateCamera(const glm::vec3& forward, float deltaX, float deltaY) {
 
     static float kPitchRad = 0.f;
-    kPitchRad = std::clamp(kPitchRad - deltaY, glm::radians(-89.f), glm::radians(89.f));
+    kPitchRad = std::clamp(kPitchRad - deltaY, glm::radians(-89.5f), glm::radians(89.5f));
 
     static float kYawRad = glm::pi<float>();
     kYawRad -= deltaX;
@@ -34,17 +36,9 @@ void OrbitalControls::Private::updateCamera(const glm::vec3& forward, float delt
     if (!m_pCamera)
         return;
 
-    const glm::quat yawQuat = glm::angleAxis(kYawRad, m_pCamera->worldUp());
-
-    // Compute the new forward vector by rotating the previous by our change in yaw.
-    const glm::vec3 newForward = yawQuat * forward;
-
-    // Update the right vector based on the new forward direction.
-    const glm::vec3 right = glm::cross(glm::normalize(newForward), m_pCamera->worldUp());
-    const glm::quat pitchQuat = glm::angleAxis(kPitchRad, glm::normalize(right));
-
     const float dist = glm::distance(m_pCamera->target(), m_pCamera->position());
-    m_pCamera->position(pitchQuat * newForward * dist);
+    const glm::vec3 rotForward = RotateVector(forward, kPitchRad, kYawRad, false);
+    m_pCamera->position(glm::normalize(rotForward) * dist);
 }
 
 

@@ -2,6 +2,8 @@
 
 #include "Camera/Camera.hpp"
 
+#include "Common/Math.hpp"
+
 #include <format>
 #include <fstream>
 
@@ -9,19 +11,20 @@
 #include <glm/gtc/quaternion.hpp>
 #include <glm/gtc/type_ptr.hpp>
 
-namespace {
-    glm::vec3 ComputeDirection(float pitchRad, float yawRad) {
+LightPropertiesDialog::LightPropertiesDialog()
+    : Dialog() { initialize(); }
 
-        const glm::quat yawQuat = glm::angleAxis(yawRad, Camera::worldUp());
-        const glm::vec3 newDir = yawQuat * glm::vec3{ 0.f, 0.f, 1.f };
+LightPropertiesDialog::LightPropertiesDialog(const std::string& title)
+    : Dialog(title) { initialize(); }
 
-        // Update the right vector based on the new direction.
-        const glm::vec3 right = glm::cross(glm::normalize(newDir), Camera::worldUp());
-        const glm::quat pitchQuat = glm::angleAxis(pitchRad, glm::normalize(right));
+LightPropertiesDialog::LightPropertiesDialog(const std::string& title, ImGuiWindowFlags flags)
+    : Dialog(title, flags) { initialize(); }
 
-        return glm::normalize(pitchQuat * newDir);
-    }
-} // end unnamed namespace
+LightPropertiesDialog::LightPropertiesDialog(const std::string& title, const ImVec2& position, ImGuiWindowFlags flags)
+    : Dialog(title, position, flags) { initialize(); }
+
+LightPropertiesDialog::LightPropertiesDialog(const std::string& title, const ImVec2& position, const ImVec2& size, ImGuiWindowFlags flags)
+    : Dialog(title, position, size, flags) { initialize(); }
 
 std::string_view LightPropertiesDialog::id() const {
     return "LightPropertiesDialog";
@@ -31,15 +34,16 @@ nlohmann::json LightPropertiesDialog::save() const {
 
     nlohmann::json json;
 
-    for (std::size_t i = 0; i < m_lights.size(); ++i) {
+    for (uint8_t lightIndex = 0; lightIndex < kMaxLights; ++lightIndex) {
 
-        nlohmann::json& obj = json[id().data()][std::format("light{}", i + 1).c_str()];
+        nlohmann::json& obj = json[id().data()][std::format("light{}", lightIndex + 1).c_str()];
 
-        obj["yaw"] = m_yaws.at(i);
-        obj["pitch"] = m_pitches.at(i);
-        obj["enabled"] = m_enabledLights.at(i);
-        obj.update(m_lights.at(i).save());
+        obj["yaw"] = m_yaws.at(lightIndex);
+        obj["pitch"] = m_pitches.at(lightIndex);
+        obj["enabled"] = m_enabledLights.at(lightIndex);
+        obj.update(m_lights.at(lightIndex).save());
     }
+
     return json;
 }
 
@@ -48,14 +52,14 @@ void LightPropertiesDialog::restore(const nlohmann::json& settings) {
     if (!settings.is_object())
         return;
 
-    for (std::size_t i = 0; i < kMaxLights; ++i) {
+    for (uint8_t lightIndex = 0; lightIndex < kMaxLights; ++lightIndex) {
 
-        float& pitch = m_pitches.at(i);
-        float& yaw = m_yaws.at(i);
-        bool& enabled = m_enabledLights.at(i);
-        DirectionalLight& light = m_lights.at(i);
+        float& pitch = m_pitches.at(lightIndex);
+        float& yaw = m_yaws.at(lightIndex);
+        bool& enabled = m_enabledLights.at(lightIndex);
+        DirectionalLight& light = m_lights.at(lightIndex);
 
-        const std::string lightId = std::format("light{}", i + 1);
+        const std::string lightId = std::format("light{}", lightIndex + 1);
         if (settings.contains(lightId)) {
 
             const nlohmann::json& obj = settings[lightId];
@@ -72,33 +76,35 @@ void LightPropertiesDialog::restore(const nlohmann::json& settings) {
             if (obj.contains(light.id()))
                 light.restore(obj[light.id().data()]);
 
-            light.direction(ComputeDirection(pitch, yaw));
-            m_signalLightChanged(light, i, enabled);
+            light.direction(RotateVector(kWorldForward, pitch, yaw, false));
+            m_sceneLights.at(lightIndex) = enabled ? &light : nullptr;
         }
     }
 }
 
-void LightPropertiesDialog::onModelLoaded(std::forward_list<VertexBuffered>*) {
+DirectionalLight** LightPropertiesDialog::directionalLight(uint8_t index) {
 
-    for (std::size_t lightIdx = 0; lightIdx < kMaxLights; ++lightIdx)
-        m_signalLightChanged(m_lights.at(lightIdx), lightIdx, m_enabledLights.at(lightIdx));
+    if (index < 0 || index >= kMaxLights)
+        return nullptr;
+
+    return &m_sceneLights.at(index);
 }
 
 void LightPropertiesDialog::defineUI() {
 
     if (ImGui::BeginTable("", 3)) {
 
-        for (std::size_t lightIdx = 0; lightIdx < kMaxLights; ++lightIdx) {
+        for (uint8_t lightIndex = 0; lightIndex < kMaxLights; ++lightIndex) {
 
             ImGui::TableNextColumn();
 
-            if (lightIdx == 0)
+            if (lightIndex == 0)
                 ImGui::BeginDisabled();
 
-            if (ImGui::Checkbox(std::format("Light {}", lightIdx + 1).c_str(), &m_enabledLights.at(lightIdx)))
-                m_signalLightChanged(m_lights.at(lightIdx), lightIdx, m_enabledLights.at(lightIdx));
+            if (ImGui::Checkbox(std::format("Light {}", lightIndex + 1).c_str(), &m_enabledLights.at(lightIndex)))
+                m_sceneLights.at(lightIndex) = m_enabledLights.at(lightIndex) ? &m_lights.at(lightIndex) : nullptr;
             
-            if (lightIdx == 0)
+            if (lightIndex == 0)
                 ImGui::EndDisabled();
         }
 
@@ -109,34 +115,28 @@ void LightPropertiesDialog::defineUI() {
 
     if (ImGui::BeginTabBar("DirectionalLights")) {
 
-        for (std::size_t i = 0; i < kMaxLights; ++i) {
+        ImGui::Spacing();
+
+        for (uint8_t lightIndex = 0; lightIndex < kMaxLights; ++lightIndex) {
             
-            if (!m_enabledLights.at(i))
+            if (!m_enabledLights.at(lightIndex))
                 continue;
 
-            const std::string lightId = std::format("Light {}", i + 1);
+            const std::string lightId = std::format("Light {}", lightIndex + 1);
             if (ImGui::BeginTabItem(lightId.c_str())) {
 
-                float& yaw = m_yaws.at(i);
-                float& pitch = m_pitches.at(i);
-                DirectionalLight& light = m_lights.at(i);
-                const bool& enabled = m_enabledLights.at(i);
+                float& pitch = m_pitches.at(lightIndex);
+                float& yaw = m_yaws.at(lightIndex);
+                DirectionalLight& light = m_lights.at(lightIndex);
 
-                if (ImGui::ColorEdit3("Color", glm::value_ptr(light.color())))
-                    m_signalLightChanged(light, i, enabled);
+                ImGui::ColorEdit3("Color", glm::value_ptr(light.color()));
+                ImGui::SliderFloat("Intensity", &light.intensity(), 0.f, 1.f);
 
-                if (ImGui::SliderFloat("Intensity", &light.intensity(), 0.f, 1.f))
-                    m_signalLightChanged(light, i, enabled);
+                if (ImGui::SliderAngle("Pitch", &pitch, -90.f, 90.f))
+                    light.direction(RotateVector(kWorldForward, pitch, yaw, false));
 
-                if (ImGui::SliderAngle("Pitch", &pitch, -90.f, 90.f)) {
-                    light.direction(ComputeDirection(pitch, yaw));
-                    m_signalLightChanged(light, i, enabled);
-                }
-
-                if (ImGui::SliderAngle("Yaw", &yaw, 0.f)) {
-                    light.direction(ComputeDirection(pitch, yaw));
-                    m_signalLightChanged(light, i, enabled);
-                }
+                if (ImGui::SliderAngle("Yaw", &yaw, 0.f))
+                    light.direction(RotateVector(kWorldForward, pitch, yaw, false));
 
                 ImGui::BeginDisabled();
                 ImGui::InputFloat3("Direction", glm::value_ptr(light.direction()));
@@ -147,5 +147,23 @@ void LightPropertiesDialog::defineUI() {
         }
 
         ImGui::EndTabBar();
+    }
+}
+
+void LightPropertiesDialog::initialize() {
+
+    m_enabledLights = { true, false, false };
+    m_yaws = { glm::radians(0.f), glm::radians(120.f), glm::radians(240.f) };
+    m_pitches = { glm::radians(-60.f), glm::radians(-60.f), glm::radians(-60.f) };
+
+    for (uint8_t lightIndex = 0; lightIndex < kMaxLights; ++lightIndex) {
+
+        DirectionalLight& light = m_lights.at(lightIndex);
+        const bool enabled = m_enabledLights.at(lightIndex);
+        const float pitch = m_pitches.at(lightIndex);
+        const float yaw = m_yaws.at(lightIndex);
+
+        m_sceneLights.at(lightIndex) = enabled ? &light : nullptr;
+        light.direction(RotateVector(kWorldForward, pitch, yaw, false));
     }
 }

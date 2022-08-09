@@ -23,9 +23,9 @@ target_include_directories(Material PUBLIC ${PUBLIC_DIR}/Material)
 target_link_libraries(Material PRIVATE
     ${PROJECT_NAME}::Common
     ${PROJECT_NAME}::Shader
-    ${PROJECT_NAME}::Texture
 )
-
+    
 target_link_libraries(Material PUBLIC
+    ${PROJECT_NAME}::Texture
     CONAN_PKG::glm
 )
