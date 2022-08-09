@@ -5,13 +5,13 @@ struct PhongMaterial::Private {
     glm::vec4 ambientColor{ 1.f };
     float ambientIntensity = 0.1f;
 
-    glm::vec4 diffuseColor{ 1.f };
+    glm::vec4 diffuseColor{ 0.6201940774917603f, 0.5923202633857727f, 0.7107843160629272f, 1.f };
     float diffuseIntensity = 1.f;
 
     glm::vec4 specularColor{ 1.f };
     float specularIntensity = 1.f;
 
-    float shininess = 7.f;
+    float shininess = 190.f;
 
     NLOHMANN_DEFINE_TYPE_INTRUSIVE(PhongMaterial::Private,
         ambientColor,

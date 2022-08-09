@@ -96,7 +96,11 @@ void MaterialPropertiesDialog::restore(const nlohmann::json& settings) {
 }
 
 void MaterialPropertiesDialog::mesh(Mesh* pMesh) {
+
     m_pMesh = pMesh;
+
+    if (m_pMesh)
+        m_pMesh->material(materialByIndex(m_selectedMaterialIndex));
 }
 
 void MaterialPropertiesDialog::defineUI() {
@@ -124,9 +128,6 @@ void MaterialPropertiesDialog::initialize() {
     m_materials[*m_materialNames.insert(m_materialNames.begin(), "Phong Textured")] = &m_phongTexturedMaterial;
 
     std::ranges::sort(m_materialNames);
-
-    if (m_pMesh)
-        m_pMesh->material(materialByIndex(m_selectedMaterialIndex));
 }
 
 void MaterialPropertiesDialog::setUpMaterialUI(MaterialVariant material) {

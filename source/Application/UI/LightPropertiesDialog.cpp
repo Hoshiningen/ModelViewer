@@ -152,9 +152,9 @@ void LightPropertiesDialog::defineUI() {
 
 void LightPropertiesDialog::initialize() {
 
-    m_enabledLights = { true, false, false };
-    m_yaws = { glm::radians(0.f), glm::radians(120.f), glm::radians(240.f) };
-    m_pitches = { glm::radians(-60.f), glm::radians(-60.f), glm::radians(-60.f) };
+    m_enabledLights = { true, true, false };
+    m_yaws = { glm::radians(0.f), glm::radians(180.f), glm::radians(0.f) };
+    m_pitches = { glm::radians(45.f), glm::radians(45.f), glm::radians(-90.f) };
 
     for (uint8_t lightIndex = 0; lightIndex < kMaxLights; ++lightIndex) {
 
