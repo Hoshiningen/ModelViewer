@@ -13,6 +13,7 @@
 #include <glm/trigonometric.hpp>
 #include <glm/gtc/quaternion.hpp>
 
+#include <algorithm>
 #include <iostream>
 
 struct OrbitalControls::Private {

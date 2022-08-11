@@ -31,6 +31,7 @@
 #include "UI/ModelLoaderDialog.hpp"
 #include "UI/ScenePropertiesDialog.hpp"
 
+#include <format>
 #include <fstream>
 #include <iostream>
 #include <string>
@@ -49,6 +50,26 @@
 namespace {
 static constexpr const char* kSettingsFileName = "settings.json";
 static constexpr ImGuiWindowFlags kWindowFlags = ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoCollapse;
+
+#ifdef GLAD_DEBUG
+#define MAP_ERROR_CODE_TO_STRING(Error) {Error, #Error}
+void GladOpenGLPostCallback(const char* functionName, void*, int, ...) {
+
+    static const std::unordered_map<int, const char*> kErrorStrings{
+        MAP_ERROR_CODE_TO_STRING(GL_INVALID_ENUM),
+        MAP_ERROR_CODE_TO_STRING(GL_INVALID_VALUE),
+        MAP_ERROR_CODE_TO_STRING(GL_INVALID_OPERATION),
+        MAP_ERROR_CODE_TO_STRING(GL_STACK_OVERFLOW),
+        MAP_ERROR_CODE_TO_STRING(GL_STACK_UNDERFLOW),
+        MAP_ERROR_CODE_TO_STRING(GL_OUT_OF_MEMORY),
+        MAP_ERROR_CODE_TO_STRING(GL_INVALID_FRAMEBUFFER_OPERATION),
+    };
+
+    const GLenum errorCode = glad_glGetError();
+    if (errorCode != GL_NO_ERROR)
+        std::cerr << std::format("Error {}: {}\n", kErrorStrings.at(errorCode), functionName);
+}
+#endif
 } // end unnamed namespace
 
 struct Application::Private : private IRestorable {
@@ -413,7 +434,12 @@ bool Application::setUp() {
         std::cerr << "Failed to load GLAD functions.\n";
         return false;
     }
-    
+
+#ifdef GLAD_DEBUG
+    // Setup error handling for OpenGL calls
+    glad_set_post_callback(GladOpenGLPostCallback);
+#endif
+
     m_pPrivate->m_renderer.setup();
     m_pPrivate->m_renderer.camera(m_pPrivate->m_pCamera.get());
 
