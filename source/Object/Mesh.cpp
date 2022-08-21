@@ -4,6 +4,52 @@
 #include "Geometry/VertexBuffered.hpp"
 #include "Material/IMaterial.hpp"
 
+namespace {
+struct Metadata {
+    std::uint32_t vertexCount = 0;
+    std::uint32_t faceCount = 0;
+    std::bitset<5> attributes;
+
+    void setAttribute(VertexBuffered::NamedAttribute attribute, bool isSet);
+    bool hasAttribute(VertexBuffered::NamedAttribute attribute) const;
+};
+
+void Metadata::setAttribute(VertexBuffered::NamedAttribute attribute, bool isSet) {
+    attributes.set(static_cast<std::size_t>(attribute), isSet);
+}
+
+bool Metadata::hasAttribute(VertexBuffered::NamedAttribute attribute) const {
+    return attributes.test(static_cast<std::size_t>(attribute));
+}
+
+Metadata readMetadata(const std::forward_list<VertexBuffered>& model) {
+
+    using enum VertexBuffered::NamedAttribute;
+
+    Metadata metadata;
+    if (model.empty())
+        return metadata;
+
+    std::size_t indexCount = 0;
+    for (const VertexBuffered& buffer : model) {
+
+        const auto vertices = buffer.vertices();
+        const auto indices = buffer.indices();
+
+        metadata.vertexCount += vertices->size();
+        indexCount += indices->size();
+
+        metadata.setAttribute(Color, buffer.colors().has_value());
+        metadata.setAttribute(Normal, buffer.normals().has_value());
+        metadata.setAttribute(Texel, buffer.texels().has_value());
+    }
+
+    metadata.setAttribute(Position, metadata.vertexCount > 0);
+    metadata.setAttribute(Index, indexCount > 0);
+    metadata.faceCount = indexCount > 0 ? indexCount / 3 : 0;
+}
+} // end unnamed namespace
+
 struct Mesh::Private {
     std::forward_list<VertexBuffered> m_model;
     IMaterial* m_pMaterial = nullptr;
@@ -14,6 +60,8 @@ struct Mesh::Private {
     float m_yaw = 0.f;
     float m_roll = 0.f;
     glm::vec3 m_translate{ 0.f };
+
+    Metadata m_metadata;
 };
 
 
@@ -91,7 +139,11 @@ DEFINE_GETTER_IMMUTABLE_COPY(Mesh, material, IMaterial*, m_pPrivate->m_pMaterial
 DEFINE_SETTER_COPY(Mesh, material, m_pPrivate->m_pMaterial)
 
 DEFINE_GETTER_IMMUTABLE_COPY(Mesh, model, std::forward_list<VertexBuffered>*, &m_pPrivate->m_model)
-DEFINE_SETTER_CONSTREF(Mesh, model, m_pPrivate->m_model)
+
+void Mesh::model(const std::forward_list<VertexBuffered>& model) {
+    m_pPrivate->m_model = model;
+    m_pPrivate->m_metadata = readMetadata(model);
+}
 
 glm::mat4 Mesh::transform() const {
 
@@ -109,3 +161,12 @@ DEFINE_GETTER_MUTABLE(Mesh, yaw, float, m_pPrivate->m_yaw)
 DEFINE_GETTER_MUTABLE(Mesh, roll, float, m_pPrivate->m_roll)
 DEFINE_GETTER_MUTABLE(Mesh, translate, glm::vec3, m_pPrivate->m_translate)
 DEFINE_GETTER_MUTABLE(Mesh, position, glm::vec3, m_pPrivate->m_position)
+
+DEFINE_GETTER_IMMUTABLE_COPY(Mesh, faceCount, std::uint32_t, m_pPrivate->m_metadata.faceCount)
+DEFINE_GETTER_IMMUTABLE_COPY(Mesh, vertexCount, std::uint32_t, m_pPrivate->m_metadata.vertexCount)
+
+DEFINE_GETTER_IMMUTABLE_COPY(Mesh, hasColors, bool, m_pPrivate->m_metadata.hasAttribute(VertexBuffered::NamedAttribute::Color))
+DEFINE_GETTER_IMMUTABLE_COPY(Mesh, hasIndices, bool, m_pPrivate->m_metadata.hasAttribute(VertexBuffered::NamedAttribute::Index))
+DEFINE_GETTER_IMMUTABLE_COPY(Mesh, hasNormals, bool, m_pPrivate->m_metadata.hasAttribute(VertexBuffered::NamedAttribute::Normal))
+DEFINE_GETTER_IMMUTABLE_COPY(Mesh, hasPositions, bool, m_pPrivate->m_metadata.hasAttribute(VertexBuffered::NamedAttribute::Position))
+DEFINE_GETTER_IMMUTABLE_COPY(Mesh, hasTexels, bool, m_pPrivate->m_metadata.hasAttribute(VertexBuffered::NamedAttribute::Texel))

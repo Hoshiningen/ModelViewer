@@ -53,7 +53,8 @@ DEFINE_SETTER_COPY(OrbitalControls, navigationEnabled, m_pPrivate->m_navigationE
 
 void OrbitalControls::FrameBufferSizeImpl(GLFWwindow*, int width, int height) {
 
-    glViewport(0, 0, width, height);
+    //glViewport(0, 0, width, height);
+    glViewport(0, 0, 800, 600);
 
     if (m_pPrivate->m_pCamera)
         m_pPrivate->m_pCamera->aspectRatio(static_cast<float>(width) / static_cast<float>(height));

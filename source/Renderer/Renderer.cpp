@@ -1,5 +1,6 @@
 #include "Renderer/Renderer.hpp"
 
+#include "Framebuffer.hpp"
 #include "ShaderCache.hpp"
 
 #include "Camera/Camera.hpp"
@@ -28,9 +29,39 @@
 #include <iostream>
 #include <set>
 
-#include <glad/glad.h>
-
 namespace {
+#ifdef GLAD_DEBUG
+void DebugFramebufferAttachmentStatus(GLenum status) {
+
+    switch (glCheckFramebufferStatus(GL_FRAMEBUFFER)) {
+    case GL_FRAMEBUFFER_UNDEFINED:
+        std::cerr << "GL_FRAMEBUFFER_UNDEFINED.";
+        break;
+    case GL_FRAMEBUFFER_INCOMPLETE_ATTACHMENT:
+        std::cerr << "GL_FRAMEBUFFER_INCOMPLETE_ATTACHMENT.";
+        break;
+    case GL_FRAMEBUFFER_INCOMPLETE_MISSING_ATTACHMENT:
+        std::cerr << "GL_FRAMEBUFFER_INCOMPLETE_MISSING_ATTACHMENT.";
+        break;
+    case GL_FRAMEBUFFER_INCOMPLETE_DRAW_BUFFER:
+        std::cerr << "GL_FRAMEBUFFER_INCOMPLETE_DRAW_BUFFER.";
+        break;
+    case GL_FRAMEBUFFER_INCOMPLETE_READ_BUFFER:
+        std::cerr << "GL_FRAMEBUFFER_INCOMPLETE_READ_BUFFER.";
+        break;
+    case GL_FRAMEBUFFER_UNSUPPORTED:
+        std::cerr << "GL_FRAMEBUFFER_UNSUPPORTED.";
+        break;
+    case GL_FRAMEBUFFER_INCOMPLETE_MULTISAMPLE:
+        std::cerr << "GL_FRAMEBUFFER_INCOMPLETE_MULTISAMPLE.";
+        break;
+    case GL_FRAMEBUFFER_INCOMPLETE_LAYER_TARGETS:
+        std::cerr << "GL_FRAMEBUFFER_INCOMPLETE_LAYER_TARGETS.";
+        break;
+    }
+}
+#endif
+
 std::vector<VertexAttribute> DefineAttributes(const VertexBuffered& geometry) {
 
     std::vector<VertexAttribute> attributes;
@@ -157,6 +188,8 @@ struct Renderer::Private {
 
     Camera* m_pCamera = nullptr;
     ShaderCache m_shaderCache;
+
+    std::optional<Framebuffer> m_framebuffer;
 };
 
 std::unique_ptr<ShaderProgram> Renderer::Private::loadShaders(const std::filesystem::path& vertexPath, const std::filesystem::path& fragmentPath) {
@@ -245,11 +278,112 @@ void Renderer::Private::draw(const VertexBuffered& geometry, const IMaterial& ma
     glBindVertexArray(0);
 }
 
+void Renderer::Allocate(const Texture& texture, std::uint8_t* pData) {
+
+    glBindTexture(static_cast<GLenum>(texture.target()), texture.id());
+
+    glTexImage2D(
+        static_cast<GLenum>(texture.target()),          // Target
+        0,                                              // Level
+        static_cast<GLint>(texture.textureFormat()),    // internal format
+        texture.width(),                                // width
+        texture.height(),                               // height
+        0,                                              // border
+        static_cast<GLint>(texture.pixelFormat()),      // format
+        GL_UNSIGNED_BYTE,                               // type
+        pData                                           // data
+    );
+
+    glBindTexture(static_cast<GLenum>(texture.target()), 0);
+}
+
+void Renderer::Create(Texture& texture) {
+
+    if (!texture.initialized())
+        texture.initialize();
+
+    glBindTexture(static_cast<GLenum>(texture.target()), texture.id());
+
+    if (texture.mipmap())
+        glGenerateMipmap(static_cast<GLenum>(texture.target()));
+
+    glTexParameteri(static_cast<GLenum>(texture.target()), GL_TEXTURE_MIN_FILTER, static_cast<GLint>(texture.minFilter()));
+    glTexParameteri(static_cast<GLenum>(texture.target()), GL_TEXTURE_MAG_FILTER, static_cast<GLint>(texture.magFilter()));
+    glTexParameteri(static_cast<GLenum>(texture.target()), GL_TEXTURE_WRAP_S, static_cast<GLint>(texture.wrapS()));
+    glTexParameteri(static_cast<GLenum>(texture.target()), GL_TEXTURE_WRAP_T, static_cast<GLint>(texture.wrapT()));
+
+    if (texture.wrapS() == Texture::Wrap::ClampToBorder || texture.wrapT() == Texture::Wrap::ClampToBorder)
+        glTexParameterfv(static_cast<GLenum>(texture.target()), GL_TEXTURE_BORDER_COLOR, texture.borderColor().data());
+
+    glBindTexture(static_cast<GLenum>(texture.target()), 0);
+}
 
 Renderer::Renderer()
     : m_pPrivate(std::make_unique<Private>()) {}
 
 Renderer::~Renderer() {}
+
+void Renderer::createFramebuffer(const glm::uvec2& dimensions) {
+
+    Texture texture{
+        dimensions.x,
+        dimensions.y,
+        Texture::Channels::RGB,
+        Texture::Channels::RGB,
+        Texture::Target::Texture2D
+    };
+
+    texture.minFilter(Texture::Filter::Linear);
+    texture.magFilter(Texture::Filter::Linear);
+
+    Framebuffer::TextureAttachment textureAttachment;
+    textureAttachment.texture = texture;
+
+    GLuint renderbufferId = 0;
+    glGenRenderbuffers(1, &renderbufferId);
+
+    Framebuffer::RenderbufferAttachment renderbufferAttachment;
+    renderbufferAttachment.renderbufferId = renderbufferId;
+
+    // The framebuffer takes ownership over the texture and renderbuffer.
+    m_pPrivate->m_framebuffer.emplace(
+        dimensions,
+        Framebuffer::Target::DrawRead,
+        textureAttachment,
+        renderbufferAttachment
+    );
+
+    const bool success = m_pPrivate->m_framebuffer->createAttachments();
+    if (!success) {
+#ifdef GLAD_DEBUG
+        DebugFramebufferAttachmentStatus(m_pPrivate->m_framebuffer->status());
+#endif
+    }
+}
+
+GLuint Renderer::framebufferId() const {
+
+    if (!m_pPrivate->m_framebuffer)
+        return 0;
+
+    return m_pPrivate->m_framebuffer->id();
+}
+
+GLuint Renderer::framebufferTextureId() const {
+
+    if (!m_pPrivate->m_framebuffer)
+        return 0;
+
+    return m_pPrivate->m_framebuffer->textureId();
+}
+
+GLbitfield Renderer::framebufferBitplane() const {
+
+    if (!m_pPrivate->m_framebuffer)
+        return 0;
+
+    return m_pPrivate->m_framebuffer->bufferBitplane();
+}
 
 void Renderer::setup() {
 
@@ -261,6 +395,7 @@ void Renderer::setup() {
     glEnable(GL_DEPTH_TEST);
     glEnable(GL_MULTISAMPLE);
     glEnable(GL_LINE_SMOOTH);
+    glEnable(GL_CULL_FACE);
 
     glPointSize(7.f);
     glLineWidth(1.f);
@@ -277,27 +412,6 @@ void Renderer::draw(const Mesh& mesh) const {
 
     for (const VertexBuffered& geometry : *mesh.model())
         m_pPrivate->draw(geometry, *mesh.material(), mesh.transform());
-}
-
-void Renderer::onTextureLoaded(const Texture& texture) const {
-
-    if (!texture.initialized())
-        return;
-
-    glBindTexture(static_cast<GLenum>(texture.target()), texture.id());
-
-    if (texture.mipmap())
-        glGenerateMipmap(static_cast<GLenum>(texture.target()));
-
-    glTexParameteri(static_cast<GLenum>(texture.target()), GL_TEXTURE_MIN_FILTER, static_cast<GLint>(texture.minFilter()));
-    glTexParameteri(static_cast<GLenum>(texture.target()), GL_TEXTURE_MAG_FILTER, static_cast<GLint>(texture.magFilter()));
-    glTexParameteri(static_cast<GLenum>(texture.target()), GL_TEXTURE_WRAP_S, static_cast<GLint>(texture.wrapS()));
-    glTexParameteri(static_cast<GLenum>(texture.target()), GL_TEXTURE_WRAP_T, static_cast<GLint>(texture.wrapT()));
-
-    if (texture.wrapS() == Texture::Wrap::ClampToBorder || texture.wrapT() == Texture::Wrap::ClampToBorder)
-        glTexParameterfv(static_cast<GLenum>(texture.target()), GL_TEXTURE_BORDER_COLOR, texture.borderColor().data());
-
-    glBindTexture(static_cast<GLenum>(texture.target()), 0);
 }
 
 void Renderer::initializeMesh(Mesh& mesh) const {

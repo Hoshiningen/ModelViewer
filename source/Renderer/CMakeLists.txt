@@ -1,9 +1,11 @@
 set(SOURCES
+    Framebuffer.cpp
     Renderer.cpp
 )
-    
+
 set(INCLUDES
     ${PUBLIC_DIR}/Renderer/Renderer/Renderer.hpp
+    Framebuffer.hpp
     ShaderCache.hpp
 )
 

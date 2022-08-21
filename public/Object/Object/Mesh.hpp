@@ -3,6 +3,7 @@
 #include "Common/ClassMacros.hpp"
 #include "Common/IRestorable.hpp"
 
+#include <bitset>
 #include <forward_list>
 #include <optional>
 
@@ -37,6 +38,15 @@ public:
     DECLARE_GETTER_MUTABLE(roll, float)
     DECLARE_GETTER_MUTABLE(translate, glm::vec3)
     DECLARE_GETTER_MUTABLE(position, glm::vec3)
+
+    DECLARE_GETTER_IMMUTABLE_COPY(faceCount, std::uint32_t)
+    DECLARE_GETTER_IMMUTABLE_COPY(vertexCount, std::uint32_t)
+
+    DECLARE_GETTER_IMMUTABLE_COPY(hasColors, bool)
+    DECLARE_GETTER_IMMUTABLE_COPY(hasIndices, bool)
+    DECLARE_GETTER_IMMUTABLE_COPY(hasNormals, bool)
+    DECLARE_GETTER_IMMUTABLE_COPY(hasPositions, bool)
+    DECLARE_GETTER_IMMUTABLE_COPY(hasTexels, bool)
 
 private:
     COMPILATION_FIREWALL_COPY_MOVE(Mesh);

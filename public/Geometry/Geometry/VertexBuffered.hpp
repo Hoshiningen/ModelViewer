@@ -29,6 +29,10 @@ public:
         TriangleFan = GL_TRIANGLE_FAN
     };
 
+    enum class NamedAttribute : std::uint8_t {
+        Color, Index, Normal, Position, Texel
+    };
+
     DECLARE_GETTER_IMMUTABLE_COPY(colors, std::optional<std::vector<glm::vec4>>)
     DECLARE_GETTER_IMMUTABLE_COPY(indices, std::optional<std::vector<uint32_t>>)
     DECLARE_GETTER_IMMUTABLE_COPY(normals, std::optional<std::vector<glm::vec3>>)

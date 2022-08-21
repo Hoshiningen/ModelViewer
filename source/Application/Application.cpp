@@ -31,6 +31,8 @@
 #include "UI/ModelLoaderDialog.hpp"
 #include "UI/ScenePropertiesDialog.hpp"
 
+#include "UI/Components/MainFrame.hpp"
+
 #include <format>
 #include <fstream>
 #include <iostream>
@@ -43,6 +45,7 @@
 
 #include <glm/vec2.hpp>
 #include <glm/vec3.hpp>
+#include <glm/gtc/type_ptr.hpp>
 
 #include <imgui_impl_glfw.h>
 #include <imgui_impl_opengl3.h>
@@ -97,7 +100,6 @@ struct Application::Private : private IRestorable {
     DEFINE_CONNECTION(m_signalInitialized, ApplicationInitialized)
 
     // Handlers
-    void onClearColorChange(const glm::vec3& clearColor);
     void onProjectionChange(int projection);
     void onWireframeModeChange(bool wireframe) const;
     void onInitialized();
@@ -121,6 +123,8 @@ public:
     MaterialPropertiesDialog m_materialPropDialog;
     LightPropertiesDialog m_lightPropDialog;
     ScenePropertiesDialog m_scenePropDialog;
+
+    MainFrameComponent m_mainFrame;
 
     Mesh m_mesh;
 
@@ -189,18 +193,24 @@ void Application::Private::render() {
     if (m_pClearColor)
         glClearColor(m_pClearColor->r, m_pClearColor->g, m_pClearColor->b, 1.f);
 
+    if (m_renderer.framebufferId() > 0) {
+
+        m_mainFrame.framebufferTexture(m_renderer.framebufferId());
+        glBindFramebuffer(GL_FRAMEBUFFER, m_renderer.framebufferId());
+        glClear(m_renderer.framebufferBitplane());
+    }
+
+    m_renderer.draw(m_mesh);
+
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+    glClearColor(0.1f, 0.1f, 0.1f, 1.f);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
     ImGui_ImplOpenGL3_NewFrame();
     ImGui_ImplGlfw_NewFrame();
     ImGui::NewFrame();
-
-    m_loaderDialog.render();
-    m_materialPropDialog.render();
-    m_lightPropDialog.render();
-    m_scenePropDialog.render();
-
-    m_renderer.draw(m_mesh);
+    
+    m_mainFrame.render();
 
     ImGui::Render();
     ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
@@ -227,6 +237,7 @@ GLFWwindow* Application::Private::createWindow(const glm::ivec2& dimensions, con
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+    glfwWindowHint(GLFW_DOUBLEBUFFER, GLFW_TRUE);
     
     // Enable MSAA
     glfwWindowHint(GLFW_SAMPLES, 4);
@@ -302,7 +313,7 @@ void Application::Private::restore(const nlohmann::json& settings) {
 
     glfwSetWindowSize(m_pWindow, m_windowSize.x, m_windowSize.y);
     glfwSetWindowPos(m_pWindow, m_windowPosition.x, m_windowPosition.y);
-    glViewport(0, 0, m_windowSize.x, m_windowSize.y);
+    //glViewport(0, 0, m_windowSize.x, m_windowSize.y);
 }
 
 void Application::Private::onProjectionChange(int projection) {
@@ -369,7 +380,7 @@ void Application::Private::onInitialized() {
         m_renderer.initializeMesh(m_mesh);
     });
 
-    m_materialPropDialog.connectTextureLoaded(&Renderer::onTextureLoaded, &m_renderer);
+    //m_materialPropDialog.connectTextureLoaded(&Renderer::onTextureLoaded, &m_renderer);
 
     // Window controls signals
     m_callbacks.connectProjectionChanged(&Application::Private::onProjectionChange, this);
@@ -401,6 +412,63 @@ void Application::Private::onInitialized() {
             std::cerr << "An unknown nlohmann error occurred.\n";
         }
     }
+
+    m_renderer.createFramebuffer({ 800, 600 });
+    /*
+    // Setup a framebuffer for texture rendering.
+    glGenFramebuffers(1, &m_framebuffer);
+    glBindFramebuffer(GL_FRAMEBUFFER, m_framebuffer);
+
+    m_viewportTexture = Texture(800, 600, Texture::Channels::RGB, Texture::Channels::RGB, Texture::Target::Texture2D);
+    m_viewportTexture.initialize();
+    m_viewportTexture.minFilter(Texture::Filter::Linear);
+    m_viewportTexture.magFilter(Texture::Filter::Linear);
+
+    glBindTexture(static_cast<GLenum>(m_viewportTexture.target()), m_viewportTexture.id());
+    glTexImage2D(
+        static_cast<GLenum>(m_viewportTexture.target()),
+        0,
+        static_cast<GLint>(m_viewportTexture.textureFormat()),
+        m_viewportTexture.width(),
+        m_viewportTexture.height(),
+        0,
+        static_cast<GLint>(m_viewportTexture.pixelFormat()),
+        GL_UNSIGNED_BYTE,
+        nullptr
+    );
+
+    glTexParameteri(static_cast<GLenum>(m_viewportTexture.target()), GL_TEXTURE_MIN_FILTER, static_cast<GLint>(m_viewportTexture.minFilter()));
+    glTexParameteri(static_cast<GLenum>(m_viewportTexture.target()), GL_TEXTURE_MAG_FILTER, static_cast<GLint>(m_viewportTexture.magFilter()));
+    glBindTexture(static_cast<GLenum>(m_viewportTexture.target()), 0);
+
+    glFramebufferTexture2D(
+        GL_FRAMEBUFFER,
+        GL_COLOR_ATTACHMENT0,
+        static_cast<GLenum>(m_viewportTexture.target()),
+        m_viewportTexture.id(),
+        0
+    );
+
+    glGenRenderbuffers(1, &m_renderBuffer);
+    glBindRenderbuffer(GL_RENDERBUFFER, m_renderBuffer);
+    glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT32, 800, 600);
+    glBindRenderbuffer(GL_RENDERBUFFER, 0);
+
+    glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, m_renderBuffer);
+
+    switch (glCheckFramebufferStatus(GL_FRAMEBUFFER)) {
+    case GL_FRAMEBUFFER_UNDEFINED: std::cout << "GL_FRAMEBUFFER_UNDEFINED."; exit(1);
+    case GL_FRAMEBUFFER_INCOMPLETE_ATTACHMENT: std::cout << "GL_FRAMEBUFFER_INCOMPLETE_ATTACHMENT."; exit(1);
+    case GL_FRAMEBUFFER_INCOMPLETE_MISSING_ATTACHMENT: std::cout << "GL_FRAMEBUFFER_INCOMPLETE_MISSING_ATTACHMENT."; exit(1);
+    case GL_FRAMEBUFFER_INCOMPLETE_DRAW_BUFFER: std::cout << "GL_FRAMEBUFFER_INCOMPLETE_DRAW_BUFFER."; exit(1);
+    case GL_FRAMEBUFFER_INCOMPLETE_READ_BUFFER: std::cout << "GL_FRAMEBUFFER_INCOMPLETE_READ_BUFFER."; exit(1);
+    case GL_FRAMEBUFFER_UNSUPPORTED: std::cout << "GL_FRAMEBUFFER_UNSUPPORTED."; exit(1);
+    case GL_FRAMEBUFFER_INCOMPLETE_MULTISAMPLE: std::cout << "GL_FRAMEBUFFER_INCOMPLETE_MULTISAMPLE."; exit(1);
+    case GL_FRAMEBUFFER_INCOMPLETE_LAYER_TARGETS: std::cout << "GL_FRAMEBUFFER_INCOMPLETE_LAYER_TARGETS."; exit(1);
+    }
+
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+    */
 }
 
 void Application::Private::onSaved() {
@@ -443,7 +511,8 @@ bool Application::setUp() {
     m_pPrivate->m_renderer.setup();
     m_pPrivate->m_renderer.camera(m_pPrivate->m_pCamera.get());
 
-    glViewport(0, 0, m_pPrivate->m_windowSize.x, m_pPrivate->m_windowSize.y);
+    //glViewport(0, 0, m_pPrivate->m_windowSize.x, m_pPrivate->m_windowSize.y);
+    glViewport(0, 0, 800, 600);
 
     // Setup window callbacks for modular window controls.
     glfwSetWindowUserPointer(m_pPrivate->m_pWindow, &m_pPrivate->m_callbacks);
@@ -463,6 +532,23 @@ bool Application::setUp() {
     ImGui::StyleColorsLight();
 
     ImGui::GetIO().ConfigFlags |= ImGuiConfigFlags_DockingEnable;
+    ImGui::GetIO().Fonts->AddFontFromFileTTF("fonts/DroidSans.ttf", 15.f);
+    
+    ImFontConfig fontConfig;
+    fontConfig.MergeMode = true;
+    fontConfig.GlyphMinAdvanceX = 15.f;
+
+    static std::array<ImWchar, 2> iconRange{ 0xe005, 0xf8ff };
+    ImGui::GetIO().Fonts->AddFontFromFileTTF("fonts/fa-solid-900.ttf", 15.f, &fontConfig, iconRange.data());
+
+    ImGuiStyle& style = ImGui::GetStyle();
+    style.FrameBorderSize = 1.f;
+    style.FrameRounding = 2.f;
+    style.ItemSpacing.x = 7.f;
+    style.ItemSpacing.y = 7.f;
+    style.IndentSpacing = 21.f;
+    style.TabRounding = 3.f;
+    style.ScrollbarRounding = 2.f;
 
     ImGui_ImplGlfw_InitForOpenGL(m_pPrivate->m_pWindow, true);
     ImGui_ImplOpenGL3_Init("#version 330");
@@ -481,3 +567,13 @@ void Application::run() {
         m_pPrivate->render();
     }
 }
+
+
+/*
+TODO:
+2. Framebuffers
+4. Window controls (scene navigation)
+3. Modify data models through UI
+5. Fix window decoration
+1. Camera Properties
+*/
