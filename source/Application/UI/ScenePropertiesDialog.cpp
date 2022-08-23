@@ -105,26 +105,26 @@ void ScenePropertiesDialog::defineUI() {
 
             ImGui::Spacing();
 
-            ImGui::SliderFloat("Scale", &m_pMesh->scale(), kMinScale, 20.f);
-            
-            ImGui::Spacing();
-            ImGui::Spacing();
-
-            ImGui::SliderAngle("Pitch", &m_pMesh->pitch(), kMinPitch, kMaxPitch);
-            ImGui::SliderAngle("Yaw", &m_pMesh->yaw());
-            ImGui::SliderAngle("Roll", &m_pMesh->roll());
-
-            ImGui::Spacing();
-            ImGui::Spacing();
-            
-            constexpr float kStep = 0.1f;
-            ImGui::InputScalar("X-offset", ImGuiDataType_Float, &m_pMesh->translate().x, &kStep);
-            ImGui::InputScalar("Y-offset", ImGuiDataType_Float, &m_pMesh->translate().y, &kStep);
-            ImGui::InputScalar("Z-offset", ImGuiDataType_Float, &m_pMesh->translate().z, &kStep);
-
-            ImGui::BeginDisabled();
-            ImGui::InputFloat3("Origin", glm::value_ptr(m_pMesh->position()));
-            ImGui::EndDisabled();
+            //ImGui::SliderFloat("Scale", &m_pMesh->scale(), kMinScale, 20.f);
+            //
+            //ImGui::Spacing();
+            //ImGui::Spacing();
+            //
+            //ImGui::SliderAngle("Pitch", &m_pMesh->pitch(), kMinPitch, kMaxPitch);
+            //ImGui::SliderAngle("Yaw", &m_pMesh->yaw());
+            //ImGui::SliderAngle("Roll", &m_pMesh->roll());
+            //
+            //ImGui::Spacing();
+            //ImGui::Spacing();
+            //
+            //constexpr float kStep = 0.1f;
+            //ImGui::InputScalar("X-offset", ImGuiDataType_Float, &m_pMesh->translate().x, &kStep);
+            //ImGui::InputScalar("Y-offset", ImGuiDataType_Float, &m_pMesh->translate().y, &kStep);
+            //ImGui::InputScalar("Z-offset", ImGuiDataType_Float, &m_pMesh->translate().z, &kStep);
+            //
+            //ImGui::BeginDisabled();
+            //ImGui::InputFloat3("Origin", glm::value_ptr(m_pMesh->position()));
+            //ImGui::EndDisabled();
 
             ImGui::EndTabItem();
         }

@@ -11,10 +11,10 @@ public:
     DECLARE_SETTER_COPY(itemProperties, IComponent*)
     DECLARE_SETTER_CONSTREF(itemName, std::string)
 
+private:
     virtual const char* windowId() const override;
     virtual void render() override;
 
-private:
     IComponent* m_pItemProperties = nullptr;
     std::string m_itemName;
 };

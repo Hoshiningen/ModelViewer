@@ -8,6 +8,5 @@ public:
     virtual ~IComponent() = default;
 
     virtual const char* windowId() const { return ""; };
-
     virtual void render() = 0;
 };

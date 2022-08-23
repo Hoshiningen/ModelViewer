@@ -3,6 +3,7 @@
 #include "Common/ClassMacros.hpp"
 
 #include <forward_list>
+#include <vector>
 
 #include <glad/glad.h>
 
@@ -14,34 +15,38 @@ class Camera;
 class DirectionalLight;
 class IMaterial;
 class Mesh;
-class ShaderProgram;
+class ShaderCache;
 class Texture;
 class VertexBuffered;
 
 class Renderer {
 public:
+    static void Allocate(Mesh& mesh);
     static void Allocate(const Texture& texture, std::uint8_t* pData);
-    static void Create(Texture& texture);
+
+    static void Configure(Mesh& mesh);
+    static void Configure(Texture& texture);
 
     Renderer();
 
     void createFramebuffer(const glm::uvec2& dimensions);
-    void resetFramebuffer();
+    void purgeFramebuffer();
 
     DECLARE_GETTER_IMMUTABLE_COPY(framebufferId, GLuint)
     DECLARE_GETTER_IMMUTABLE_COPY(framebufferTextureId, GLuint)
     DECLARE_GETTER_IMMUTABLE_COPY(framebufferBitplane, GLbitfield)
+
+    DECLARE_SETTER_CONSTREF(directionalLights, std::vector<DirectionalLight*>)
 
     void setup();
     void camera(Camera* pCamera);
 
     void draw(const Mesh& mesh) const;
 
-    void initializeMesh(Mesh& mesh) const;
-
-    void directionalLight(DirectionalLight** ppLight, uint8_t lightIndex);
     void ambientColor(glm::vec3* pAmbientColor, float* pAmbientIntensity);
 
 private:
+    static ShaderCache* shaderCache();
+
     COMPILATION_FIREWALL(Renderer)
 };

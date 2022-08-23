@@ -32,12 +32,12 @@ public:
 
     DECLARE_GETTER_IMMUTABLE_COPY(transform, glm::mat4)
 
-    DECLARE_GETTER_MUTABLE(scale, float)
-    DECLARE_GETTER_MUTABLE(pitch, float)
-    DECLARE_GETTER_MUTABLE(yaw, float)
-    DECLARE_GETTER_MUTABLE(roll, float)
-    DECLARE_GETTER_MUTABLE(translate, glm::vec3)
-    DECLARE_GETTER_MUTABLE(position, glm::vec3)
+    DECLARE_SETTER_COPY(scale, float)
+    DECLARE_SETTER_COPY(pitch, float)
+    DECLARE_SETTER_COPY(yaw, float)
+    DECLARE_SETTER_COPY(roll, float)
+    DECLARE_SETTER_CONSTREF(translate, glm::vec3)
+    DECLARE_SETTER_CONSTREF(position, glm::vec3)
 
     DECLARE_GETTER_IMMUTABLE_COPY(faceCount, std::uint32_t)
     DECLARE_GETTER_IMMUTABLE_COPY(vertexCount, std::uint32_t)
@@ -47,6 +47,9 @@ public:
     DECLARE_GETTER_IMMUTABLE_COPY(hasNormals, bool)
     DECLARE_GETTER_IMMUTABLE_COPY(hasPositions, bool)
     DECLARE_GETTER_IMMUTABLE_COPY(hasTexels, bool)
+
+    DECLARE_GETTER_IMMUTABLE_COPY(initialized, bool);
+    DECLARE_SETTER_COPY(initialized, bool);
 
 private:
     COMPILATION_FIREWALL_COPY_MOVE(Mesh);

@@ -8,7 +8,7 @@ Framebuffer::Framebuffer(
     const TextureAttachment& textureAttachment,
     const RenderbufferAttachment& renderbufferAttachment
 )
-    : m_dimensions(dimensions), m_target(target) {
+    : m_dimensions(dimensions), m_target(target), m_textureAttachment(textureAttachment), m_renderbufferAttachment(renderbufferAttachment) {
 
     glGenFramebuffers(1, &m_framebufferId);
 }
@@ -57,10 +57,10 @@ void Framebuffer::destroy() {
 
 void Framebuffer::attachTexture() {
 
-    Renderer::Allocate(m_textureAttachment.texture, nullptr);
-    Renderer::Create(m_textureAttachment.texture);
-
     glBindFramebuffer(static_cast<GLenum>(m_target), m_framebufferId);
+
+    Renderer::Configure(m_textureAttachment.texture);
+    Renderer::Allocate(m_textureAttachment.texture, nullptr);
 
     glFramebufferTexture2D(
         static_cast<GLenum>(m_target),
@@ -80,7 +80,7 @@ void Framebuffer::attachRenderbuffer() const {
     glBindRenderbuffer(GL_RENDERBUFFER, m_renderbufferAttachment.renderbufferId);
     glRenderbufferStorage(
         GL_RENDERBUFFER,
-        static_cast<GLenum>(m_renderbufferAttachment.attachmentPoint),
+        static_cast<GLenum>(m_renderbufferAttachment.internalFormat),
         m_dimensions.x,
         m_dimensions.y
     );

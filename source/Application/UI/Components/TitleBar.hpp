@@ -6,5 +6,7 @@
 
 class TitleBarComponent : public IComponent {
 public:
+
+private:
     virtual void render() override;
 };

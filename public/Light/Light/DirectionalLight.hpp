@@ -28,6 +28,9 @@ public:
     DECLARE_GETTER_MUTABLE(intensity, float)
     DECLARE_SETTER_COPY(intensity, float)
 
+    DECLARE_SETTER_COPY(enabled, bool)
+    DECLARE_GETTER_IMMUTABLE_COPY(enabled, bool)
+
 private:
     COMPILATION_FIREWALL_COPY_MOVE(DirectionalLight)
 };

@@ -1,10 +1,35 @@
 #include "UI/Components/MainFrame.hpp"
 
+#include "Common/Math.hpp"
+
+#include "Light/DirectionalLight.hpp"
+
 #include <imgui.h>
 #include <imgui_internal.h>
 
 MainFrameComponent::MainFrameComponent() {
+
     m_sceneTree.nodeSelected.connect(&MainFrameComponent::OnSceneNodeSelected, this);
+
+    m_modelProps.pitchChanged.connect([this](float pitch) { m_pMesh->pitch(pitch); });
+    m_modelProps.yawChanged.connect([this](float yaw) { m_pMesh->yaw(yaw); });
+    m_modelProps.rollChanged.connect([this](float roll) { m_pMesh->roll(roll); });
+    m_modelProps.scaleChanged.connect([this](float scale) { m_pMesh->scale(scale); });
+    m_modelProps.positionOffsetsChanged.connect([this](const glm::vec3& offsets) { m_pMesh->translate(offsets); });
+
+    m_modelLoader.modelLoaded.connect([this](const std::forward_list<VertexBuffered>& model) {
+        m_pMesh->model(model);
+        m_pMesh->position(-ComputeCenter(m_pMesh->model()));
+        m_pMesh->scale(ComputeScale(m_pMesh->model(), kMaxModelSize));
+    });
+
+    m_phongProps.ambientColorChanged.connect([this](const glm::vec4& color) { m_pPhongMat->ambientColor(color); });
+    m_phongProps.diffuseColorChanged.connect([this](const glm::vec4& color) { m_pPhongMat->diffuseColor(color); });
+    m_phongProps.specularColorChanged.connect([this](const glm::vec4& color) { m_pPhongMat->specularColor(color); });
+    m_phongProps.ambientIntensityChanged.connect([this](float intensity) { m_pPhongMat->ambientIntensity(intensity); });
+    m_phongProps.diffuseIntensityChanged.connect([this](float intensity) { m_pPhongMat->diffuseIntensity(intensity); });
+    m_phongProps.specularIntensityChanged.connect([this](float intensity) { m_pPhongMat->specularIntensity(intensity); });
+    m_phongProps.shininessChanged.connect([this](float shininess) { m_pPhongMat->shininess(shininess); });
 }
 
 void MainFrameComponent::render() {
@@ -37,7 +62,7 @@ void MainFrameComponent::render() {
     ImGui::PopStyleVar(3);
 
     const ImGuiID dockspaceId = ImGui::GetID("MainFrameDockspace");
-    ImGui::DockSpace(dockspaceId, {0, 0}, dockspaceFlags);
+    ImGui::DockSpace(dockspaceId, { 0, 0 }, dockspaceFlags);
 
     static bool runOnce = true;
     if (runOnce) {
@@ -53,25 +78,49 @@ void MainFrameComponent::render() {
         ImGuiID mainLeftBottom;
         const ImGuiID mainLeftTop = ImGui::DockBuilderSplitNode(mainLeft, ImGuiDir_Up, .22f, nullptr, &mainLeftBottom);
 
-        ImGui::DockBuilderDockWindow(m_properties.windowId(), mainLeftBottom);
-        ImGui::DockBuilderDockWindow(m_sceneTree.windowId(), mainLeftTop);
-        ImGui::DockBuilderDockWindow(m_viewport.windowId(), mainRight);
+        ImGui::DockBuilderDockWindow(static_cast<IComponent&>(m_properties).windowId(), mainLeftBottom);
+        ImGui::DockBuilderDockWindow(static_cast<IComponent&>(m_sceneTree).windowId(), mainLeftTop);
+        ImGui::DockBuilderDockWindow(static_cast<IComponent&>(m_viewport).windowId(), mainRight);
 
         ImGui::DockBuilderFinish(dockspaceId);
     }
 
-    m_titleBar.render();
-    m_properties.render();
-    m_sceneTree.render();
-    m_viewport.render();
-    m_modelLoader.render();
+    static_cast<IComponent&>(m_titleBar).render();
+    static_cast<IComponent&>(m_properties).render();
+    static_cast<IComponent&>(m_sceneTree).render();
+    static_cast<IComponent&>(m_viewport).render();
+    static_cast<IComponent&>(m_modelLoader).render();
 
     ImGui::End();
 }
 
-void MainFrameComponent::framebufferTexture(GLuint textureId) {
-    m_viewport.framebufferTexture(textureId);
+DEFINE_SETTER_COPY(MainFrameComponent, mesh, m_pMesh)
+
+DEFINE_SETTER_COPY(MainFrameComponent, lambertianMaterial, m_pLambertianMat)
+DEFINE_SETTER_COPY(MainFrameComponent, phongMaterial, m_pPhongMat)
+DEFINE_SETTER_COPY(MainFrameComponent, phongTexturedMaterial, m_pPhongTexturedMat)
+
+void MainFrameComponent::directionalLights(const std::vector<DirectionalLight*>& lights) {
+
+    m_lights = lights;
+
+    m_lights.at(0)->enabled(true);
+    m_lights.at(1)->enabled(true);
+
+    m_light1Props.colorChanged.connect([this](const glm::vec3& color) { m_lights.at(0)->color(color); });
+    m_light1Props.directionChanged.connect([this](const glm::vec3& direction) { m_lights.at(0)->direction(direction); });
+    m_light1Props.intensityChanged.connect([this](float intensity) { m_lights.at(0)->intensity(intensity); });
+
+    m_light2Props.colorChanged.connect([this](const glm::vec3& color) { m_lights.at(1)->color(color); });
+    m_light2Props.directionChanged.connect([this](const glm::vec3& direction) { m_lights.at(1)->direction(direction); });
+    m_light2Props.intensityChanged.connect([this](float intensity) { m_lights.at(1)->intensity(intensity); });
+
+    m_light3Props.colorChanged.connect([this](const glm::vec3& color) { m_lights.at(2)->color(color); });
+    m_light3Props.directionChanged.connect([this](const glm::vec3& direction) { m_lights.at(2)->direction(direction); });
+    m_light3Props.intensityChanged.connect([this](float intensity) { m_lights.at(2)->intensity(intensity); });
 }
+
+DEFINE_GETTER_MUTABLE(MainFrameComponent, viewport, ViewportComponent, m_viewport)
 
 void MainFrameComponent::OnSceneNodeSelected(SceneTreeComponent::SceneNode node) {
 

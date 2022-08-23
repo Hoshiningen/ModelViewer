@@ -28,6 +28,7 @@
 #include <forward_list>
 #include <iostream>
 #include <set>
+#include <queue>
 
 namespace {
 #ifdef GLAD_DEBUG
@@ -85,6 +86,11 @@ std::vector<VertexAttribute> DefineAttributes(const VertexBuffered& geometry) {
 }
 
 bool ConfigureAttributes(const VertexBuffered& geometry, const ShaderProgram* pProgram) {
+
+    if (!geometry.initialized()) {
+        std::cerr << "Error: Unable to configure attributes for geometry that isn't initialized.\n";
+        return false;
+    }
 
     if (!pProgram) {
         std::cerr << "Error: Unable to configure attributes. The shader program is invalid.\n";
@@ -181,15 +187,14 @@ struct Renderer::Private {
     std::unique_ptr<ShaderProgram> loadShaders(const std::filesystem::path& vertexShader, const std::filesystem::path& fragmentShader);
     void draw(const VertexBuffered& geometry, const IMaterial& material, const glm::mat4& transform) const;
 
-    std::array<DirectionalLight**, kMaxLights> m_lights;
+    std::vector<DirectionalLight*> m_lights;
 
     glm::vec3* m_pAmbientColor = nullptr;
     float* m_pAmbientIntensity = nullptr;
 
     Camera* m_pCamera = nullptr;
-    ShaderCache m_shaderCache;
 
-    std::optional<Framebuffer> m_framebuffer;
+    std::queue<Framebuffer> m_framebuffers;
 };
 
 std::unique_ptr<ShaderProgram> Renderer::Private::loadShaders(const std::filesystem::path& vertexPath, const std::filesystem::path& fragmentPath) {
@@ -229,7 +234,7 @@ std::unique_ptr<ShaderProgram> Renderer::Private::loadShaders(const std::filesys
 
 void Renderer::Private::draw(const VertexBuffered& geometry, const IMaterial& material, const glm::mat4& transform) const {
 
-    ShaderProgram* pShader = m_shaderCache.get(material);
+    ShaderProgram* pShader = shaderCache()->get(material);
     if (!pShader) {
         assert(false);
         return;
@@ -252,12 +257,12 @@ void Renderer::Private::draw(const VertexBuffered& geometry, const IMaterial& ma
 
     material.apply(pShader);
 
-    for (std::size_t lightIndex = 0; lightIndex < kMaxLights; ++lightIndex) {
+    for (std::size_t lightIndex = 0; lightIndex < m_lights.size(); ++lightIndex) {
 
-        DirectionalLight* pLight = *m_lights.at(lightIndex);        
+        const DirectionalLight* pLight = m_lights.at(lightIndex);        
         pShader->set(std::format("enabledLights[{}]", lightIndex), pLight != nullptr);
 
-        if (pLight)
+        if (pLight->enabled())
             pLight->apply(pShader, lightIndex);
     }
 
@@ -276,6 +281,25 @@ void Renderer::Private::draw(const VertexBuffered& geometry, const IMaterial& ma
         glDrawArrays(static_cast<GLenum>(primitive), 0, vertices->size());
 
     glBindVertexArray(0);
+}
+
+void Renderer::Allocate(Mesh& mesh) {
+
+    if (!mesh.model() || !mesh.material())
+        return;
+
+    ShaderProgram* pProgram = shaderCache()->get(*mesh.material());
+    if (!pProgram)
+        return;
+
+    for (VertexBuffered& geometry : *mesh.model()) {
+
+        if (!geometry.initialized())
+            continue;
+
+        if (!LoadBufferData(geometry, pProgram))
+            return;
+    }
 }
 
 void Renderer::Allocate(const Texture& texture, std::uint8_t* pData) {
@@ -297,7 +321,27 @@ void Renderer::Allocate(const Texture& texture, std::uint8_t* pData) {
     glBindTexture(static_cast<GLenum>(texture.target()), 0);
 }
 
-void Renderer::Create(Texture& texture) {
+void Renderer::Configure(Mesh& mesh) {
+
+    if (!mesh.model() || !mesh.material())
+        return;
+
+    ShaderProgram* pProgram = shaderCache()->get(*mesh.material());
+    if (!pProgram)
+        return;
+
+    for (VertexBuffered& geometry : *mesh.model()) {
+
+        // Create any buffers that need to be created.
+        geometry.initialize();
+        if (!ConfigureAttributes(geometry, pProgram))
+            return;
+    }
+
+    mesh.initialized(true);
+}
+
+void Renderer::Configure(Texture& texture) {
 
     if (!texture.initialized())
         texture.initialize();
@@ -333,9 +377,6 @@ void Renderer::createFramebuffer(const glm::uvec2& dimensions) {
         Texture::Target::Texture2D
     };
 
-    texture.minFilter(Texture::Filter::Linear);
-    texture.magFilter(Texture::Filter::Linear);
-
     Framebuffer::TextureAttachment textureAttachment;
     textureAttachment.texture = texture;
 
@@ -346,51 +387,64 @@ void Renderer::createFramebuffer(const glm::uvec2& dimensions) {
     renderbufferAttachment.renderbufferId = renderbufferId;
 
     // The framebuffer takes ownership over the texture and renderbuffer.
-    m_pPrivate->m_framebuffer.emplace(
+    Framebuffer& newFramebuffer = m_pPrivate->m_framebuffers.emplace(
         dimensions,
         Framebuffer::Target::DrawRead,
         textureAttachment,
         renderbufferAttachment
     );
 
-    const bool success = m_pPrivate->m_framebuffer->createAttachments();
-    if (!success) {
+    if (!newFramebuffer.createAttachments()) {
 #ifdef GLAD_DEBUG
-        DebugFramebufferAttachmentStatus(m_pPrivate->m_framebuffer->status());
+        DebugFramebufferAttachmentStatus(newFramebuffer.status());
 #endif
     }
 }
 
+void Renderer::purgeFramebuffer() {
+
+    // We need an old and a new frame buffer before we can purge the old.
+    if (m_pPrivate->m_framebuffers.size() < 2)
+        return;
+
+    Framebuffer& oldFramebuffer = m_pPrivate->m_framebuffers.front();
+    oldFramebuffer.destroy();
+
+    m_pPrivate->m_framebuffers.pop();
+}
+
 GLuint Renderer::framebufferId() const {
 
-    if (!m_pPrivate->m_framebuffer)
+    if (m_pPrivate->m_framebuffers.empty())
         return 0;
 
-    return m_pPrivate->m_framebuffer->id();
+    return m_pPrivate->m_framebuffers.back().id();
 }
 
 GLuint Renderer::framebufferTextureId() const {
 
-    if (!m_pPrivate->m_framebuffer)
+    if (m_pPrivate->m_framebuffers.empty())
         return 0;
 
-    return m_pPrivate->m_framebuffer->textureId();
+    return m_pPrivate->m_framebuffers.back().textureId();
 }
 
 GLbitfield Renderer::framebufferBitplane() const {
 
-    if (!m_pPrivate->m_framebuffer)
+    if (m_pPrivate->m_framebuffers.empty())
         return 0;
 
-    return m_pPrivate->m_framebuffer->bufferBitplane();
+    return m_pPrivate->m_framebuffers.back().bufferBitplane();
 }
+
+DEFINE_SETTER_CONSTREF(Renderer, directionalLights, m_pPrivate->m_lights)
 
 void Renderer::setup() {
 
-    m_pPrivate->m_shaderCache.registerProgram<PhongTexturedMaterial>(m_pPrivate->loadShaders("glsl/phong.vert", "glsl/phong.frag"));
-    m_pPrivate->m_shaderCache.registerProgram<LambertianMaterial>(m_pPrivate->loadShaders("glsl/phong.vert", "glsl/phong.frag"));
-    m_pPrivate->m_shaderCache.registerProgram<PhongMaterial>(m_pPrivate->loadShaders("glsl/phong.vert", "glsl/phong.frag"));
-    m_pPrivate->m_shaderCache.registerProgram<SolidMaterial>(m_pPrivate->loadShaders("glsl/phong.vert", "glsl/phong.frag"));
+    shaderCache()->registerProgram<PhongTexturedMaterial>(m_pPrivate->loadShaders("glsl/phong.vert", "glsl/phong.frag"));
+    shaderCache()->registerProgram<LambertianMaterial>(m_pPrivate->loadShaders("glsl/phong.vert", "glsl/phong.frag"));
+    shaderCache()->registerProgram<PhongMaterial>(m_pPrivate->loadShaders("glsl/phong.vert", "glsl/phong.frag"));
+    shaderCache()->registerProgram<SolidMaterial>(m_pPrivate->loadShaders("glsl/phong.vert", "glsl/phong.frag"));
 
     glEnable(GL_DEPTH_TEST);
     glEnable(GL_MULTISAMPLE);
@@ -414,30 +468,9 @@ void Renderer::draw(const Mesh& mesh) const {
         m_pPrivate->draw(geometry, *mesh.material(), mesh.transform());
 }
 
-void Renderer::initializeMesh(Mesh& mesh) const {
-
-    if (!mesh.model() || !mesh.material())
-        return;
-
-    ShaderProgram* pProgram = m_pPrivate->m_shaderCache.get(*mesh.material());
-    if (!pProgram)
-        return;
-
-    for (VertexBuffered& geometry : *mesh.model()) {
-
-        // Create any buffers that need to be created.
-        geometry.initialize();
-
-        if (!ConfigureAttributes(geometry, pProgram))
-            return;
-
-        if (!LoadBufferData(geometry, pProgram))
-            return;
-    }
-}
-
-void Renderer::directionalLight(DirectionalLight** light, uint8_t lightIndex) {
-    m_pPrivate->m_lights.at(lightIndex) = light;
+ShaderCache* Renderer::shaderCache() {
+    static ShaderCache shaderCache;
+    return &shaderCache;
 }
 
 void Renderer::ambientColor(glm::vec3* pAmbientColor, float* pAmbientIntensity) {

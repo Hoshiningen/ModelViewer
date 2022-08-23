@@ -8,9 +8,6 @@
 
 class SceneTreeComponent : public IComponent {
 public:
-    virtual const char* windowId() const override;
-    virtual void render() override;
-
     enum class SceneNode : uint8_t {
         Scene, Model, Material, Lighting, Light1, Light2, Light3, Camera
     };
@@ -18,6 +15,9 @@ public:
     sigslot::signal<SceneNode> nodeSelected;
 
 private:
+    virtual const char* windowId() const override;
+    virtual void render() override;
+
     bool selected(SceneNode sceneNode) const;
     void select(SceneNode sceneNode);
 

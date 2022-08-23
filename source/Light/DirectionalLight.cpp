@@ -8,6 +8,7 @@ struct DirectionalLight::Private {
     glm::vec3 direction{};
     glm::vec3 color{ 1.f };
     float intensity = 1.f;
+    bool enabled = false;
 
     NLOHMANN_DEFINE_TYPE_INTRUSIVE(DirectionalLight::Private,
         direction,
@@ -96,3 +97,6 @@ DEFINE_SETTER_CONSTREF(DirectionalLight, color, m_pPrivate->color)
 
 DEFINE_GETTER_MUTABLE(DirectionalLight, intensity, float, m_pPrivate->intensity)
 DEFINE_SETTER_COPY(DirectionalLight, intensity, m_pPrivate->intensity)
+
+DEFINE_SETTER_COPY(DirectionalLight, enabled, m_pPrivate->enabled)
+DEFINE_GETTER_IMMUTABLE_COPY(DirectionalLight, enabled, bool, m_pPrivate->enabled)

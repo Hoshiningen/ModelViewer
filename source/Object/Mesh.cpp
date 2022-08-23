@@ -47,6 +47,8 @@ Metadata readMetadata(const std::forward_list<VertexBuffered>& model) {
     metadata.setAttribute(Position, metadata.vertexCount > 0);
     metadata.setAttribute(Index, indexCount > 0);
     metadata.faceCount = indexCount > 0 ? indexCount / 3 : 0;
+
+    return metadata;
 }
 } // end unnamed namespace
 
@@ -62,6 +64,8 @@ struct Mesh::Private {
     glm::vec3 m_translate{ 0.f };
 
     Metadata m_metadata;
+
+    bool m_initialized = false;
 };
 
 
@@ -136,13 +140,18 @@ void Mesh::restore(const nlohmann::json& settings) {
 }
 
 DEFINE_GETTER_IMMUTABLE_COPY(Mesh, material, IMaterial*, m_pPrivate->m_pMaterial)
-DEFINE_SETTER_COPY(Mesh, material, m_pPrivate->m_pMaterial)
+
+void Mesh::material(IMaterial* pMaterial) {
+    m_pPrivate->m_pMaterial = pMaterial;
+    m_pPrivate->m_initialized = false;
+}
 
 DEFINE_GETTER_IMMUTABLE_COPY(Mesh, model, std::forward_list<VertexBuffered>*, &m_pPrivate->m_model)
 
 void Mesh::model(const std::forward_list<VertexBuffered>& model) {
     m_pPrivate->m_model = model;
     m_pPrivate->m_metadata = readMetadata(model);
+    m_pPrivate->m_initialized = false;
 }
 
 glm::mat4 Mesh::transform() const {
@@ -155,12 +164,12 @@ glm::mat4 Mesh::transform() const {
     return rotMat * scaleMat * transMat;
 }
 
-DEFINE_GETTER_MUTABLE(Mesh, scale, float, m_pPrivate->m_scale)
-DEFINE_GETTER_MUTABLE(Mesh, pitch, float, m_pPrivate->m_pitch)
-DEFINE_GETTER_MUTABLE(Mesh, yaw, float, m_pPrivate->m_yaw)
-DEFINE_GETTER_MUTABLE(Mesh, roll, float, m_pPrivate->m_roll)
-DEFINE_GETTER_MUTABLE(Mesh, translate, glm::vec3, m_pPrivate->m_translate)
-DEFINE_GETTER_MUTABLE(Mesh, position, glm::vec3, m_pPrivate->m_position)
+DEFINE_SETTER_COPY(Mesh, scale, m_pPrivate->m_scale)
+DEFINE_SETTER_COPY(Mesh, pitch, m_pPrivate->m_pitch)
+DEFINE_SETTER_COPY(Mesh, yaw, m_pPrivate->m_yaw)
+DEFINE_SETTER_COPY(Mesh, roll, m_pPrivate->m_roll)
+DEFINE_SETTER_CONSTREF(Mesh, translate, m_pPrivate->m_translate)
+DEFINE_SETTER_CONSTREF(Mesh, position, m_pPrivate->m_position)
 
 DEFINE_GETTER_IMMUTABLE_COPY(Mesh, faceCount, std::uint32_t, m_pPrivate->m_metadata.faceCount)
 DEFINE_GETTER_IMMUTABLE_COPY(Mesh, vertexCount, std::uint32_t, m_pPrivate->m_metadata.vertexCount)
@@ -170,3 +179,6 @@ DEFINE_GETTER_IMMUTABLE_COPY(Mesh, hasIndices, bool, m_pPrivate->m_metadata.hasA
 DEFINE_GETTER_IMMUTABLE_COPY(Mesh, hasNormals, bool, m_pPrivate->m_metadata.hasAttribute(VertexBuffered::NamedAttribute::Normal))
 DEFINE_GETTER_IMMUTABLE_COPY(Mesh, hasPositions, bool, m_pPrivate->m_metadata.hasAttribute(VertexBuffered::NamedAttribute::Position))
 DEFINE_GETTER_IMMUTABLE_COPY(Mesh, hasTexels, bool, m_pPrivate->m_metadata.hasAttribute(VertexBuffered::NamedAttribute::Texel))
+
+DEFINE_GETTER_IMMUTABLE_COPY(Mesh, initialized, bool, m_pPrivate->m_initialized);
+DEFINE_SETTER_COPY(Mesh, initialized, m_pPrivate->m_initialized);

@@ -70,7 +70,7 @@ void GladOpenGLPostCallback(const char* functionName, void*, int, ...) {
 
     const GLenum errorCode = glad_glGetError();
     if (errorCode != GL_NO_ERROR)
-        std::cerr << std::format("Error {}: {}\n", kErrorStrings.at(errorCode), functionName);
+        std::cerr << std::format("{}: Error {}\n", functionName, kErrorStrings.at(errorCode));
 }
 #endif
 } // end unnamed namespace
@@ -94,8 +94,6 @@ struct Application::Private : private IRestorable {
     virtual nlohmann::json save() const override;
     virtual void restore(const nlohmann::json& settings) override;
 
-    void fitSceneToModel(std::forward_list<VertexBuffered>* pModel);
-
     // Signals
     DEFINE_CONNECTION(m_signalInitialized, ApplicationInitialized)
 
@@ -104,48 +102,60 @@ struct Application::Private : private IRestorable {
     void onWireframeModeChange(bool wireframe) const;
     void onInitialized();
     void onSaved();
+    void onViewportResized(const glm::uvec2& dimensions);
 
-public:
     sigslot::signal<> m_signalInitialized;
 
+public:
     Renderer m_renderer;
-    std::unique_ptr<Camera> m_pCamera;
-
-    // Debug cameras
-    PerspectiveCamera m_persp;
-    OrthographicCamera m_ortho;
 
     GLFWwindow* m_pWindow = nullptr;
     OrbitalControls m_callbacks; // window controls. Sets up an orbital camera.
 
-    // UI Code
-    ModelLoaderDialog m_loaderDialog;
-    MaterialPropertiesDialog m_materialPropDialog;
-    LightPropertiesDialog m_lightPropDialog;
-    ScenePropertiesDialog m_scenePropDialog;
+    // Ui
 
     MainFrameComponent m_mainFrame;
 
-    Mesh m_mesh;
+    struct DataModel {
 
-    glm::vec3* m_pClearColor = nullptr;
+        // Camera
 
-    glm::vec2 m_windowSize{ 800, 600 };
-    glm::vec2 m_windowPosition{ 800, 600 };
+        std::unique_ptr<Camera> m_pCamera;
+        PerspectiveCamera m_persp;
+        OrthographicCamera m_ortho;
 
-    bool m_windowMaximized = false;
+        // Model
+
+        Mesh m_mesh;
+        LambertianMaterial m_lambertianMat;
+        PhongMaterial m_phongMat;
+        PhongTexturedMaterial m_phongTexturedMat;
+
+        // Scene
+
+        glm::vec3 m_clearColor{ 0.305, 0.520, 0.828 };
+        glm::vec3 m_ambientColor{ 1.f };
+        float m_ambientIntensity = 0.f;
+
+        DirectionalLight m_light1;
+        DirectionalLight m_light2;
+        DirectionalLight m_light3;
+
+        // Window
+
+        glm::vec2 m_windowSize{ 800, 600 };
+        glm::vec2 m_windowPosition{ 800, 600 };
+
+        bool m_windowMaximized = false;
+    } m_dataModel;
 };
 
-Application::Private::Private()
-    : m_loaderDialog("Model Loader", kWindowFlags),
-      m_materialPropDialog("Material Properties", kWindowFlags),
-      m_lightPropDialog("Directional Light Properties", kWindowFlags),
-      m_scenePropDialog("Scene Properties", kWindowFlags) {
+Application::Private::Private() {
 
     // Camera setup
-    m_pCamera = [this] {
+    m_dataModel.m_pCamera = [this] {
         std::unique_ptr<PerspectiveCamera> pCamera = std::make_unique<PerspectiveCamera>();
-        pCamera->aspectRatio(m_windowSize.x / m_windowSize.y);
+        pCamera->aspectRatio(m_dataModel.m_windowSize.x / m_dataModel.m_windowSize.y);
         pCamera->fovY(glm::radians(45.f));
         pCamera->far(150.f);
         pCamera->near(0.01f);
@@ -154,24 +164,24 @@ Application::Private::Private()
         return std::move(pCamera);
     }();
 
-    m_callbacks.camera(m_pCamera.get());
+    m_callbacks.camera(m_dataModel.m_pCamera.get());
 
-    m_persp = *static_cast<PerspectiveCamera*>(m_pCamera.get());
-    m_ortho = m_persp;
+    m_dataModel.m_persp = *static_cast<PerspectiveCamera*>(m_dataModel.m_pCamera.get());
+    m_dataModel.m_ortho = m_dataModel.m_persp;
 
     // Signals
     connectApplicationInitialized(&Application::Private::onInitialized, this);
     
     m_callbacks.connectWindowMaximized([this](bool maximized) {
-        m_windowMaximized = maximized;
+        m_dataModel.m_windowMaximized = maximized;
     });
 
     m_callbacks.connectWindowSizeChanged([this](const glm::ivec2& size) {
-        m_windowSize = size;
+        m_dataModel.m_windowSize = size;
     });
 
     m_callbacks.connectWindowPositionChanged([this](const glm::ivec2& position) {
-        m_windowPosition = position;
+        m_dataModel.m_windowPosition = position;
     });
 }
 
@@ -190,17 +200,34 @@ Application::Private::APICleanUp::~APICleanUp() {
 
 void Application::Private::render() {
 
-    if (m_pClearColor)
-        glClearColor(m_pClearColor->r, m_pClearColor->g, m_pClearColor->b, 1.f);
+    const GLuint framebufferId = m_renderer.framebufferId();
+    const GLuint framebufferTextureId = m_renderer.framebufferTextureId();
 
-    if (m_renderer.framebufferId() > 0) {
+    if (framebufferId > 0) {
 
-        m_mainFrame.framebufferTexture(m_renderer.framebufferId());
-        glBindFramebuffer(GL_FRAMEBUFFER, m_renderer.framebufferId());
+        glClearColor(
+            m_dataModel.m_clearColor.r,
+            m_dataModel.m_clearColor.g,
+            m_dataModel.m_clearColor.b,
+            1.f
+        );
+
+        m_mainFrame.viewport().framebufferTexture(framebufferTextureId);
+        glBindFramebuffer(GL_FRAMEBUFFER, framebufferId);
         glClear(m_renderer.framebufferBitplane());
-    }
 
-    m_renderer.draw(m_mesh);
+        if (m_dataModel.m_mesh.model() && m_dataModel.m_mesh.material()) {
+
+            if (!m_dataModel.m_mesh.initialized()) {
+                Renderer::Configure(m_dataModel.m_mesh);
+                Renderer::Allocate(m_dataModel.m_mesh);
+            }
+
+            m_renderer.draw(m_dataModel.m_mesh);
+        }
+
+        m_renderer.purgeFramebuffer();
+    }
 
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
     glClearColor(0.1f, 0.1f, 0.1f, 1.f);
@@ -220,16 +247,10 @@ void Application::Private::render() {
 
 void Application::Private::update() {
 
-    const bool disableNavigation =
-        m_loaderDialog.active() ||
-        m_materialPropDialog.active() ||
-        m_lightPropDialog.active() ||
-        m_scenePropDialog.active();
+    m_callbacks.navigationEnabled(m_mainFrame.viewport().active());
 
-    m_callbacks.navigationEnabled(!disableNavigation);
-
-    if (m_pCamera)
-        m_pCamera->update();
+    if (m_dataModel.m_pCamera)
+        m_dataModel.m_pCamera->update();
 }
 
 GLFWwindow* Application::Private::createWindow(const glm::ivec2& dimensions, const std::string& title) {
@@ -257,23 +278,23 @@ nlohmann::json Application::Private::save() const {
     nlohmann::json json;
     nlohmann::json& obj = json[id().data()];
 
-    obj["windowSize"] = m_windowSize;
-    obj["windowPosition"] = m_windowPosition;
-    obj["windowMaximized"] = m_windowMaximized;
+    obj["windowSize"] = m_dataModel.m_windowSize;
+    obj["windowPosition"] = m_dataModel.m_windowPosition;
+    obj["windowMaximized"] = m_dataModel.m_windowMaximized;
 
-    if (const auto json = m_lightPropDialog.save(); json.is_object())
-        obj.update(json);
+    //if (const auto json = m_lightPropDialog.save(); json.is_object())
+    //    obj.update(json);
+    //
+    //if (const auto json = m_loaderDialog.save(); json.is_object())
+    //    obj.update(json);
+    //
+    //if (const auto json = m_materialPropDialog.save(); json.is_object())
+    //    obj.update(json);
+    //
+    //if (const auto json = m_scenePropDialog.save(); json.is_object())
+    //    obj.update(json);
 
-    if (const auto json = m_loaderDialog.save(); json.is_object())
-        obj.update(json);
-
-    if (const auto json = m_materialPropDialog.save(); json.is_object())
-        obj.update(json);
-
-    if (const auto json = m_scenePropDialog.save(); json.is_object())
-        obj.update(json);
-
-    if (const auto json = m_mesh.save(); json.is_object())
+    if (const auto json = m_dataModel.m_mesh.save(); json.is_object())
         obj.update(json);
 
     return json;
@@ -285,34 +306,34 @@ void Application::Private::restore(const nlohmann::json& settings) {
         return;
 
     if (settings.contains("windowSize"))
-        settings["windowSize"].get_to(m_windowSize);
+        settings["windowSize"].get_to(m_dataModel.m_windowSize);
 
     if (settings.contains("windowPosition"))
-        settings["windowPosition"].get_to(m_windowPosition);
+        settings["windowPosition"].get_to(m_dataModel.m_windowPosition);
 
     if (settings.contains("windowMaximized"))
-        settings["windowMaximized"].get_to(m_windowMaximized);
+        settings["windowMaximized"].get_to(m_dataModel.m_windowMaximized);
 
-    if (settings.contains(m_lightPropDialog.id()))
-        m_lightPropDialog.restore(settings.at(m_lightPropDialog.id().data()));
+    //if (settings.contains(m_lightPropDialog.id()))
+    //    m_lightPropDialog.restore(settings.at(m_lightPropDialog.id().data()));
+    //
+    //if (settings.contains(m_loaderDialog.id()))
+    //    m_loaderDialog.restore(settings.at(m_loaderDialog.id().data()));
+    //
+    //if (settings.contains(m_materialPropDialog.id()))
+    //    m_materialPropDialog.restore(settings.at(m_materialPropDialog.id().data()));
+    //
+    //if (settings.contains(m_scenePropDialog.id()))
+    //    m_scenePropDialog.restore(settings.at(m_scenePropDialog.id().data()));
 
-    if (settings.contains(m_loaderDialog.id()))
-        m_loaderDialog.restore(settings.at(m_loaderDialog.id().data()));
+    if (settings.contains(m_dataModel.m_mesh.id()))
+        m_dataModel.m_mesh.restore(settings.at(m_dataModel.m_mesh.id().data()));
 
-    if (settings.contains(m_materialPropDialog.id()))
-        m_materialPropDialog.restore(settings.at(m_materialPropDialog.id().data()));
-
-    if (settings.contains(m_scenePropDialog.id()))
-        m_scenePropDialog.restore(settings.at(m_scenePropDialog.id().data()));
-
-    if (settings.contains(m_mesh.id()))
-        m_mesh.restore(settings.at(m_mesh.id().data()));
-
-    if (m_windowMaximized)
+    if (m_dataModel.m_windowMaximized)
         glfwMaximizeWindow(m_pWindow);
 
-    glfwSetWindowSize(m_pWindow, m_windowSize.x, m_windowSize.y);
-    glfwSetWindowPos(m_pWindow, m_windowPosition.x, m_windowPosition.y);
+    glfwSetWindowSize(m_pWindow, m_dataModel.m_windowSize.x, m_dataModel.m_windowSize.y);
+    glfwSetWindowPos(m_pWindow, m_dataModel.m_windowPosition.x, m_dataModel.m_windowPosition.y);
     //glViewport(0, 0, m_windowSize.x, m_windowSize.y);
 }
 
@@ -320,21 +341,21 @@ void Application::Private::onProjectionChange(int projection) {
 
     if (projection == ScenePropertiesDialog::Projection::eOrthographic) {
 
-        const PerspectiveCamera* pCamera = dynamic_cast<const PerspectiveCamera*>(m_pCamera.get());
+        const PerspectiveCamera* pCamera = dynamic_cast<const PerspectiveCamera*>(m_dataModel.m_pCamera.get());
         if (pCamera) {
-            m_pCamera = std::make_unique<OrthographicCamera>(*pCamera);
-            m_callbacks.camera(m_pCamera.get());
-            m_renderer.camera(m_pCamera.get());
+            m_dataModel.m_pCamera = std::make_unique<OrthographicCamera>(*pCamera);
+            m_callbacks.camera(m_dataModel.m_pCamera.get());
+            m_renderer.camera(m_dataModel.m_pCamera.get());
         }
     }
 
     if (projection == ScenePropertiesDialog::Projection::ePerspective) {
 
-        const OrthographicCamera* pCamera = dynamic_cast<const OrthographicCamera*>(m_pCamera.get());
+        const OrthographicCamera* pCamera = dynamic_cast<const OrthographicCamera*>(m_dataModel.m_pCamera.get());
         if (pCamera) {
-            m_pCamera = std::make_unique<PerspectiveCamera>(*pCamera);
-            m_callbacks.camera(m_pCamera.get());
-            m_renderer.camera(m_pCamera.get());
+            m_dataModel.m_pCamera = std::make_unique<PerspectiveCamera>(*pCamera);
+            m_callbacks.camera(m_dataModel.m_pCamera.get());
+            m_renderer.camera(m_dataModel.m_pCamera.get());
         }
     }
 }
@@ -347,47 +368,16 @@ void Application::Private::onWireframeModeChange(bool wireframe) const {
         glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 }
 
-void Application::Private::fitSceneToModel(std::forward_list<VertexBuffered>* pModel) {
-
-    if (!pModel)
-        return;
-
-    m_mesh.position() = -ComputeCenter(pModel);
-    m_mesh.scale() = ComputeScale(pModel, kMaxModelSize);
-}
-
 void Application::Private::onInitialized() {
 
-    // Setup data models for the scene
-    m_materialPropDialog.mesh(&m_mesh);
-    m_loaderDialog.mesh(&m_mesh);
-    m_scenePropDialog.mesh(&m_mesh);
-
-    m_pClearColor = m_scenePropDialog.clearColor();
-    m_renderer.ambientColor(m_scenePropDialog.ambientColor(), m_scenePropDialog.ambientIntensity());
-
-    for (uint8_t lightIndex = 0; lightIndex < kMaxLights; ++lightIndex)
-        m_renderer.directionalLight(m_lightPropDialog.directionalLight(lightIndex), lightIndex);
-
-    // Model loader signals
-    m_loaderDialog.connectModelLoaded([this]() {
-        fitSceneToModel(m_mesh.model());
-        m_renderer.initializeMesh(m_mesh);
-    });
-
-    // Material property signals
-    m_materialPropDialog.connectMaterialSelectionChanged([this]() {
-        m_renderer.initializeMesh(m_mesh);
-    });
-
-    //m_materialPropDialog.connectTextureLoaded(&Renderer::onTextureLoaded, &m_renderer);
+    m_mainFrame.viewport().viewportResized.connect(&Application::Private::onViewportResized, this);
 
     // Window controls signals
     m_callbacks.connectProjectionChanged(&Application::Private::onProjectionChange, this);
-    m_callbacks.connectProjectionChanged(&ScenePropertiesDialog::onProjectionChange, &m_scenePropDialog);
+    //m_callbacks.connectProjectionChanged(&ScenePropertiesDialog::onProjectionChange, &m_scenePropDialog);
     
     m_callbacks.connectWireframeChanged(&Application::Private::onWireframeModeChange, this);
-    m_callbacks.connectWireframeChanged(&ScenePropertiesDialog::onWireframeModeChange, &m_scenePropDialog);
+    //m_callbacks.connectWireframeChanged(&ScenePropertiesDialog::onWireframeModeChange, &m_scenePropDialog);
     
     m_callbacks.connectApplicationSaved(&Application::Private::onSaved, this);
 
@@ -413,62 +403,16 @@ void Application::Private::onInitialized() {
         }
     }
 
-    m_renderer.createFramebuffer({ 800, 600 });
-    /*
-    // Setup a framebuffer for texture rendering.
-    glGenFramebuffers(1, &m_framebuffer);
-    glBindFramebuffer(GL_FRAMEBUFFER, m_framebuffer);
+    const std::vector<DirectionalLight*> lights{ &m_dataModel.m_light1, &m_dataModel.m_light2, &m_dataModel.m_light3 };
+    m_renderer.directionalLights(lights);
 
-    m_viewportTexture = Texture(800, 600, Texture::Channels::RGB, Texture::Channels::RGB, Texture::Target::Texture2D);
-    m_viewportTexture.initialize();
-    m_viewportTexture.minFilter(Texture::Filter::Linear);
-    m_viewportTexture.magFilter(Texture::Filter::Linear);
+    m_mainFrame.directionalLights(lights);
+    m_mainFrame.mesh(&m_dataModel.m_mesh);
+    m_mainFrame.lambertianMaterial(&m_dataModel.m_lambertianMat);
+    m_mainFrame.phongMaterial(&m_dataModel.m_phongMat);
+    m_mainFrame.phongTexturedMaterial(&m_dataModel.m_phongTexturedMat);
 
-    glBindTexture(static_cast<GLenum>(m_viewportTexture.target()), m_viewportTexture.id());
-    glTexImage2D(
-        static_cast<GLenum>(m_viewportTexture.target()),
-        0,
-        static_cast<GLint>(m_viewportTexture.textureFormat()),
-        m_viewportTexture.width(),
-        m_viewportTexture.height(),
-        0,
-        static_cast<GLint>(m_viewportTexture.pixelFormat()),
-        GL_UNSIGNED_BYTE,
-        nullptr
-    );
-
-    glTexParameteri(static_cast<GLenum>(m_viewportTexture.target()), GL_TEXTURE_MIN_FILTER, static_cast<GLint>(m_viewportTexture.minFilter()));
-    glTexParameteri(static_cast<GLenum>(m_viewportTexture.target()), GL_TEXTURE_MAG_FILTER, static_cast<GLint>(m_viewportTexture.magFilter()));
-    glBindTexture(static_cast<GLenum>(m_viewportTexture.target()), 0);
-
-    glFramebufferTexture2D(
-        GL_FRAMEBUFFER,
-        GL_COLOR_ATTACHMENT0,
-        static_cast<GLenum>(m_viewportTexture.target()),
-        m_viewportTexture.id(),
-        0
-    );
-
-    glGenRenderbuffers(1, &m_renderBuffer);
-    glBindRenderbuffer(GL_RENDERBUFFER, m_renderBuffer);
-    glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT32, 800, 600);
-    glBindRenderbuffer(GL_RENDERBUFFER, 0);
-
-    glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, m_renderBuffer);
-
-    switch (glCheckFramebufferStatus(GL_FRAMEBUFFER)) {
-    case GL_FRAMEBUFFER_UNDEFINED: std::cout << "GL_FRAMEBUFFER_UNDEFINED."; exit(1);
-    case GL_FRAMEBUFFER_INCOMPLETE_ATTACHMENT: std::cout << "GL_FRAMEBUFFER_INCOMPLETE_ATTACHMENT."; exit(1);
-    case GL_FRAMEBUFFER_INCOMPLETE_MISSING_ATTACHMENT: std::cout << "GL_FRAMEBUFFER_INCOMPLETE_MISSING_ATTACHMENT."; exit(1);
-    case GL_FRAMEBUFFER_INCOMPLETE_DRAW_BUFFER: std::cout << "GL_FRAMEBUFFER_INCOMPLETE_DRAW_BUFFER."; exit(1);
-    case GL_FRAMEBUFFER_INCOMPLETE_READ_BUFFER: std::cout << "GL_FRAMEBUFFER_INCOMPLETE_READ_BUFFER."; exit(1);
-    case GL_FRAMEBUFFER_UNSUPPORTED: std::cout << "GL_FRAMEBUFFER_UNSUPPORTED."; exit(1);
-    case GL_FRAMEBUFFER_INCOMPLETE_MULTISAMPLE: std::cout << "GL_FRAMEBUFFER_INCOMPLETE_MULTISAMPLE."; exit(1);
-    case GL_FRAMEBUFFER_INCOMPLETE_LAYER_TARGETS: std::cout << "GL_FRAMEBUFFER_INCOMPLETE_LAYER_TARGETS."; exit(1);
-    }
-
-    glBindFramebuffer(GL_FRAMEBUFFER, 0);
-    */
+    m_dataModel.m_mesh.material(&m_dataModel.m_phongMat);
 }
 
 void Application::Private::onSaved() {
@@ -477,6 +421,14 @@ void Application::Private::onSaved() {
     file << save();
 }
 
+void Application::Private::onViewportResized(const glm::uvec2& dimensions) {
+
+    m_renderer.createFramebuffer(dimensions);
+    glViewport(0, 0, dimensions.x, dimensions.y);
+
+    if (m_dataModel.m_pCamera)
+        m_dataModel.m_pCamera->aspectRatio(static_cast<float>(dimensions.x) / static_cast<float>(dimensions.y));
+}
 
 Application::Application()
     : m_pPrivate(std::make_unique<Private>()) {}
@@ -492,7 +444,7 @@ bool Application::setUp() {
         m_pPrivate->m_pWindow = nullptr;
     }
 
-    m_pPrivate->m_pWindow = m_pPrivate->createWindow({ m_pPrivate->m_windowSize.x, m_pPrivate->m_windowSize.y}, "Model Viewer");
+    m_pPrivate->m_pWindow = m_pPrivate->createWindow({ m_pPrivate->m_dataModel.m_windowSize.x, m_pPrivate->m_dataModel.m_windowSize.y}, "Model Viewer");
     if (!m_pPrivate->m_pWindow) {
         std::cerr << "Failed to create a window.\n";
         return false;
@@ -509,10 +461,7 @@ bool Application::setUp() {
 #endif
 
     m_pPrivate->m_renderer.setup();
-    m_pPrivate->m_renderer.camera(m_pPrivate->m_pCamera.get());
-
-    //glViewport(0, 0, m_pPrivate->m_windowSize.x, m_pPrivate->m_windowSize.y);
-    glViewport(0, 0, 800, 600);
+    m_pPrivate->m_renderer.camera(m_pPrivate->m_dataModel.m_pCamera.get());
 
     // Setup window callbacks for modular window controls.
     glfwSetWindowUserPointer(m_pPrivate->m_pWindow, &m_pPrivate->m_callbacks);
@@ -572,7 +521,6 @@ void Application::run() {
 /*
 TODO:
 2. Framebuffers
-4. Window controls (scene navigation)
 3. Modify data models through UI
 5. Fix window decoration
 1. Camera Properties
