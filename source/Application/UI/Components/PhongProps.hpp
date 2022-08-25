@@ -1,13 +1,29 @@
 #pragma once
 
+#include "Common/ClassMacros.hpp"
 #include "UI/Components/IComponent.hpp"
 
-#include <glm/vec3.hpp>
+#include <glm/vec4.hpp>
 #include <sigslot/signal.hpp>
+
+class PhongMaterial;
 
 class PhongProps : public IComponent {
 public:
+    struct Model {
+        glm::vec4 m_ambientColor;
+        glm::vec4 m_diffuseColor;
+        glm::vec4 m_specularColor;
+
+        float m_ambientIntensity;
+        float m_diffuseIntensity;
+        float m_specularIntensity;
+
+        float m_shininess;
+    };
+
     virtual void render();
+    virtual void syncFrom(const std::any& dataModel) override;
 
     sigslot::signal<const glm::vec4&> ambientColorChanged;
     sigslot::signal<const glm::vec4&> diffuseColorChanged;
@@ -18,13 +34,5 @@ public:
     sigslot::signal<float> shininessChanged;
 
 private:
-    glm::vec4 m_ambientColor;
-    glm::vec4 m_diffuseColor;
-    glm::vec4 m_specularColor;
-
-    float m_ambientIntensity;
-    float m_diffuseIntensity;
-    float m_specularIntensity;
-
-    float m_shininess;
+    Model m_model;
 };

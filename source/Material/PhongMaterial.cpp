@@ -94,23 +94,23 @@ void PhongMaterial::restore(const nlohmann::json& settings) {
     *m_pPrivate = settings;
 }
 
-DEFINE_GETTER_MUTABLE(PhongMaterial, ambientColor, glm::vec4, m_pPrivate->ambientColor)
+DEFINE_GETTER_IMMUTABLE(PhongMaterial, ambientColor, glm::vec4, m_pPrivate->ambientColor)
 DEFINE_SETTER_CONSTREF(PhongMaterial, ambientColor, m_pPrivate->ambientColor)
 
-DEFINE_GETTER_MUTABLE(PhongMaterial, diffuseColor, glm::vec4, m_pPrivate->diffuseColor)
+DEFINE_GETTER_IMMUTABLE(PhongMaterial, diffuseColor, glm::vec4, m_pPrivate->diffuseColor)
 DEFINE_SETTER_CONSTREF(PhongMaterial, diffuseColor, m_pPrivate->diffuseColor)
 
-DEFINE_GETTER_MUTABLE(PhongMaterial, specularColor, glm::vec4, m_pPrivate->specularColor)
+DEFINE_GETTER_IMMUTABLE(PhongMaterial, specularColor, glm::vec4, m_pPrivate->specularColor)
 DEFINE_SETTER_CONSTREF(PhongMaterial, specularColor, m_pPrivate->specularColor)
 
-DEFINE_GETTER_MUTABLE(PhongMaterial, ambientIntensity, float, m_pPrivate->ambientIntensity)
+DEFINE_GETTER_IMMUTABLE_COPY(PhongMaterial, ambientIntensity, float, m_pPrivate->ambientIntensity)
 DEFINE_SETTER_COPY(PhongMaterial, ambientIntensity, m_pPrivate->ambientIntensity)
 
-DEFINE_GETTER_MUTABLE(PhongMaterial, diffuseIntensity, float, m_pPrivate->diffuseIntensity)
+DEFINE_GETTER_IMMUTABLE_COPY(PhongMaterial, diffuseIntensity, float, m_pPrivate->diffuseIntensity)
 DEFINE_SETTER_COPY(PhongMaterial, diffuseIntensity, m_pPrivate->diffuseIntensity)
 
-DEFINE_GETTER_MUTABLE(PhongMaterial, specularIntensity, float, m_pPrivate->specularIntensity)
+DEFINE_GETTER_IMMUTABLE_COPY(PhongMaterial, specularIntensity, float, m_pPrivate->specularIntensity)
 DEFINE_SETTER_COPY(PhongMaterial, specularIntensity, m_pPrivate->specularIntensity)
 
-DEFINE_GETTER_MUTABLE(PhongMaterial, shininess, float, m_pPrivate->shininess)
+DEFINE_GETTER_IMMUTABLE_COPY(PhongMaterial, shininess, float, m_pPrivate->shininess)
 DEFINE_SETTER_COPY(PhongMaterial, shininess, m_pPrivate->shininess)

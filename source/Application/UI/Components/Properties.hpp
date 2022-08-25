@@ -8,13 +8,11 @@
 
 class PropertiesComponent : public IComponent {
 public:
-    DECLARE_SETTER_COPY(itemProperties, IComponent*)
-    DECLARE_SETTER_CONSTREF(itemName, std::string)
+    DECLARE_SETTER_COPY(propertiesComponent, IComponent*)
 
 private:
     virtual const char* windowId() const override;
     virtual void render() override;
 
-    IComponent* m_pItemProperties = nullptr;
-    std::string m_itemName;
+    IComponent* m_pPropertiesComponent = nullptr;
 };

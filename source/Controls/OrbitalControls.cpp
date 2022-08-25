@@ -51,14 +51,6 @@ OrbitalControls::~OrbitalControls() noexcept {}
 DEFINE_SETTER_COPY(OrbitalControls, camera, m_pPrivate->m_pCamera)
 DEFINE_SETTER_COPY(OrbitalControls, navigationEnabled, m_pPrivate->m_navigationEnabled)
 
-void OrbitalControls::FrameBufferSizeImpl(GLFWwindow*, int width, int height) {
-
-    //glViewport(0, 0, width, height);
-
-    if (m_pPrivate->m_pCamera)
-        m_pPrivate->m_pCamera->aspectRatio(static_cast<float>(width) / static_cast<float>(height));
-}
-
 void OrbitalControls::CursorPositionImpl(GLFWwindow* pWindow, double xPos, double yPos) {
 
     if (!m_pPrivate->m_navigationEnabled)

@@ -126,14 +126,14 @@ DEFINE_SETTER_CONSTREF_EXPLICIT(PhongTexturedMaterial, emissiveMap, Texture, m_p
 DEFINE_GETTER_CONST_CORRECT(PhongTexturedMaterial, specularMap, std::optional<Texture>, m_pPrivate->specularMap)
 DEFINE_SETTER_CONSTREF_EXPLICIT(PhongTexturedMaterial, specularMap, Texture, m_pPrivate->specularMap)
 
-DEFINE_GETTER_MUTABLE(PhongTexturedMaterial, shininess, float, m_pPrivate->shininess)
+DEFINE_GETTER_IMMUTABLE_COPY(PhongTexturedMaterial, shininess, float, m_pPrivate->shininess)
 DEFINE_SETTER_COPY(PhongTexturedMaterial, shininess, m_pPrivate->shininess)
 
-DEFINE_GETTER_MUTABLE(PhongTexturedMaterial, diffuseIntensity, float, m_pPrivate->diffuseIntensity)
+DEFINE_GETTER_IMMUTABLE_COPY(PhongTexturedMaterial, diffuseIntensity, float, m_pPrivate->diffuseIntensity)
 DEFINE_SETTER_COPY(PhongTexturedMaterial, diffuseIntensity, m_pPrivate->diffuseIntensity)
 
-DEFINE_GETTER_MUTABLE(PhongTexturedMaterial, emissiveIntensity, float, m_pPrivate->emissiveIntensity)
+DEFINE_GETTER_IMMUTABLE_COPY(PhongTexturedMaterial, emissiveIntensity, float, m_pPrivate->emissiveIntensity)
 DEFINE_SETTER_COPY(PhongTexturedMaterial, emissiveIntensity, m_pPrivate->emissiveIntensity)
 
-DEFINE_GETTER_MUTABLE(PhongTexturedMaterial, specularIntensity, float, m_pPrivate->specularIntensity)
+DEFINE_GETTER_IMMUTABLE_COPY(PhongTexturedMaterial, specularIntensity, float, m_pPrivate->specularIntensity)
 DEFINE_SETTER_COPY(PhongTexturedMaterial, specularIntensity, m_pPrivate->specularIntensity)

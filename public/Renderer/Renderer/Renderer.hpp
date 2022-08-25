@@ -2,8 +2,8 @@
 
 #include "Common/ClassMacros.hpp"
 
+#include <array>
 #include <forward_list>
-#include <vector>
 
 #include <glad/glad.h>
 
@@ -36,7 +36,10 @@ public:
     DECLARE_GETTER_IMMUTABLE_COPY(framebufferTextureId, GLuint)
     DECLARE_GETTER_IMMUTABLE_COPY(framebufferBitplane, GLbitfield)
 
-    DECLARE_SETTER_CONSTREF(directionalLights, std::vector<DirectionalLight*>)
+    void directionalLights(const std::array<DirectionalLight*, 3>& lights);
+
+    DECLARE_SETTER_COPY(ambientColor, glm::vec3*)
+    DECLARE_SETTER_COPY(ambientIntensity, float*)
 
     void setup();
     void camera(Camera* pCamera);

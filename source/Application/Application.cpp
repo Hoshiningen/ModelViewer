@@ -133,18 +133,16 @@ public:
 
         // Scene
 
-        glm::vec3 m_clearColor{ 0.305, 0.520, 0.828 };
+        glm::vec4 m_clearColor{ 0.305f, 0.520f, 0.828f, 1.f };
         glm::vec3 m_ambientColor{ 1.f };
         float m_ambientIntensity = 0.f;
 
-        DirectionalLight m_light1;
-        DirectionalLight m_light2;
-        DirectionalLight m_light3;
+        std::array<DirectionalLight, 3> m_lights;
 
         // Window
 
         glm::vec2 m_windowSize{ 800, 600 };
-        glm::vec2 m_windowPosition{ 800, 600 };
+        glm::vec2 m_windowPosition{ 0, 0 };
 
         bool m_windowMaximized = false;
     } m_dataModel;
@@ -172,17 +170,20 @@ Application::Private::Private() {
     // Signals
     connectApplicationInitialized(&Application::Private::onInitialized, this);
     
-    m_callbacks.connectWindowMaximized([this](bool maximized) {
-        m_dataModel.m_windowMaximized = maximized;
-    });
+    m_callbacks.connectWindowMaximized([this](bool maximized) { m_dataModel.m_windowMaximized = maximized; });
+    m_callbacks.connectWindowSizeChanged([this](const glm::ivec2& size) { m_dataModel.m_windowSize = size; });
+    m_callbacks.connectWindowPositionChanged([this](const glm::ivec2& position) { m_dataModel.m_windowPosition = position; });
 
-    m_callbacks.connectWindowSizeChanged([this](const glm::ivec2& size) {
-        m_dataModel.m_windowSize = size;
-    });
+    m_dataModel.m_lights.at(0).enabled(true);
+    m_dataModel.m_lights.at(0).pitch(glm::radians(45.f));
+    m_dataModel.m_lights.at(0).yaw(0.f);
 
-    m_callbacks.connectWindowPositionChanged([this](const glm::ivec2& position) {
-        m_dataModel.m_windowPosition = position;
-    });
+    m_dataModel.m_lights.at(0).enabled(true);
+    m_dataModel.m_lights.at(1).pitch(glm::radians(45.f));
+    m_dataModel.m_lights.at(1).yaw(glm::radians(180.f));
+
+    m_dataModel.m_lights.at(2).pitch(glm::radians(-90.f));
+    m_dataModel.m_lights.at(2).yaw(0.f);
 }
 
 Application::Private::~Private() {
@@ -209,7 +210,7 @@ void Application::Private::render() {
             m_dataModel.m_clearColor.r,
             m_dataModel.m_clearColor.g,
             m_dataModel.m_clearColor.b,
-            1.f
+            m_dataModel.m_clearColor.a
         );
 
         m_mainFrame.viewport().framebufferTexture(framebufferTextureId);
@@ -403,14 +404,26 @@ void Application::Private::onInitialized() {
         }
     }
 
-    const std::vector<DirectionalLight*> lights{ &m_dataModel.m_light1, &m_dataModel.m_light2, &m_dataModel.m_light3 };
-    m_renderer.directionalLights(lights);
+    const std::array<DirectionalLight*, 3> lights{
+        &m_dataModel.m_lights.at(0),
+        &m_dataModel.m_lights.at(1),
+        &m_dataModel.m_lights.at(2)
+    };
 
-    m_mainFrame.directionalLights(lights);
-    m_mainFrame.mesh(&m_dataModel.m_mesh);
-    m_mainFrame.lambertianMaterial(&m_dataModel.m_lambertianMat);
-    m_mainFrame.phongMaterial(&m_dataModel.m_phongMat);
-    m_mainFrame.phongTexturedMaterial(&m_dataModel.m_phongTexturedMat);
+    m_renderer.directionalLights(lights);
+    m_renderer.ambientColor(&m_dataModel.m_ambientColor);
+    m_renderer.ambientIntensity(&m_dataModel.m_ambientIntensity);
+
+    m_mainFrame.syncFrom(MainFrameComponent::Model{
+        .m_pAmbientColor = &m_dataModel.m_ambientColor,
+        .m_pClearColor = &m_dataModel.m_clearColor,
+        .m_pAmbientIntensity = &m_dataModel.m_ambientIntensity,
+        .m_pMesh = &m_dataModel.m_mesh,
+        .m_pLambertianMat = &m_dataModel.m_lambertianMat,
+        .m_pPhongMat = &m_dataModel.m_phongMat,
+        .m_pPhongTexturedMat = &m_dataModel.m_phongTexturedMat,
+        .m_lights = lights
+    });
 
     m_dataModel.m_mesh.material(&m_dataModel.m_phongMat);
 }
@@ -465,7 +478,6 @@ bool Application::setUp() {
 
     // Setup window callbacks for modular window controls.
     glfwSetWindowUserPointer(m_pPrivate->m_pWindow, &m_pPrivate->m_callbacks);
-    glfwSetFramebufferSizeCallback(m_pPrivate->m_pWindow, WindowCallbacks::FrameBufferSizeCallback);
     
     glfwSetCursorPosCallback(m_pPrivate->m_pWindow, WindowCallbacks::CursorPositionCallback);
     glfwSetMouseButtonCallback(m_pPrivate->m_pWindow, WindowCallbacks::MouseButtonCallback);
@@ -520,7 +532,6 @@ void Application::run() {
 
 /*
 TODO:
-2. Framebuffers
 3. Modify data models through UI
 5. Fix window decoration
 1. Camera Properties

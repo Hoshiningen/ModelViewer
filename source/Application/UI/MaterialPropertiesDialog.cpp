@@ -141,63 +141,63 @@ void MaterialPropertiesDialog::setUpMaterialUI(MaterialVariant material) {
 
 void MaterialPropertiesDialog::setUpMaterialUI(LambertianMaterial* pMaterial) {
 
-    ImGui::ColorEdit4("Diffuse Color", glm::value_ptr(pMaterial->diffuseColor()));
-    ImGui::SliderFloat("Diffuse Intensity", &pMaterial->diffuseIntensity(), 0.f, 1.f, "%.3f", kSliderFlags);
+    //ImGui::ColorEdit4("Diffuse Color", glm::value_ptr(pMaterial->diffuseColor()));
+    //ImGui::SliderFloat("Diffuse Intensity", &pMaterial->diffuseIntensity(), 0.f, 1.f, "%.3f", kSliderFlags);
 }
 
 void MaterialPropertiesDialog::setUpMaterialUI(PhongMaterial* pMaterial) {
 
-    ImGui::ColorEdit4("Ambient Color", glm::value_ptr(pMaterial->ambientColor()));
-    ImGui::SliderFloat("Ambient Intensity", &pMaterial->ambientIntensity(), 0.f, 1.f, "%.3f", kSliderFlags);
-    ImGui::ColorEdit4("Diffuse Color", glm::value_ptr(pMaterial->diffuseColor()));
-    ImGui::SliderFloat("Diffuse Intensity", &pMaterial->diffuseIntensity(), 0.f, 1.f, "%.3f", kSliderFlags);
-    ImGui::ColorEdit4("Specular Color", glm::value_ptr(pMaterial->specularColor()));
-    ImGui::SliderFloat("Specular Intensity", &pMaterial->specularIntensity(), 0.f, 1.f, "%.3f", kSliderFlags);
-    ImGui::SliderFloat("Shininess", &pMaterial->shininess(), 1.f, 256.f, "%.0f", kSliderFlags);
+    //ImGui::ColorEdit4("Ambient Color", glm::value_ptr(pMaterial->ambientColor()));
+    //ImGui::SliderFloat("Ambient Intensity", &pMaterial->ambientIntensity(), 0.f, 1.f, "%.3f", kSliderFlags);
+    //ImGui::ColorEdit4("Diffuse Color", glm::value_ptr(pMaterial->diffuseColor()));
+    //ImGui::SliderFloat("Diffuse Intensity", &pMaterial->diffuseIntensity(), 0.f, 1.f, "%.3f", kSliderFlags);
+    //ImGui::ColorEdit4("Specular Color", glm::value_ptr(pMaterial->specularColor()));
+    //ImGui::SliderFloat("Specular Intensity", &pMaterial->specularIntensity(), 0.f, 1.f, "%.3f", kSliderFlags);
+    //ImGui::SliderFloat("Shininess", &pMaterial->shininess(), 1.f, 256.f, "%.0f", kSliderFlags);
 }
 
 void MaterialPropertiesDialog::setUpMaterialUI(PhongTexturedMaterial* pMaterial) {
 
-    ImGui::InputTextWithHint("Diffuse Map", "Texture file path...",
-        m_diffusePathBuffer.data(), m_diffusePathBuffer.size());
-
-    ImGui::SameLine();
-    ImGui::BeginDisabled(!std::filesystem::is_regular_file(m_diffusePathBuffer.data()));
-    if (ImGui::Button("Load##DiffuseMap")) {
-        pMaterial->diffuseMap(LoadTexture(m_diffusePathBuffer.data()));
-
-        m_signalTextureLoaded(*pMaterial->diffuseMap());
-    }
-    ImGui::EndDisabled();
-
-    ImGui::SliderFloat("Diffuse Intensity", &pMaterial->diffuseIntensity(), 0.f, 1.f, "%.3f", kSliderFlags);
-
-    ImGui::InputTextWithHint("Emissive Map", "Texture file path...",
-        m_emissivePathBuffer.data(), m_emissivePathBuffer.size());
-    
-    ImGui::SameLine();
-    ImGui::BeginDisabled(!std::filesystem::is_regular_file(m_emissivePathBuffer.data()));
-    if (ImGui::Button("Load##EmissiveMap")) {
-        pMaterial->emissiveMap(LoadTexture(m_emissivePathBuffer.data()));
-        m_signalTextureLoaded(*pMaterial->emissiveMap());
-    }
-    ImGui::EndDisabled();
-
-    ImGui::SliderFloat("Emissive Intensity", &pMaterial->emissiveIntensity(), 0.f, 1.f, "%.3f", kSliderFlags);
-
-    ImGui::InputTextWithHint("Specular Map", "Texture file path...",
-        m_specularPathBuffer.data(), m_specularPathBuffer.size());
-    
-    ImGui::SameLine();
-    ImGui::BeginDisabled(!std::filesystem::is_regular_file(m_specularPathBuffer.data()));
-    if (ImGui::Button("Load##SpecularMap")) {
-        pMaterial->specularMap(LoadTexture(m_specularPathBuffer.data()));
-        m_signalTextureLoaded(*pMaterial->specularMap());
-    }
-    ImGui::EndDisabled();
-
-    ImGui::SliderFloat("Specular Intensity", &pMaterial->specularIntensity(), 0.f, 1.f, "%.3f", kSliderFlags);
-    ImGui::SliderFloat("Shininess", &pMaterial->shininess(), 1.f, 256.f, "%.0f", kSliderFlags);
+    //ImGui::InputTextWithHint("Diffuse Map", "Texture file path...",
+    //    m_diffusePathBuffer.data(), m_diffusePathBuffer.size());
+    //
+    //ImGui::SameLine();
+    //ImGui::BeginDisabled(!std::filesystem::is_regular_file(m_diffusePathBuffer.data()));
+    //if (ImGui::Button("Load##DiffuseMap")) {
+    //    pMaterial->diffuseMap(LoadTexture(m_diffusePathBuffer.data()));
+    //
+    //    m_signalTextureLoaded(*pMaterial->diffuseMap());
+    //}
+    //ImGui::EndDisabled();
+    //
+    //ImGui::SliderFloat("Diffuse Intensity", &pMaterial->diffuseIntensity(), 0.f, 1.f, "%.3f", kSliderFlags);
+    //
+    //ImGui::InputTextWithHint("Emissive Map", "Texture file path...",
+    //    m_emissivePathBuffer.data(), m_emissivePathBuffer.size());
+    //
+    //ImGui::SameLine();
+    //ImGui::BeginDisabled(!std::filesystem::is_regular_file(m_emissivePathBuffer.data()));
+    //if (ImGui::Button("Load##EmissiveMap")) {
+    //    pMaterial->emissiveMap(LoadTexture(m_emissivePathBuffer.data()));
+    //    m_signalTextureLoaded(*pMaterial->emissiveMap());
+    //}
+    //ImGui::EndDisabled();
+    //
+    //ImGui::SliderFloat("Emissive Intensity", &pMaterial->emissiveIntensity(), 0.f, 1.f, "%.3f", kSliderFlags);
+    //
+    //ImGui::InputTextWithHint("Specular Map", "Texture file path...",
+    //    m_specularPathBuffer.data(), m_specularPathBuffer.size());
+    //
+    //ImGui::SameLine();
+    //ImGui::BeginDisabled(!std::filesystem::is_regular_file(m_specularPathBuffer.data()));
+    //if (ImGui::Button("Load##SpecularMap")) {
+    //    pMaterial->specularMap(LoadTexture(m_specularPathBuffer.data()));
+    //    m_signalTextureLoaded(*pMaterial->specularMap());
+    //}
+    //ImGui::EndDisabled();
+    //
+    //ImGui::SliderFloat("Specular Intensity", &pMaterial->specularIntensity(), 0.f, 1.f, "%.3f", kSliderFlags);
+    //ImGui::SliderFloat("Shininess", &pMaterial->shininess(), 1.f, 256.f, "%.0f", kSliderFlags);
 }
 
 MaterialPropertiesDialog::MaterialVariant MaterialPropertiesDialog::materialVariantByIndex(int index) const {

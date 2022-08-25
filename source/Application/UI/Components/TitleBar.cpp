@@ -10,7 +10,7 @@ void TitleBarComponent::render() {
     bool openModelLoader = false;
     if (ImGui::BeginMainMenuBar()) {
         if (ImGui::BeginMenu("File")) {
-            if (ImGui::MenuItem("Load Model"))
+            if (ImGui::MenuItem("Load Model..."))
                 openModelLoader = true;
             
             ImGui::EndMenu();

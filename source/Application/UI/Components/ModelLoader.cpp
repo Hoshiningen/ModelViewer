@@ -39,14 +39,18 @@ void ModelLoaderComponent::render() {
             if (ImGui::Button("Load")) {
                 modelLoaded(LoadModel(m_pathBuffer.data()));
                 ImGui::CloseCurrentPopup();
+
+                m_pathBuffer = {};
             }
 
             ImGui::EndDisabled();
         }
 
         ImGui::SameLine();
-        if (ImGui::Button("Cancel"))
+        if (ImGui::Button("Cancel")) {
             ImGui::CloseCurrentPopup();
+            m_pathBuffer = {};
+        }
 
         ImGui::EndPopup();
     }

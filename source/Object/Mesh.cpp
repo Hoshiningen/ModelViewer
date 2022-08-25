@@ -150,7 +150,7 @@ DEFINE_GETTER_IMMUTABLE_COPY(Mesh, model, std::forward_list<VertexBuffered>*, &m
 
 void Mesh::model(const std::forward_list<VertexBuffered>& model) {
     m_pPrivate->m_model = model;
-    m_pPrivate->m_metadata = readMetadata(model);
+    m_pPrivate->m_metadata = readMetadata(m_pPrivate->m_model);
     m_pPrivate->m_initialized = false;
 }
 
@@ -165,11 +165,22 @@ glm::mat4 Mesh::transform() const {
 }
 
 DEFINE_SETTER_COPY(Mesh, scale, m_pPrivate->m_scale)
+DEFINE_GETTER_IMMUTABLE_COPY(Mesh, scale, float, m_pPrivate->m_scale)
+
 DEFINE_SETTER_COPY(Mesh, pitch, m_pPrivate->m_pitch)
+DEFINE_GETTER_IMMUTABLE_COPY(Mesh, pitch, float, m_pPrivate->m_pitch)
+
 DEFINE_SETTER_COPY(Mesh, yaw, m_pPrivate->m_yaw)
+DEFINE_GETTER_IMMUTABLE_COPY(Mesh, yaw, float, m_pPrivate->m_yaw)
+
 DEFINE_SETTER_COPY(Mesh, roll, m_pPrivate->m_roll)
+DEFINE_GETTER_IMMUTABLE_COPY(Mesh, roll, float, m_pPrivate->m_roll)
+
 DEFINE_SETTER_CONSTREF(Mesh, translate, m_pPrivate->m_translate)
+DEFINE_GETTER_IMMUTABLE_COPY(Mesh, translate, glm::vec3, m_pPrivate->m_translate)
+
 DEFINE_SETTER_CONSTREF(Mesh, position, m_pPrivate->m_position)
+DEFINE_GETTER_IMMUTABLE_COPY(Mesh, position, glm::vec3, m_pPrivate->m_position)
 
 DEFINE_GETTER_IMMUTABLE_COPY(Mesh, faceCount, std::uint32_t, m_pPrivate->m_metadata.faceCount)
 DEFINE_GETTER_IMMUTABLE_COPY(Mesh, vertexCount, std::uint32_t, m_pPrivate->m_metadata.vertexCount)

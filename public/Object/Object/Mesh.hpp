@@ -33,11 +33,22 @@ public:
     DECLARE_GETTER_IMMUTABLE_COPY(transform, glm::mat4)
 
     DECLARE_SETTER_COPY(scale, float)
+    DECLARE_GETTER_IMMUTABLE_COPY(scale, float)
+
     DECLARE_SETTER_COPY(pitch, float)
+    DECLARE_GETTER_IMMUTABLE_COPY(pitch, float)
+
     DECLARE_SETTER_COPY(yaw, float)
+    DECLARE_GETTER_IMMUTABLE_COPY(yaw, float)
+
     DECLARE_SETTER_COPY(roll, float)
+    DECLARE_GETTER_IMMUTABLE_COPY(roll, float)
+
     DECLARE_SETTER_CONSTREF(translate, glm::vec3)
+    DECLARE_GETTER_IMMUTABLE_COPY(translate, glm::vec3)
+
     DECLARE_SETTER_CONSTREF(position, glm::vec3)
+    DECLARE_GETTER_IMMUTABLE_COPY(position, glm::vec3)
 
     DECLARE_GETTER_IMMUTABLE_COPY(faceCount, std::uint32_t)
     DECLARE_GETTER_IMMUTABLE_COPY(vertexCount, std::uint32_t)

@@ -4,8 +4,7 @@
 
 #include <imgui.h>
 
-DEFINE_SETTER_COPY(PropertiesComponent, itemProperties, m_pItemProperties)
-DEFINE_SETTER_CONSTREF(PropertiesComponent, itemName, m_itemName)
+DEFINE_SETTER_COPY(PropertiesComponent, propertiesComponent, m_pPropertiesComponent)
 
 const char* PropertiesComponent::windowId() const {
     return "Properties";
@@ -17,14 +16,10 @@ void PropertiesComponent::render() {
 
     if (ImGui::BeginTabBar("Properties##Tabs")) {
 
-        std::string tabTitle = "Properties";
-        if (m_pItemProperties)
-            tabTitle += std::format(" - {}", m_itemName);
-
-        if (ImGui::BeginTabItem(tabTitle.c_str())) {
+        if (ImGui::BeginTabItem("Properties")) {
             
-            if (m_pItemProperties)
-                m_pItemProperties->render();
+            if (m_pPropertiesComponent)
+                m_pPropertiesComponent->render();
             
             ImGui::EndTabItem();
         }

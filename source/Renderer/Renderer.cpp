@@ -187,7 +187,7 @@ struct Renderer::Private {
     std::unique_ptr<ShaderProgram> loadShaders(const std::filesystem::path& vertexShader, const std::filesystem::path& fragmentShader);
     void draw(const VertexBuffered& geometry, const IMaterial& material, const glm::mat4& transform) const;
 
-    std::vector<DirectionalLight*> m_lights;
+    std::array<DirectionalLight*, 3> m_lights;
 
     glm::vec3* m_pAmbientColor = nullptr;
     float* m_pAmbientIntensity = nullptr;
@@ -258,10 +258,11 @@ void Renderer::Private::draw(const VertexBuffered& geometry, const IMaterial& ma
     material.apply(pShader);
 
     for (std::size_t lightIndex = 0; lightIndex < m_lights.size(); ++lightIndex) {
+        const DirectionalLight* pLight = m_lights.at(lightIndex);
+        if (!pLight)
+            continue;
 
-        const DirectionalLight* pLight = m_lights.at(lightIndex);        
-        pShader->set(std::format("enabledLights[{}]", lightIndex), pLight != nullptr);
-
+        pShader->set(std::format("enabledLights[{}]", lightIndex), pLight->enabled());
         if (pLight->enabled())
             pLight->apply(pShader, lightIndex);
     }
@@ -438,6 +439,9 @@ GLbitfield Renderer::framebufferBitplane() const {
 }
 
 DEFINE_SETTER_CONSTREF(Renderer, directionalLights, m_pPrivate->m_lights)
+
+DEFINE_SETTER_COPY(Renderer, ambientColor, m_pPrivate->m_pAmbientColor)
+DEFINE_SETTER_COPY(Renderer, ambientIntensity, m_pPrivate->m_pAmbientIntensity)
 
 void Renderer::setup() {
 

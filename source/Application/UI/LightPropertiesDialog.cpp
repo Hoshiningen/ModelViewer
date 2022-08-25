@@ -76,7 +76,7 @@ void LightPropertiesDialog::restore(const nlohmann::json& settings) {
             if (obj.contains(light.id()))
                 light.restore(obj[light.id().data()]);
 
-            light.direction(RotateVector(kWorldForward, pitch, yaw, false));
+            //light.direction(RotateVector(kWorldForward, pitch, yaw, false));
             m_sceneLights.at(lightIndex) = enabled ? &light : nullptr;
         }
     }
@@ -129,18 +129,18 @@ void LightPropertiesDialog::defineUI() {
                 float& yaw = m_yaws.at(lightIndex);
                 DirectionalLight& light = m_lights.at(lightIndex);
 
-                ImGui::ColorEdit3("Color", glm::value_ptr(light.color()));
-                ImGui::SliderFloat("Intensity", &light.intensity(), 0.f, 1.f);
-
-                if (ImGui::SliderAngle("Pitch", &pitch, -90.f, 90.f))
-                    light.direction(RotateVector(kWorldForward, pitch, yaw, false));
-
-                if (ImGui::SliderAngle("Yaw", &yaw, 0.f))
-                    light.direction(RotateVector(kWorldForward, pitch, yaw, false));
-
-                ImGui::BeginDisabled();
-                ImGui::InputFloat3("Direction", glm::value_ptr(light.direction()));
-                ImGui::EndDisabled();
+                //ImGui::ColorEdit3("Color", glm::value_ptr(light.color()));
+                //ImGui::SliderFloat("Intensity", &light.intensity(), 0.f, 1.f);
+                //
+                //if (ImGui::SliderAngle("Pitch", &pitch, -90.f, 90.f))
+                //    light.direction(RotateVector(kWorldForward, pitch, yaw, false));
+                //
+                //if (ImGui::SliderAngle("Yaw", &yaw, 0.f))
+                //    light.direction(RotateVector(kWorldForward, pitch, yaw, false));
+                //
+                //ImGui::BeginDisabled();
+                //ImGui::InputFloat3("Direction", glm::value_ptr(light.direction()));
+                //ImGui::EndDisabled();
                 
                 ImGui::EndTabItem();
             }
@@ -164,6 +164,6 @@ void LightPropertiesDialog::initialize() {
         const float yaw = m_yaws.at(lightIndex);
 
         m_sceneLights.at(lightIndex) = enabled ? &light : nullptr;
-        light.direction(RotateVector(kWorldForward, pitch, yaw, false));
+        //light.direction(RotateVector(kWorldForward, pitch, yaw, false));
     }
 }
