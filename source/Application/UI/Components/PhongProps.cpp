@@ -2,6 +2,8 @@
 
 #include "Material/PhongMaterial.hpp"
 
+#include "UI/Components/MainFrame.hpp"
+
 #include <glm/gtc/type_ptr.hpp>
 #include <imgui.h>
 
@@ -29,10 +31,24 @@ void PhongProps::render() {
         shininessChanged(m_model.m_shininess);
 }
 
-void PhongProps::syncFrom(const std::any& dataModel) {
+void PhongProps::syncFrom(const IComponent::DataModel* pFrom) {
 
-    if (dataModel.type() != typeid(Model))
+    if (!pFrom)
         return;
 
-    m_model = std::any_cast<Model>(dataModel);
+    auto pModel = dynamic_cast<const MainFrameComponent::DataModel*>(pFrom);
+    if (!pModel || !pModel->m_pPhongMat)
+        return;
+
+    m_model.m_ambientColor = pModel->m_pPhongMat->ambientColor();
+    m_model.m_diffuseColor = pModel->m_pPhongMat->diffuseColor();
+    m_model.m_specularColor = pModel->m_pPhongMat->specularColor();
+    m_model.m_ambientIntensity = pModel->m_pPhongMat->ambientIntensity();
+    m_model.m_diffuseIntensity = pModel->m_pPhongMat->diffuseIntensity();
+    m_model.m_specularIntensity = pModel->m_pPhongMat->specularIntensity();
+    m_model.m_shininess = pModel->m_pPhongMat->shininess();
+}
+
+const IComponent::DataModel* PhongProps::dataModel() const {
+    return &m_model;
 }

@@ -1,14 +1,16 @@
 #pragma once
 
-#include <any>
-
 class IComponent {
 public:
+    struct DataModel {
+        virtual ~DataModel() = default;
+    };
+
     virtual ~IComponent() = default;
 
     virtual const char* windowId() const { return ""; }
     virtual void render() = 0;
 
-    virtual void syncFrom(const std::any& dataModel) {}
-    virtual void syncTo(const std::any& dataModel) {}
+    virtual void syncFrom(const DataModel* pFrom) {}
+    virtual const DataModel* dataModel() const { return nullptr; }
 };

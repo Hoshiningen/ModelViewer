@@ -24,6 +24,8 @@ public:
     virtual nlohmann::json save() const override;
     virtual void restore(const nlohmann::json& settings) override;
 
+    void destroy() const;
+
     DECLARE_GETTER_IMMUTABLE_COPY(material, IMaterial*)
     DECLARE_SETTER_COPY(material, IMaterial*);
 

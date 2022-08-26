@@ -1,4 +1,5 @@
 #include "UI/Components/SceneProps.hpp"
+#include "UI/Components/MainFrame.hpp"
 
 #include <imgui.h>
 #include <glm/gtc/type_ptr.hpp>
@@ -15,10 +16,20 @@ void SceneProps::render() {
         ambientIntensityChanged(m_model.m_ambientIntensity);
 }
 
-void SceneProps::syncFrom(const std::any& dataModel) {
+void SceneProps::syncFrom(const IComponent::DataModel* pFrom) {
 
-    if (dataModel.type() != typeid(Model))
+    if (!pFrom)
         return;
 
-    m_model = std::any_cast<Model>(dataModel);
+    auto pModel = dynamic_cast<const MainFrameComponent::DataModel*>(pFrom);
+    if (!pModel || !pModel->m_pAmbientColor || !pModel->m_pClearColor || !pModel->m_pAmbientIntensity)
+        return;
+
+    m_model.m_ambientColor = *pModel->m_pAmbientColor;
+    m_model.m_clearColor = *pModel->m_pClearColor;
+    m_model.m_ambientIntensity = *pModel->m_pAmbientIntensity;
+}
+
+const IComponent::DataModel* SceneProps::dataModel() const {
+    return &m_model;
 }

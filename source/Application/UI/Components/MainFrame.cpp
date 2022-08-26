@@ -12,6 +12,10 @@ MainFrameComponent::MainFrameComponent() {
     m_sceneTree.nodeSelected.connect(&MainFrameComponent::OnSceneNodeSelected, this);
     m_sceneTree.materialSelected.connect(&MainFrameComponent::OnMaterialSelected, this);
     m_sceneTree.lightStatusChanged.connect(&MainFrameComponent::OnLightStatusChanged, this);
+    m_sceneTree.modelRemoved.connect([this] {
+        m_model.m_pMesh->destroy();
+        static_cast<IComponent&>(m_sceneTree).syncFrom(dataModel());
+    });
 
     m_sceneProps.ambientColorChanged.connect([this](const glm::vec3& color) { if (m_model.m_pAmbientColor) *m_model.m_pAmbientColor = color; });
     m_sceneProps.clearColorChanged.connect([this](const glm::vec4& color) { if (m_model.m_pClearColor) *m_model.m_pClearColor = color; });
@@ -45,14 +49,12 @@ MainFrameComponent::MainFrameComponent() {
     m_phongTexturedProps.shininessChanged.connect([this](float shininess) { m_model.m_pPhongTexturedMat->shininess(shininess); });
 
     for (std::uint8_t lightIndex = 0; lightIndex < m_model.m_lights.size(); ++lightIndex) {
-
-        DirectionalLight* pLight = m_model.m_lights.at(lightIndex);
         DirectionalLightProps& props = m_lightProps.at(lightIndex);
 
-        props.colorChanged.connect([pLight](const glm::vec3& color) { pLight->color(color); });
-        props.pitchChanged.connect([pLight](float pitch) { pLight->pitch(pitch); });
-        props.yawChanged.connect([pLight](float yaw) { pLight->yaw(yaw); });
-        props.intensityChanged.connect([pLight](float intensity) { pLight->intensity(intensity); });
+        props.colorChanged.connect([this, lightIndex](const glm::vec3& color) { m_model.m_lights.at(lightIndex)->color(color); });
+        props.pitchChanged.connect([this, lightIndex](float pitch) { m_model.m_lights.at(lightIndex)->pitch(pitch); });
+        props.yawChanged.connect([this, lightIndex](float yaw) { m_model.m_lights.at(lightIndex)->yaw(yaw); });
+        props.intensityChanged.connect([this, lightIndex](float intensity) { m_model.m_lights.at(lightIndex)->intensity(intensity); });
     }
 }
 
@@ -118,32 +120,16 @@ void MainFrameComponent::render() {
     ImGui::End();
 }
 
-void MainFrameComponent::syncFrom(const std::any& dataModel) {
+void MainFrameComponent::syncFrom(const IComponent::DataModel* pFrom) {
 
-    if (dataModel.type() != typeid(Model))
+    if (!pFrom)
         return;
 
-    m_model = std::any_cast<Model>(dataModel);
+    auto pModel = dynamic_cast<const DataModel*>(pFrom);
+    if (!pModel)
+        return;
 
-    m_modelProps.syncFrom(ModelProps::Model{
-        .m_scale = m_model.m_pMesh->scale(),
-        .m_pitch = m_model.m_pMesh->pitch(),
-        .m_yaw = m_model.m_pMesh->yaw(),
-        .m_roll = m_model.m_pMesh->roll(),
-        .m_offsets = m_model.m_pMesh->translate(),
-        .m_origin = m_model.m_pMesh->position(),
-        .m_metadata = {
-            .faceCount = m_model.m_pMesh->faceCount(),
-            .vertexCount = m_model.m_pMesh->vertexCount(),
-            .attributes = {
-                m_model.m_pMesh->hasColors(),
-                m_model.m_pMesh->hasIndices(),
-                m_model.m_pMesh->hasNormals(),
-                m_model.m_pMesh->hasPositions(),
-                m_model.m_pMesh->hasTexels()
-            }
-        }
-    });
+    m_model = *pModel;
 
     for (std::uint8_t lightIndex = 0; lightIndex != m_model.m_lights.size(); ++lightIndex) {
 
@@ -151,43 +137,29 @@ void MainFrameComponent::syncFrom(const std::any& dataModel) {
         if (!pLight)
             continue;
 
-        m_lightProps.at(lightIndex).syncFrom(DirectionalLightProps::Model{
-            .m_enabled = pLight->enabled(),
-            .m_color = pLight->color(),
-            .m_direction = pLight->direction(),
-            .m_pitch = pLight->pitch(),
-            .m_yaw = pLight->yaw(),
-            .m_intensity = pLight->intensity()
-        });
+        DirectionalLightProps::DataModel model;
+        model.m_enabled = pLight->enabled();
+        model.m_color = pLight->color();
+        model.m_direction = pLight->direction();
+        model.m_pitch = pLight->pitch();
+        model.m_yaw = pLight->yaw();
+        model.m_intensity = pLight->intensity();
+
+        m_lightProps.at(lightIndex).syncFrom(&model);
     }
 
-    m_sceneProps.syncFrom(SceneProps::Model{
-        .m_ambientColor = *m_model.m_pAmbientColor,
-        .m_clearColor = *m_model.m_pClearColor,
-        .m_ambientIntensity = *m_model.m_pAmbientIntensity
-    });
+    m_modelProps.syncFrom(dataModel());
+    m_sceneProps.syncFrom(dataModel());
 
-    m_lambertianProps.syncFrom(LambertianProps::Model{
-        .m_diffuseColor = m_model.m_pLambertianMat->diffuseColor(),
-        .m_diffuseIntensity = m_model.m_pLambertianMat->diffuseIntensity()
-    });
+    m_lambertianProps.syncFrom(dataModel());
+    m_phongProps.syncFrom(dataModel());
+    m_phongTexturedProps.syncFrom(dataModel());
 
-    m_phongProps.syncFrom(PhongProps::Model{
-        .m_ambientColor = m_model.m_pPhongMat->ambientColor(),
-        .m_diffuseColor = m_model.m_pPhongMat->diffuseColor(),
-        .m_specularColor = m_model.m_pPhongMat->specularColor(),
-        .m_ambientIntensity = m_model.m_pPhongMat->ambientIntensity(),
-        .m_diffuseIntensity = m_model.m_pPhongMat->diffuseIntensity(),
-        .m_specularIntensity = m_model.m_pPhongMat->specularIntensity(),
-        .m_shininess = m_model.m_pPhongMat->shininess()
-    });
+    static_cast<IComponent&>(m_sceneTree).syncFrom(dataModel());
+}
 
-    m_phongTexturedProps.syncFrom(PhongTexturedProps::Model{
-        .m_diffuseIntensity = m_model.m_pPhongTexturedMat->diffuseIntensity(),
-        .m_emissiveIntensity = m_model.m_pPhongTexturedMat->emissiveIntensity(),
-        .m_specularIntensity = m_model.m_pPhongTexturedMat->specularIntensity(),
-        .m_shininess = m_model.m_pPhongTexturedMat->shininess()
-    });
+const IComponent::DataModel* MainFrameComponent::dataModel() const {
+    return &m_model;
 }
 
 DEFINE_GETTER_MUTABLE(MainFrameComponent, viewport, ViewportComponent, m_viewport)
@@ -260,9 +232,13 @@ void MainFrameComponent::OnMaterialSelected(int materialIndex, SceneTreeComponen
 
 void MainFrameComponent::OnModelLoaded(const std::forward_list<VertexBuffered>& model) {
 
+    m_model.m_pMesh->destroy();
     m_model.m_pMesh->model(model);
     m_model.m_pMesh->position(-ComputeCenter(m_model.m_pMesh->model()));
     m_model.m_pMesh->scale(ComputeScale(m_model.m_pMesh->model(), kMaxModelSize));
+
+    m_modelProps.syncFrom(dataModel());
+    static_cast<IComponent&>(m_sceneTree).syncFrom(dataModel());
 }
 
 void MainFrameComponent::OnLightStatusChanged(std::uint8_t lightIndex, bool enabled) {
@@ -270,12 +246,13 @@ void MainFrameComponent::OnLightStatusChanged(std::uint8_t lightIndex, bool enab
     DirectionalLight* pLight = m_model.m_lights.at(lightIndex);
     pLight->enabled(enabled);
 
-    m_lightProps.at(lightIndex).syncFrom(DirectionalLightProps::Model{
-        .m_enabled = pLight->enabled(),
-        .m_color = pLight->color(),
-        .m_direction = pLight->direction(),
-        .m_pitch = pLight->pitch(),
-        .m_yaw = pLight->yaw(),
-        .m_intensity = pLight->intensity(),
-    });
+    DirectionalLightProps::DataModel model;
+    model.m_enabled = pLight->enabled();
+    model.m_color = pLight->color();
+    model.m_direction = pLight->direction();
+    model.m_pitch = pLight->pitch();
+    model.m_yaw = pLight->yaw();
+    model.m_intensity = pLight->intensity();
+
+    m_lightProps.at(lightIndex).syncFrom(&model);
 }

@@ -36,10 +36,18 @@ void DirectionalLightProps::render() {
     }
 }
 
-void DirectionalLightProps::syncFrom(const std::any& dataModel) {
+void DirectionalLightProps::syncFrom(const IComponent::DataModel* pFrom) {
 
-    if (dataModel.type() != typeid(Model))
+    if (!pFrom)
         return;
 
-    m_model = std::any_cast<Model>(dataModel);
+    auto pModel = dynamic_cast<const DataModel*>(pFrom);
+    if (!pModel)
+        return;
+
+    m_model = *pModel;
+}
+
+const IComponent::DataModel* DirectionalLightProps::dataModel() const {
+    return &m_model;
 }

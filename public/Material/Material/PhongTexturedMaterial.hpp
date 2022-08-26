@@ -20,6 +20,8 @@ public:
     virtual nlohmann::json save() const override;
     virtual void restore(const nlohmann::json& settings) override;
 
+    virtual void destroy() override;
+
     DECLARE_GETTER_CONST_CORRECT(diffuseMap, std::optional<Texture>)
     DECLARE_SETTER_CONSTREF(diffuseMap, Texture)
 

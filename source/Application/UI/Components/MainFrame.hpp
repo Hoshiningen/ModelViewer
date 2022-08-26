@@ -33,7 +33,16 @@ class DirectionalLight;
 
 class MainFrameComponent : public IComponent {
 public:
-    struct Model {
+    MainFrameComponent();
+
+    virtual void render() override;
+    virtual void syncFrom(const IComponent::DataModel* pFrom) override;
+    virtual const IComponent::DataModel* dataModel() const override;
+
+    DECLARE_GETTER_MUTABLE(viewport, ViewportComponent)
+    //DECLARE_GETTER_MUTABLE(titleBar, TitleBarComponent)
+
+    struct DataModel : public IComponent::DataModel {
         glm::vec3* m_pAmbientColor = nullptr;
         glm::vec4* m_pClearColor = nullptr;
         float* m_pAmbientIntensity = nullptr;
@@ -47,21 +56,13 @@ public:
         std::array<DirectionalLight*, 3> m_lights;
     };
 
-    MainFrameComponent();
-
-    virtual void render() override;
-    virtual void syncFrom(const std::any& dataModel) override;
-
-    DECLARE_GETTER_MUTABLE(viewport, ViewportComponent)
-    //DECLARE_GETTER_MUTABLE(titleBar, TitleBarComponent)
-
 private:
     void OnSceneNodeSelected(SceneTreeComponent::SceneNode node);
     void OnMaterialSelected(int materialIndex, SceneTreeComponent::SceneNode selectedNode);
     void OnModelLoaded(const std::forward_list<VertexBuffered>& model);
     void OnLightStatusChanged(std::uint8_t lightIndex, bool enabled);
 
-    Model m_model;
+    DataModel m_model;
 
     // Properties components
 

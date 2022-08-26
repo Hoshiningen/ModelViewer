@@ -13,7 +13,20 @@ class Texture;
 
 class PhongTexturedProps : public IComponent {
 public:
-    struct Model {
+    virtual void render() override;
+    
+    virtual void syncFrom(const IComponent::DataModel* pFrom) override;
+    virtual const IComponent::DataModel* dataModel() const override;
+
+    sigslot::signal<const Texture&> diffuseMapLoaded;
+    sigslot::signal<const Texture&> emissiveMapLoaded;
+    sigslot::signal<const Texture&> specularMapLoaded;
+    sigslot::signal<float> diffuseIntensityChanged;
+    sigslot::signal<float> emissiveIntensityChanged;
+    sigslot::signal<float> specularIntensityChanged;
+    sigslot::signal<float> shininessChanged;
+    
+    struct DataModel : public IComponent::DataModel {
         std::array<char, 256> m_diffuseMapPathBuffer;
         std::array<char, 256> m_emissiveMapPathBuffer;
         std::array<char, 256> m_specularMapPathBuffer;
@@ -25,17 +38,6 @@ public:
         float m_shininess;
     };
 
-    virtual void render() override;
-    virtual void syncFrom(const std::any& dataModel) override;
-
-    sigslot::signal<const Texture&> diffuseMapLoaded;
-    sigslot::signal<const Texture&> emissiveMapLoaded;
-    sigslot::signal<const Texture&> specularMapLoaded;
-    sigslot::signal<float> diffuseIntensityChanged;
-    sigslot::signal<float> emissiveIntensityChanged;
-    sigslot::signal<float> specularIntensityChanged;
-    sigslot::signal<float> shininessChanged;
-
 private:
-    Model m_model;
+    DataModel m_model;
 };

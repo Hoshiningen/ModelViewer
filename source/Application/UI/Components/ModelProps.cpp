@@ -6,6 +6,8 @@
 
 #include "Object/Mesh.hpp"
 
+#include "UI/Components/MainFrame.hpp"
+
 #include <imgui.h>
 #include <glm/gtc/type_ptr.hpp>
 
@@ -69,10 +71,31 @@ void ModelProps::render() {
     ImGui::Spacing();
 }
 
-void ModelProps::syncFrom(const std::any& dataModel) {
+void ModelProps::syncFrom(const IComponent::DataModel* pFrom) {
 
-    if (dataModel.type() != typeid(Model))
+    if (!pFrom)
         return;
 
-    m_model = std::any_cast<Model>(dataModel);
+    auto pModel = dynamic_cast<const MainFrameComponent::DataModel*>(pFrom);
+    if (!pModel)
+        return;
+
+    m_model.m_scale = pModel->m_pMesh->scale();
+    m_model.m_pitch = pModel->m_pMesh->pitch();
+    m_model.m_yaw = pModel->m_pMesh->yaw();
+    m_model.m_roll = pModel->m_pMesh->roll();
+    m_model.m_offsets = pModel->m_pMesh->translate();
+    m_model.m_origin = pModel->m_pMesh->position();
+    m_model.m_metadata.faceCount = pModel->m_pMesh->faceCount();
+    m_model.m_metadata.vertexCount = pModel->m_pMesh->vertexCount();
+
+    m_model.m_metadata.attributes.at(ModelMetadata::Color) = pModel->m_pMesh->hasColors();
+    m_model.m_metadata.attributes.at(ModelMetadata::Index) = pModel->m_pMesh->hasIndices();
+    m_model.m_metadata.attributes.at(ModelMetadata::Normal) = pModel->m_pMesh->hasNormals();
+    m_model.m_metadata.attributes.at(ModelMetadata::Position) = pModel->m_pMesh->hasPositions();
+    m_model.m_metadata.attributes.at(ModelMetadata::Texel) = pModel->m_pMesh->hasTexels();
+}
+
+const IComponent::DataModel* ModelProps::dataModel() const {
+    return &m_model;
 }

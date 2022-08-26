@@ -1,4 +1,8 @@
 #include "UI/Components/SceneTree.hpp"
+
+#include "Light/DirectionalLight.hpp"
+
+#include "UI/Components/MainFrame.hpp"
 #include "UI/Components/ModelLoader.hpp"
 #include "UI/Icons.hpp"
 #include "UI/Utility.hpp"
@@ -33,67 +37,77 @@ void SceneTreeComponent::render() {
                 if (ImGui::MenuItem("Load Model..."))
                     openModelLoader = true;
 
+                ImGui::BeginDisabled(!m_model.m_modelLoaded); {
+                    if (ImGui::MenuItem("Remove Model"))
+                        modelRemoved();
+
+                    ImGui::EndDisabled();
+                }
+
                 ImGui::EndPopup();
             }
 
-            nodeFlags = NodeFlags(selected(SceneNode::Model));
-            if (ImGui::TreeNodeEx(Utility::Label("Model", CUBE_ICON).c_str(), nodeFlags)) {
-                if (ImGui::IsItemClicked())
-                    select(SceneNode::Model);
+            if (m_model.m_modelLoaded) {
 
-                if (ImGui::BeginPopupContextItem()) {
-                    if (ImGui::BeginMenu("Material")) {
+                nodeFlags = NodeFlags(selected(SceneNode::Model));
+                if (ImGui::TreeNodeEx(Utility::Label("Model", CUBE_ICON).c_str(), nodeFlags)) {
+                    if (ImGui::IsItemClicked())
+                        select(SceneNode::Model);
 
-                        if (ImGui::RadioButton("Lambertian", &m_selectedMaterial, 0))
-                            materialSelected(m_selectedMaterial, selectedNode());
+                    if (ImGui::BeginPopupContextItem()) {
+                        if (ImGui::BeginMenu("Active Material")) {
 
-                        if (ImGui::RadioButton("Phong", &m_selectedMaterial, 1))
-                            materialSelected(m_selectedMaterial, selectedNode());
+                            if (ImGui::RadioButton("Lambertian", &m_model.m_selectedMaterial, 0))
+                                materialSelected(m_model.m_selectedMaterial, selectedNode());
 
-                        if (ImGui::RadioButton("Phong Textured", &m_selectedMaterial, 2))
-                            materialSelected(m_selectedMaterial, selectedNode());
+                            if (ImGui::RadioButton("Phong", &m_model.m_selectedMaterial, 1))
+                                materialSelected(m_model.m_selectedMaterial, selectedNode());
 
-                        ImGui::EndMenu();
+                            if (ImGui::RadioButton("Phong Textured", &m_model.m_selectedMaterial, 2))
+                                materialSelected(m_model.m_selectedMaterial, selectedNode());
+
+                            ImGui::EndMenu();
+                        }
+
+                        ImGui::EndPopup();
                     }
 
-                    ImGui::EndPopup();
+                    const char* materialName = [this] {
+                        switch (m_model.m_selectedMaterial) {
+                        case 0: return "Lambertian Material";
+                        case 1: return "Phong Material";
+                        case 2: return "Phong Textured Material";
+                        default: return "Material";
+                        }
+                    }();
+
+                    nodeFlags = NodeFlags(selected(SceneNode::Material));
+                    ImGui::TreeNodeEx(Utility::Label(materialName, PALETTE_ICON).c_str(), nodeFlags | ImGuiTreeNodeFlags_NoTreePushOnOpen);
+                    if (ImGui::IsItemClicked())
+                        select(SceneNode::Material);
+
+                    ImGui::TreePop();
                 }
-
-                const char* materialName = [this] {
-                    switch (m_selectedMaterial) {
-                    case 0: return "Lambertian Material";
-                    case 1: return "Phong Material";
-                    case 2: return "Phong Textured Material";
-                    default: return "Material";
-                    }
-                }();
-
-                nodeFlags = NodeFlags(selected(SceneNode::Material));
-                ImGui::TreeNodeEx(Utility::Label(materialName, PALETTE_ICON).c_str(), nodeFlags | ImGuiTreeNodeFlags_NoTreePushOnOpen);
-                if (ImGui::IsItemClicked())
-                    select(SceneNode::Material);
-
-                ImGui::TreePop();
             }
 
             if (ImGui::TreeNodeEx(Utility::Label("Lighting", SUN_ICON).c_str(), NodeFlags(false))) {
 
                 if (ImGui::BeginPopupContextItem()) {
                 
-                    if (ImGui::Checkbox("Directional Light 1", &m_enabledLights.at(0)))
-                        lightStatusChanged(0, m_enabledLights.at(0));
+                    if (ImGui::Checkbox("Directional Light 1", &m_model.m_enabledLights.at(0)))
+                        lightStatusChanged(0, m_model.m_enabledLights.at(0));
                 
-                    if (ImGui::Checkbox("Directional Light 2", &m_enabledLights.at(1)))
-                        lightStatusChanged(1, m_enabledLights.at(1));
+                    if (ImGui::Checkbox("Directional Light 2", &m_model.m_enabledLights.at(1)))
+                        lightStatusChanged(1, m_model.m_enabledLights.at(1));
                 
-                    if (ImGui::Checkbox("Directional Light 3", &m_enabledLights.at(2)))
-                        lightStatusChanged(2, m_enabledLights.at(2));
+                    if (ImGui::Checkbox("Directional Light 3", &m_model.m_enabledLights.at(2)))
+                        lightStatusChanged(2, m_model.m_enabledLights.at(2));
                 
                     ImGui::EndPopup();
                 }
 
                 const auto RenderLightNode = [this](std::uint8_t lightIndex, SceneNode nodeType) {
-                    ImGui::BeginDisabled(!m_enabledLights.at(lightIndex)); {
+                    ImGui::BeginDisabled(!m_model.m_enabledLights.at(lightIndex)); {
 
                         const ImGuiTreeNodeFlags nodeFlags = NodeFlags(selected(nodeType));
                         ImGui::TreeNodeEx(Utility::Label("Directional Light " + std::to_string(lightIndex + 1), LIGHTBULB_ICON).c_str(), nodeFlags | ImGuiTreeNodeFlags_NoTreePushOnOpen);
@@ -130,12 +144,45 @@ void SceneTreeComponent::render() {
     }
 }
 
+void SceneTreeComponent::syncFrom(const IComponent::DataModel* pFrom) {
+
+    if (!pFrom)
+        return;
+
+    auto pModel = dynamic_cast<const MainFrameComponent::DataModel*>(pFrom);
+    if (!pModel)
+        return;
+
+    for (std::size_t i = 0; i < m_model.m_enabledLights.size(); ++i)
+        m_model.m_enabledLights.at(i) = pModel->m_lights.at(i)->enabled();
+
+    m_model.m_modelLoaded = !pModel->m_pMesh->model()->empty();
+    m_model.m_selectedMaterial = [pModel]() {
+        if (dynamic_cast<LambertianMaterial*>(pModel->m_pMesh->material()))
+            return 0;
+    
+        if (dynamic_cast<PhongMaterial*>(pModel->m_pMesh->material()))
+            return 1;
+    
+        if (dynamic_cast<PhongTexturedMaterial*>(pModel->m_pMesh->material()))
+            return 2;
+    
+        return 1;
+    }();
+}
+
+const IComponent::DataModel* SceneTreeComponent::dataModel() const {
+    return &m_model;
+}
+
 SceneTreeComponent::SceneNode SceneTreeComponent::selectedNode() const {
 
     for (std::size_t index = 0; index < m_selectionMask.size(); ++index) {
         if (m_selectionMask.test(index))
             return static_cast<SceneNode>(index);
     }
+
+    return SceneNode::Scene;
 }
 
 bool SceneTreeComponent::selected(SceneNode sceneNode) const {

@@ -22,7 +22,7 @@ public:
         std::array<bool, 5> attributes;
     };
 
-    struct Model {
+    struct DataModel : public IComponent::DataModel{
         float m_scale;
 
         float m_pitch;
@@ -36,7 +36,9 @@ public:
     };
 
     virtual void render() override;
-    virtual void syncFrom(const std::any& dataModel) override;
+
+    virtual void syncFrom(const IComponent::DataModel* pFrom) override;
+    virtual const IComponent::DataModel* dataModel() const override;
 
     sigslot::signal<const glm::vec3&> positionOffsetsChanged;
     sigslot::signal<float> scaleChanged;
@@ -45,5 +47,5 @@ public:
     sigslot::signal<float> rollChanged;
 
 private:
-    Model m_model;
+    DataModel m_model;
 };

@@ -4,6 +4,8 @@
 
 #include "Material/LambertianMaterial.hpp"
 
+#include "UI/Components/MainFrame.hpp"
+
 #include <glm/gtc/type_ptr.hpp>
 #include <imgui.h>
 
@@ -16,10 +18,19 @@ void LambertianProps::render() {
         diffuseIntensityChanged(m_model.m_diffuseIntensity);
 }
 
-void LambertianProps::syncFrom(const std::any& dataModel) {
+void LambertianProps::syncFrom(const IComponent::DataModel* pFrom) {
 
-    if (dataModel.type() != typeid(Model))
+    if (!pFrom)
         return;
 
-    m_model = std::any_cast<Model>(dataModel);
+    auto pModel = dynamic_cast<const MainFrameComponent::DataModel*>(pFrom);
+    if (!pModel || !pModel->m_pLambertianMat)
+        return;
+
+    m_model.m_diffuseColor = pModel->m_pLambertianMat->diffuseColor();
+    m_model.m_diffuseIntensity = pModel->m_pLambertianMat->diffuseIntensity();
+}
+
+const IComponent::DataModel* LambertianProps::dataModel() const {
+    return &m_model;
 }

@@ -117,6 +117,21 @@ void PhongTexturedMaterial::restore(const nlohmann::json& settings) {
     *m_pPrivate = settings;
 }
 
+void PhongTexturedMaterial::destroy() {
+
+    const auto DestroyMap = [](std::optional<Texture>& map) {
+
+        if (map.has_value()) {
+            map->destroy();
+            map = std::nullopt;
+        }
+    };
+
+    DestroyMap(m_pPrivate->diffuseMap);
+    DestroyMap(m_pPrivate->emissiveMap);
+    DestroyMap(m_pPrivate->specularMap);
+}
+
 DEFINE_GETTER_CONST_CORRECT(PhongTexturedMaterial, diffuseMap, std::optional<Texture>, m_pPrivate->diffuseMap)
 DEFINE_SETTER_CONSTREF_EXPLICIT(PhongTexturedMaterial, diffuseMap, Texture, m_pPrivate->diffuseMap)
 

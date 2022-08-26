@@ -38,6 +38,7 @@ Texture TextureLoader::load(const std::filesystem::path& path, Texture::Target t
         texture = Texture{ static_cast<GLuint>(width), static_cast<GLuint>(height), format, format, target };
         texture.initialize();
         
+        Renderer::Configure(texture);
         Renderer::Allocate(texture, pData);
 
         stbi_image_free(pData);

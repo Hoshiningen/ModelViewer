@@ -178,7 +178,7 @@ Application::Private::Private() {
     m_dataModel.m_lights.at(0).pitch(glm::radians(45.f));
     m_dataModel.m_lights.at(0).yaw(0.f);
 
-    m_dataModel.m_lights.at(0).enabled(true);
+    m_dataModel.m_lights.at(1).enabled(true);
     m_dataModel.m_lights.at(1).pitch(glm::radians(45.f));
     m_dataModel.m_lights.at(1).yaw(glm::radians(180.f));
 
@@ -404,6 +404,8 @@ void Application::Private::onInitialized() {
         }
     }
 
+    m_dataModel.m_mesh.material(&m_dataModel.m_phongMat);
+
     const std::array<DirectionalLight*, 3> lights{
         &m_dataModel.m_lights.at(0),
         &m_dataModel.m_lights.at(1),
@@ -414,18 +416,17 @@ void Application::Private::onInitialized() {
     m_renderer.ambientColor(&m_dataModel.m_ambientColor);
     m_renderer.ambientIntensity(&m_dataModel.m_ambientIntensity);
 
-    m_mainFrame.syncFrom(MainFrameComponent::Model{
-        .m_pAmbientColor = &m_dataModel.m_ambientColor,
-        .m_pClearColor = &m_dataModel.m_clearColor,
-        .m_pAmbientIntensity = &m_dataModel.m_ambientIntensity,
-        .m_pMesh = &m_dataModel.m_mesh,
-        .m_pLambertianMat = &m_dataModel.m_lambertianMat,
-        .m_pPhongMat = &m_dataModel.m_phongMat,
-        .m_pPhongTexturedMat = &m_dataModel.m_phongTexturedMat,
-        .m_lights = lights
-    });
+    MainFrameComponent::DataModel model;
+    model.m_pAmbientColor = &m_dataModel.m_ambientColor;
+    model.m_pClearColor = &m_dataModel.m_clearColor;
+    model.m_pAmbientIntensity = &m_dataModel.m_ambientIntensity;
+    model.m_pMesh = &m_dataModel.m_mesh;
+    model.m_pLambertianMat = &m_dataModel.m_lambertianMat;
+    model.m_pPhongMat = &m_dataModel.m_phongMat;
+    model.m_pPhongTexturedMat = &m_dataModel.m_phongTexturedMat;
+    model.m_lights = lights;
 
-    m_dataModel.m_mesh.material(&m_dataModel.m_phongMat);
+    m_mainFrame.syncFrom(&model);
 }
 
 void Application::Private::onSaved() {

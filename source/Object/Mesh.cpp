@@ -139,6 +139,12 @@ void Mesh::restore(const nlohmann::json& settings) {
         settings["origin"].get_to(m_pPrivate->m_position);
 }
 
+void Mesh::destroy() const {
+
+    m_pPrivate->m_model.clear();
+    m_pPrivate->m_pMaterial->destroy();
+}
+
 DEFINE_GETTER_IMMUTABLE_COPY(Mesh, material, IMaterial*, m_pPrivate->m_pMaterial)
 
 void Mesh::material(IMaterial* pMaterial) {
