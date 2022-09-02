@@ -1,5 +1,7 @@
 #pragma once
 
+#include <initializer_list>
+
 class IComponent {
 public:
     struct DataModel {
@@ -13,4 +15,8 @@ public:
 
     virtual void syncFrom(const DataModel* pFrom) {}
     virtual const DataModel* dataModel() const { return nullptr; }
+
+    virtual void watch(const IComponent* pComponent) {}
+
+    virtual void compose(const std::initializer_list<IComponent*>& components) {}
 };

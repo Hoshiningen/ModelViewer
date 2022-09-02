@@ -32,13 +32,13 @@ set(UI
 )
 
 set(COMPONENTS
-    UI/Components/CameraProps.hpp
-    UI/Components/CameraProps.cpp
     UI/Components/DirectionalLightProps.hpp
     UI/Components/DirectionalLightProps.cpp
     UI/Components/IComponent.hpp
     UI/Components/LambertianProps.hpp
     UI/Components/LambertianProps.cpp
+    UI/Components/LightProps.hpp
+    UI/Components/LightProps.cpp
     UI/Components/MainFrame.hpp
     UI/Components/MainFrame.cpp
     UI/Components/ModelLoader.hpp

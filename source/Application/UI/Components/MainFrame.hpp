@@ -1,5 +1,7 @@
 #pragma once
 
+#include "Camera/Camera.hpp"
+
 #include "Common/ClassMacros.hpp"
 #include "Common/Constants.hpp"
 
@@ -11,6 +13,7 @@
 
 #include "UI/Components/DirectionalLightProps.hpp"
 #include "UI/Components/IComponent.hpp"
+#include "UI/Components/LightProps.hpp"
 #include "UI/Components/LambertianProps.hpp"
 #include "UI/Components/ModelLoader.hpp"
 #include "UI/Components/ModelProps.hpp"
@@ -58,7 +61,7 @@ public:
 
 private:
     void OnSceneNodeSelected(SceneTreeComponent::SceneNode node);
-    void OnMaterialSelected(int materialIndex, SceneTreeComponent::SceneNode selectedNode);
+    void OnMaterialSelected(int materialIndex);
     void OnModelLoaded(const std::forward_list<VertexBuffered>& model);
     void OnLightStatusChanged(std::uint8_t lightIndex, bool enabled);
 
@@ -76,6 +79,8 @@ private:
 
     SceneProps m_sceneProps;
     ModelProps m_modelProps;
+
+    LightProps m_lightingProps;
 
     // Window components
 

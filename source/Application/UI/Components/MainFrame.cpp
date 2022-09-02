@@ -10,11 +10,14 @@
 MainFrameComponent::MainFrameComponent() {
 
     m_sceneTree.nodeSelected.connect(&MainFrameComponent::OnSceneNodeSelected, this);
-    m_sceneTree.materialSelected.connect(&MainFrameComponent::OnMaterialSelected, this);
+    m_sceneTree.materialSelected.connect([this](int materialIndex) {
+        OnMaterialSelected(materialIndex);
+        m_modelProps.syncFrom(dataModel());
+    });
     m_sceneTree.lightStatusChanged.connect(&MainFrameComponent::OnLightStatusChanged, this);
     m_sceneTree.modelRemoved.connect([this] {
         m_model.m_pMesh->destroy();
-        static_cast<IComponent&>(m_sceneTree).syncFrom(dataModel());
+        m_sceneTree.syncFrom(dataModel());
     });
 
     m_sceneProps.ambientColorChanged.connect([this](const glm::vec3& color) { if (m_model.m_pAmbientColor) *m_model.m_pAmbientColor = color; });
@@ -26,6 +29,10 @@ MainFrameComponent::MainFrameComponent() {
     m_modelProps.rollChanged.connect([this](float roll) { m_model.m_pMesh->roll(roll); });
     m_modelProps.scaleChanged.connect([this](float scale) { m_model.m_pMesh->scale(scale); });
     m_modelProps.positionOffsetsChanged.connect([this](const glm::vec3& offsets) { m_model.m_pMesh->translate(offsets); });
+    m_modelProps.materialSelected.connect([this](int materialIndex) {
+        OnMaterialSelected(materialIndex);
+        m_sceneTree.syncFrom(dataModel());
+    });
 
     m_modelLoader.modelLoaded.connect(&MainFrameComponent::OnModelLoaded, this);
 
@@ -51,6 +58,7 @@ MainFrameComponent::MainFrameComponent() {
     for (std::uint8_t lightIndex = 0; lightIndex < m_model.m_lights.size(); ++lightIndex) {
         DirectionalLightProps& props = m_lightProps.at(lightIndex);
 
+        props.enabledChanged.connect([this, lightIndex](bool enabled) { m_model.m_lights.at(lightIndex)->enabled(enabled); });
         props.colorChanged.connect([this, lightIndex](const glm::vec3& color) { m_model.m_lights.at(lightIndex)->color(color); });
         props.pitchChanged.connect([this, lightIndex](float pitch) { m_model.m_lights.at(lightIndex)->pitch(pitch); });
         props.yawChanged.connect([this, lightIndex](float yaw) { m_model.m_lights.at(lightIndex)->yaw(yaw); });
@@ -105,7 +113,7 @@ void MainFrameComponent::render() {
         const ImGuiID mainLeftTop = ImGui::DockBuilderSplitNode(mainLeft, ImGuiDir_Up, .22f, nullptr, &mainLeftBottom);
 
         ImGui::DockBuilderDockWindow(static_cast<IComponent&>(m_properties).windowId(), mainLeftBottom);
-        ImGui::DockBuilderDockWindow(static_cast<IComponent&>(m_sceneTree).windowId(), mainLeftTop);
+        ImGui::DockBuilderDockWindow(m_sceneTree.windowId(), mainLeftTop);
         ImGui::DockBuilderDockWindow(static_cast<IComponent&>(m_viewport).windowId(), mainRight);
 
         ImGui::DockBuilderFinish(dockspaceId);
@@ -113,7 +121,7 @@ void MainFrameComponent::render() {
 
     static_cast<IComponent&>(m_titleBar).render();
     static_cast<IComponent&>(m_properties).render();
-    static_cast<IComponent&>(m_sceneTree).render();
+    m_sceneTree.render();
     static_cast<IComponent&>(m_viewport).render();
     static_cast<IComponent&>(m_modelLoader).render();
 
@@ -148,14 +156,26 @@ void MainFrameComponent::syncFrom(const IComponent::DataModel* pFrom) {
         m_lightProps.at(lightIndex).syncFrom(&model);
     }
 
-    m_modelProps.syncFrom(dataModel());
-    m_sceneProps.syncFrom(dataModel());
+    m_lightingProps.compose({
+        &m_lightProps.at(0),
+        &m_lightProps.at(1),
+        &m_lightProps.at(2)
+    });
+    m_lightingProps.syncFrom(dataModel());
 
+    m_modelProps.compose({
+        &m_lambertianProps,
+        &m_phongProps,
+        &m_phongTexturedProps
+    });
+    m_modelProps.syncFrom(dataModel());
+
+    m_sceneProps.syncFrom(dataModel());
     m_lambertianProps.syncFrom(dataModel());
     m_phongProps.syncFrom(dataModel());
     m_phongTexturedProps.syncFrom(dataModel());
 
-    static_cast<IComponent&>(m_sceneTree).syncFrom(dataModel());
+    m_sceneTree.syncFrom(dataModel());
 }
 
 const IComponent::DataModel* MainFrameComponent::dataModel() const {
@@ -170,27 +190,20 @@ void MainFrameComponent::OnSceneNodeSelected(SceneTreeComponent::SceneNode node)
 
     IComponent* pItemProps = nullptr;
     switch (node) {
-        case Camera: break;
+        case Lighting:
+            pItemProps = &m_lightingProps;
             break;
         case Light1:
-            pItemProps = &m_lightProps.at(0);
+            pItemProps = &m_lightingProps;
             break;
         case Light2:
-            pItemProps = &m_lightProps.at(1);
+            pItemProps = &m_lightingProps;
             break;
         case Light3:
-            pItemProps = &m_lightProps.at(2);
+            pItemProps = &m_lightingProps;
             break;
         case Material:
-            if (dynamic_cast<LambertianMaterial*>(m_model.m_pMesh->material()))
-                pItemProps = &m_lambertianProps;
-
-            if (dynamic_cast<PhongMaterial*>(m_model.m_pMesh->material()))
-                pItemProps = &m_phongProps;
-
-            if (dynamic_cast<PhongTexturedMaterial*>(m_model.m_pMesh->material()))
-                pItemProps = &m_phongTexturedProps;
-
+            pItemProps = &m_modelProps;
             break;
         case Model:
             pItemProps = &m_modelProps;
@@ -203,31 +216,23 @@ void MainFrameComponent::OnSceneNodeSelected(SceneTreeComponent::SceneNode node)
     m_properties.propertiesComponent(pItemProps);
 }
 
-void MainFrameComponent::OnMaterialSelected(int materialIndex, SceneTreeComponent::SceneNode selectedNode) {
+void MainFrameComponent::OnMaterialSelected(int materialIndex) {
 
-    using enum SceneTreeComponent::SceneNode;
-
+    IMaterial* pSelected = nullptr;
     switch (materialIndex) {
     case 0:
-        m_model.m_pMesh->material(m_model.m_pLambertianMat);
-        if (selectedNode == Material)
-            m_properties.propertiesComponent(&m_lambertianProps);
-
+        pSelected = m_model.m_pLambertianMat;
         break;
     case 1:
-        m_model.m_pMesh->material(m_model.m_pPhongMat);
-        if (selectedNode == Material)
-            m_properties.propertiesComponent(&m_phongProps);
-
+        pSelected = m_model.m_pPhongMat;
         break;
     case 2:
-        m_model.m_pMesh->material(m_model.m_pPhongTexturedMat);
-        if (selectedNode == Material)
-            m_properties.propertiesComponent(&m_phongTexturedProps);
-
+        pSelected = m_model.m_pPhongTexturedMat;
         break;
     default: break;
     }
+
+    m_model.m_pMesh->material(pSelected);
 }
 
 void MainFrameComponent::OnModelLoaded(const std::forward_list<VertexBuffered>& model) {
@@ -238,7 +243,7 @@ void MainFrameComponent::OnModelLoaded(const std::forward_list<VertexBuffered>& 
     m_model.m_pMesh->scale(ComputeScale(m_model.m_pMesh->model(), kMaxModelSize));
 
     m_modelProps.syncFrom(dataModel());
-    static_cast<IComponent&>(m_sceneTree).syncFrom(dataModel());
+    m_sceneTree.syncFrom(dataModel());
 }
 
 void MainFrameComponent::OnLightStatusChanged(std::uint8_t lightIndex, bool enabled) {

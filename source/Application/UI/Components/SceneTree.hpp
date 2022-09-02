@@ -16,7 +16,7 @@ public:
 
     sigslot::signal<SceneNode> nodeSelected;
     sigslot::signal<std::uint8_t, bool> lightStatusChanged;
-    sigslot::signal<int, SceneNode> materialSelected;
+    sigslot::signal<int> materialSelected;
     sigslot::signal<> modelRemoved;
 
     struct DataModel : public IComponent::DataModel {
@@ -25,13 +25,13 @@ public:
         bool m_modelLoaded = false;
     };
 
-private:
     virtual const char* windowId() const override;
     virtual void render() override;
 
     virtual void syncFrom(const IComponent::DataModel* pFrom) override;
     virtual const IComponent::DataModel* dataModel() const override;
 
+private:
     SceneNode selectedNode() const;
     bool selected(SceneNode sceneNode) const;
     void select(SceneNode sceneNode);

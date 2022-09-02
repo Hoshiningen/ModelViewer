@@ -283,17 +283,10 @@ nlohmann::json Application::Private::save() const {
     obj["windowPosition"] = m_dataModel.m_windowPosition;
     obj["windowMaximized"] = m_dataModel.m_windowMaximized;
 
-    //if (const auto json = m_lightPropDialog.save(); json.is_object())
-    //    obj.update(json);
-    //
-    //if (const auto json = m_loaderDialog.save(); json.is_object())
-    //    obj.update(json);
-    //
-    //if (const auto json = m_materialPropDialog.save(); json.is_object())
-    //    obj.update(json);
-    //
-    //if (const auto json = m_scenePropDialog.save(); json.is_object())
-    //    obj.update(json);
+    for (const DirectionalLight& light : m_dataModel.m_lights) {
+        if (const auto json = light.save(); json.is_object())
+            obj["Lighting"].update(json);
+    }
 
     if (const auto json = m_dataModel.m_mesh.save(); json.is_object())
         obj.update(json);
@@ -335,7 +328,6 @@ void Application::Private::restore(const nlohmann::json& settings) {
 
     glfwSetWindowSize(m_pWindow, m_dataModel.m_windowSize.x, m_dataModel.m_windowSize.y);
     glfwSetWindowPos(m_pWindow, m_dataModel.m_windowPosition.x, m_dataModel.m_windowPosition.y);
-    //glViewport(0, 0, m_windowSize.x, m_windowSize.y);
 }
 
 void Application::Private::onProjectionChange(int projection) {

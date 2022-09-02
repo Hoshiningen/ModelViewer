@@ -1,4 +1,5 @@
 #include "UI/Components/DirectionalLightProps.hpp"
+#include "UI/Components/SceneTree.hpp"
 
 #include "Common/Constants.hpp"
 #include "Common/Math.hpp"
@@ -9,6 +10,9 @@
 #include <imgui.h>
 
 void DirectionalLightProps::render() {
+
+    if (ImGui::Checkbox("Enabled", &m_model.m_enabled))
+        enabledChanged(m_model.m_enabled);
 
     ImGui::BeginDisabled(!m_model.m_enabled); {
         if (ImGui::ColorEdit3("Color", glm::value_ptr(m_model.m_color)))
@@ -41,13 +45,15 @@ void DirectionalLightProps::syncFrom(const IComponent::DataModel* pFrom) {
     if (!pFrom)
         return;
 
-    auto pModel = dynamic_cast<const DataModel*>(pFrom);
-    if (!pModel)
-        return;
-
-    m_model = *pModel;
+    if (auto pModel = dynamic_cast<const DataModel*>(pFrom); pModel)
+        m_model = *pModel;
 }
 
 const IComponent::DataModel* DirectionalLightProps::dataModel() const {
     return &m_model;
+}
+
+void DirectionalLightProps::watch(const IComponent* pComponent) {
+
+
 }

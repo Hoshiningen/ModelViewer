@@ -16,9 +16,11 @@ struct DirectionalLight::Private {
     bool enabled = false;
 
     NLOHMANN_DEFINE_TYPE_INTRUSIVE(DirectionalLight::Private,
-        direction,
         color,
-        intensity
+        intensity,
+        pitch,
+        yaw,
+        enabled
     )
 };
 
