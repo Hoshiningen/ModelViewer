@@ -16,19 +16,9 @@ set(IMGUI_BINDINGS
 )
 
 set(UI
-    UI/Dialog.hpp
-    UI/Dialog.cpp
     UI/Icons.hpp
     UI/Utility.cpp
     UI/Utility.hpp
-    UI/LightPropertiesDialog.hpp
-    UI/LightPropertiesDialog.cpp
-    UI/MaterialPropertiesDialog.hpp
-    UI/MaterialPropertiesDialog.cpp
-    UI/ModelLoaderDialog.hpp
-    UI/ModelLoaderDialog.cpp
-    UI/ScenePropertiesDialog.hpp
-    UI/ScenePropertiesDialog.cpp
 )
 
 set(COMPONENTS
@@ -60,6 +50,7 @@ set(COMPONENTS
     UI/Components/Viewport.hpp
     UI/Components/Viewport.cpp
 )
+
 source_group(bindings ${IMGUI_BINDINGS_DIR})
 source_group(UI UI)
 source_group(UI/Components UI/Components)

@@ -7,7 +7,6 @@ set(INCLUDES
     ${PUBLIC_DIR}/Common/Common/Constants.hpp
     ${PUBLIC_DIR}/Common/Common/IRestorable.hpp
     ${PUBLIC_DIR}/Common/Common/Math.hpp
-    ${PUBLIC_DIR}/Common/Common/SignalMacros.hpp
 )
 
 add_library(Common ${SOURCES} ${INCLUDES})

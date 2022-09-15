@@ -5,7 +5,6 @@
 
 #include "Common/IRestorable.hpp"
 #include "Common/Math.hpp"
-#include "Common/SignalMacros.hpp"
 
 #include "Controls/OrbitalControls.hpp"
 
@@ -17,6 +16,8 @@
 #include "IO/GeometryLoader.hpp"
 #include "IO/TextureLoader.hpp"
 
+#include "Light/DirectionalLight.hpp"
+
 #include "Material/LambertianMaterial.hpp"
 #include "Material/PhongMaterial.hpp"
 #include "Material/PhongTexturedMaterial.hpp"
@@ -25,11 +26,6 @@
 #include "Object/Mesh.hpp"
 
 #include "Renderer/Renderer.hpp"
-
-#include "UI/LightPropertiesDialog.hpp"
-#include "UI/MaterialPropertiesDialog.hpp"
-#include "UI/ModelLoaderDialog.hpp"
-#include "UI/ScenePropertiesDialog.hpp"
 
 #include "UI/Components/MainFrame.hpp"
 
@@ -94,17 +90,14 @@ struct Application::Private : private IRestorable {
     virtual nlohmann::json save() const override;
     virtual void restore(const nlohmann::json& settings) override;
 
-    // Signals
-    DEFINE_CONNECTION(m_signalInitialized, ApplicationInitialized)
-
     // Handlers
-    void onProjectionChange(int projection);
+    void onProjectionChange(Camera::Projection projection);
     void onWireframeModeChange(bool wireframe) const;
     void onInitialized();
     void onSaved();
     void onViewportResized(const glm::uvec2& dimensions);
 
-    sigslot::signal<> m_signalInitialized;
+    sigslot::signal<> initialized;
 
 public:
     Renderer m_renderer;
@@ -166,11 +159,11 @@ Application::Private::Private() {
     m_dataModel.m_ortho = m_dataModel.m_persp;
 
     // Signals
-    connectApplicationInitialized(&Application::Private::onInitialized, this);
-    
-    m_callbacks.connectWindowMaximized([this](bool maximized) { m_dataModel.windowMaximized = maximized; });
-    m_callbacks.connectWindowSizeChanged([this](const glm::ivec2& size) { m_dataModel.windowSize = size; });
-    m_callbacks.connectWindowPositionChanged([this](const glm::ivec2& position) { m_dataModel.windowPosition = position; });
+    initialized.connect(&Application::Private::onInitialized, this);
+
+    m_callbacks.windowMaximized.connect([this](bool maximized) { m_dataModel.windowMaximized = maximized; });
+    m_callbacks.windowSizeChanged.connect([this](const glm::ivec2& size) { m_dataModel.windowSize = size; });
+    m_callbacks.windowPositionChanged.connect([this](const glm::ivec2& position) { m_dataModel.windowPosition = position; });
 
     m_dataModel.lights.at(0).enabled(true);
     m_dataModel.lights.at(0).pitch(glm::radians(45.f));
@@ -370,9 +363,9 @@ void Application::Private::restore(const nlohmann::json& settings) {
     }
 }
 
-void Application::Private::onProjectionChange(int projection) {
+void Application::Private::onProjectionChange(Camera::Projection projection) {
 
-    if (projection == ScenePropertiesDialog::Projection::eOrthographic) {
+    if (projection == Camera::Projection::Orthographic) {
 
         const PerspectiveCamera* pCamera = dynamic_cast<const PerspectiveCamera*>(m_dataModel.m_pCamera.get());
         if (pCamera) {
@@ -382,7 +375,7 @@ void Application::Private::onProjectionChange(int projection) {
         }
     }
 
-    if (projection == ScenePropertiesDialog::Projection::ePerspective) {
+    if (projection == Camera::Projection::Perspective) {
 
         const OrthographicCamera* pCamera = dynamic_cast<const OrthographicCamera*>(m_dataModel.m_pCamera.get());
         if (pCamera) {
@@ -407,9 +400,9 @@ void Application::Private::onInitialized() {
     m_mainFrame.exited.connect([this] { glfwSetWindowShouldClose(m_pWindow, GLFW_TRUE); });
 
     // Window controls signals
-    m_callbacks.connectProjectionChanged(&Application::Private::onProjectionChange, this);
-    m_callbacks.connectWireframeChanged(&Application::Private::onWireframeModeChange, this);
-    m_callbacks.connectApplicationSaved(&Application::Private::onSaved, this);
+    m_callbacks.projectionChanged.connect(&Application::Private::onProjectionChange, this);
+    m_callbacks.wireframeChanged.connect(&Application::Private::onWireframeModeChange, this);
+    m_callbacks.saved.connect(&Application::Private::onSaved, this);
 
     // Restore application settings
     if (std::filesystem::is_regular_file(kSettingsFileName) && std::filesystem::file_size(kSettingsFileName) > 0) {
@@ -544,7 +537,7 @@ bool Application::setUp() {
     ImGui_ImplGlfw_InitForOpenGL(m_pPrivate->m_pWindow, true);
     ImGui_ImplOpenGL3_Init("#version 330");
 
-    m_pPrivate->m_signalInitialized();
+    m_pPrivate->initialized();
 
     return true;
 }
