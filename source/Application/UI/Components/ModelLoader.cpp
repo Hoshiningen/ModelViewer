@@ -22,7 +22,7 @@ std::forward_list<VertexBuffered> LoadModel(const std::filesystem::path& filePat
 } // end unnamed namespace
 
 const char* ModelLoaderComponent::windowId() const {
-    return "Load Model";
+    return "Open Model";
 }
 
 void ModelLoaderComponent::render() {
@@ -37,7 +37,8 @@ void ModelLoaderComponent::render() {
         ImGui::BeginDisabled(!std::filesystem::is_regular_file(m_pathBuffer.data())); {
 
             if (ImGui::Button("Load")) {
-                modelLoaded(LoadModel(m_pathBuffer.data()));
+                const std::filesystem::path modelPath = m_pathBuffer.data();
+                modelOpened(LoadModel(modelPath), modelPath);
                 ImGui::CloseCurrentPopup();
 
                 m_pathBuffer = {};

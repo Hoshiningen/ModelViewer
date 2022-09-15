@@ -4,6 +4,7 @@
 
 #include "Light/DirectionalLight.hpp"
 
+#include <GLFW/glfw3.h>
 #include <imgui.h>
 #include <imgui_internal.h>
 
@@ -12,13 +13,10 @@ MainFrameComponent::MainFrameComponent() {
     m_sceneTree.nodeSelected.connect(&MainFrameComponent::OnSceneNodeSelected, this);
     m_sceneTree.materialSelected.connect([this](int materialIndex) {
         OnMaterialSelected(materialIndex);
-        m_modelProps.syncFrom(dataModel());
+        static_cast<IComponent&>(m_modelProps).syncFrom(dataModel());
     });
     m_sceneTree.lightStatusChanged.connect(&MainFrameComponent::OnLightStatusChanged, this);
-    m_sceneTree.modelRemoved.connect([this] {
-        m_model.m_pMesh->destroy();
-        m_sceneTree.syncFrom(dataModel());
-    });
+    m_sceneTree.modelClosed.connect(&MainFrameComponent::OnModelClosed, this);
 
     m_sceneProps.ambientColorChanged.connect([this](const glm::vec3& color) { if (m_model.m_pAmbientColor) *m_model.m_pAmbientColor = color; });
     m_sceneProps.clearColorChanged.connect([this](const glm::vec4& color) { if (m_model.m_pClearColor) *m_model.m_pClearColor = color; });
@@ -31,10 +29,10 @@ MainFrameComponent::MainFrameComponent() {
     m_modelProps.positionOffsetsChanged.connect([this](const glm::vec3& offsets) { m_model.m_pMesh->translate(offsets); });
     m_modelProps.materialSelected.connect([this](int materialIndex) {
         OnMaterialSelected(materialIndex);
-        m_sceneTree.syncFrom(dataModel());
+        static_cast<IComponent&>(m_sceneTree).syncFrom(dataModel());
     });
 
-    m_modelLoader.modelLoaded.connect(&MainFrameComponent::OnModelLoaded, this);
+    m_modelLoader.modelOpened.connect(&MainFrameComponent::OnModelOpened, this);
 
     m_lambertianProps.diffuseColorChanged.connect([this](const glm::vec4& color) { m_model.m_pLambertianMat->diffuseColor(color); });
     m_lambertianProps.diffuseIntensityChanged.connect([this](float intensity) { m_model.m_pLambertianMat->diffuseIntensity(intensity); });
@@ -58,17 +56,28 @@ MainFrameComponent::MainFrameComponent() {
     for (std::uint8_t lightIndex = 0; lightIndex < m_model.m_lights.size(); ++lightIndex) {
         DirectionalLightProps& props = m_lightProps.at(lightIndex);
 
-        props.enabledChanged.connect([this, lightIndex](bool enabled) { m_model.m_lights.at(lightIndex)->enabled(enabled); });
         props.colorChanged.connect([this, lightIndex](const glm::vec3& color) { m_model.m_lights.at(lightIndex)->color(color); });
         props.pitchChanged.connect([this, lightIndex](float pitch) { m_model.m_lights.at(lightIndex)->pitch(pitch); });
         props.yawChanged.connect([this, lightIndex](float yaw) { m_model.m_lights.at(lightIndex)->yaw(yaw); });
         props.intensityChanged.connect([this, lightIndex](float intensity) { m_model.m_lights.at(lightIndex)->intensity(intensity); });
+        props.enabledChanged.connect([this, lightIndex](bool enabled) {
+            m_model.m_lights.at(lightIndex)->enabled(enabled);
+            static_cast<IComponent&>(m_sceneTree).syncFrom(dataModel());
+        });
     }
+
+    m_mainMenu.exited.connect([this] { exited(); });
+    m_mainMenu.modelClosed.connect(&MainFrameComponent::OnModelClosed, this);
+    m_mainMenu.lightPropertiesOpened.connect([this] { OnSceneNodeSelected(SceneTreeComponent::SceneNode::Lighting); });
+    m_mainMenu.modelPropertiesOpened.connect([this] { OnSceneNodeSelected(SceneTreeComponent::SceneNode::Model); });
+    m_mainMenu.scenePropertiesOpened.connect([this] { OnSceneNodeSelected(SceneTreeComponent::SceneNode::Scene); });
 }
 
 void MainFrameComponent::render() {
 
     const ImGuiViewport* pViewport = ImGui::GetMainViewport();
+
+    // Offset the GUI by the height of the menu bar.
     ImGui::SetNextWindowPos({ pViewport->Pos.x, pViewport->Pos.y + ImGui::GetFrameHeight() });
     ImGui::SetNextWindowSize(pViewport->Size);
     ImGui::SetNextWindowViewport(pViewport->ID);
@@ -113,15 +122,15 @@ void MainFrameComponent::render() {
         const ImGuiID mainLeftTop = ImGui::DockBuilderSplitNode(mainLeft, ImGuiDir_Up, .22f, nullptr, &mainLeftBottom);
 
         ImGui::DockBuilderDockWindow(static_cast<IComponent&>(m_properties).windowId(), mainLeftBottom);
-        ImGui::DockBuilderDockWindow(m_sceneTree.windowId(), mainLeftTop);
+        ImGui::DockBuilderDockWindow(static_cast<IComponent&>(m_sceneTree).windowId(), mainLeftTop);
         ImGui::DockBuilderDockWindow(static_cast<IComponent&>(m_viewport).windowId(), mainRight);
 
         ImGui::DockBuilderFinish(dockspaceId);
     }
 
-    static_cast<IComponent&>(m_titleBar).render();
+    static_cast<IComponent&>(m_mainMenu).render();
     static_cast<IComponent&>(m_properties).render();
-    m_sceneTree.render();
+    static_cast<IComponent&>(m_sceneTree).render();
     static_cast<IComponent&>(m_viewport).render();
     static_cast<IComponent&>(m_modelLoader).render();
 
@@ -153,29 +162,29 @@ void MainFrameComponent::syncFrom(const IComponent::DataModel* pFrom) {
         model.m_yaw = pLight->yaw();
         model.m_intensity = pLight->intensity();
 
-        m_lightProps.at(lightIndex).syncFrom(&model);
+        static_cast<IComponent&>(m_lightProps.at(lightIndex)).syncFrom(&model);
     }
 
-    m_lightingProps.compose({
+    static_cast<IComponent&>(m_lightingProps).compose({
         &m_lightProps.at(0),
         &m_lightProps.at(1),
         &m_lightProps.at(2)
     });
-    m_lightingProps.syncFrom(dataModel());
+    static_cast<IComponent&>(m_lightingProps).syncFrom(dataModel());
 
-    m_modelProps.compose({
+    static_cast<IComponent&>(m_modelProps).compose({
         &m_lambertianProps,
         &m_phongProps,
         &m_phongTexturedProps
     });
-    m_modelProps.syncFrom(dataModel());
+    static_cast<IComponent&>(m_modelProps).syncFrom(dataModel());
 
-    m_sceneProps.syncFrom(dataModel());
-    m_lambertianProps.syncFrom(dataModel());
-    m_phongProps.syncFrom(dataModel());
-    m_phongTexturedProps.syncFrom(dataModel());
+    static_cast<IComponent&>(m_sceneProps).syncFrom(dataModel());
+    static_cast<IComponent&>(m_lambertianProps).syncFrom(dataModel());
+    static_cast<IComponent&>(m_phongProps).syncFrom(dataModel());
+    static_cast<IComponent&>(m_phongTexturedProps).syncFrom(dataModel());
 
-    m_sceneTree.syncFrom(dataModel());
+    static_cast<IComponent&>(m_sceneTree).syncFrom(dataModel());
 }
 
 const IComponent::DataModel* MainFrameComponent::dataModel() const {
@@ -235,15 +244,17 @@ void MainFrameComponent::OnMaterialSelected(int materialIndex) {
     m_model.m_pMesh->material(pSelected);
 }
 
-void MainFrameComponent::OnModelLoaded(const std::forward_list<VertexBuffered>& model) {
+void MainFrameComponent::OnModelOpened(const std::forward_list<VertexBuffered>& model, const std::filesystem::path& modelPath) {
 
     m_model.m_pMesh->destroy();
     m_model.m_pMesh->model(model);
     m_model.m_pMesh->position(-ComputeCenter(m_model.m_pMesh->model()));
     m_model.m_pMesh->scale(ComputeScale(m_model.m_pMesh->model(), kMaxModelSize));
+    m_model.m_modelName = modelPath.filename().string();
 
-    m_modelProps.syncFrom(dataModel());
-    m_sceneTree.syncFrom(dataModel());
+    static_cast<IComponent&>(m_modelProps).syncFrom(dataModel());
+    static_cast<IComponent&>(m_sceneTree).syncFrom(dataModel());
+    static_cast<IComponent&>(m_mainMenu).syncFrom(dataModel());
 }
 
 void MainFrameComponent::OnLightStatusChanged(std::uint8_t lightIndex, bool enabled) {
@@ -259,5 +270,11 @@ void MainFrameComponent::OnLightStatusChanged(std::uint8_t lightIndex, bool enab
     model.m_yaw = pLight->yaw();
     model.m_intensity = pLight->intensity();
 
-    m_lightProps.at(lightIndex).syncFrom(&model);
+    static_cast<IComponent&>(m_lightProps.at(lightIndex)).syncFrom(&model);
+}
+
+void MainFrameComponent::OnModelClosed() {
+    m_model.m_pMesh->destroy();
+    static_cast<IComponent&>(m_sceneTree).syncFrom(dataModel());
+    static_cast<IComponent&>(m_mainMenu).syncFrom(dataModel());
 }

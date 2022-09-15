@@ -41,6 +41,8 @@ set(COMPONENTS
     UI/Components/LightProps.cpp
     UI/Components/MainFrame.hpp
     UI/Components/MainFrame.cpp
+    UI/Components/MainMenu.hpp
+    UI/Components/MainMenu.cpp
     UI/Components/ModelLoader.hpp
     UI/Components/ModelLoader.cpp
     UI/Components/ModelProps.hpp
@@ -55,8 +57,6 @@ set(COMPONENTS
     UI/Components/SceneProps.cpp
     UI/Components/SceneTree.hpp
     UI/Components/SceneTree.cpp
-    UI/Components/TitleBar.hpp
-    UI/Components/TitleBar.cpp
     UI/Components/Viewport.hpp
     UI/Components/Viewport.cpp
 )

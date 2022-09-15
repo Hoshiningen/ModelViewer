@@ -94,6 +94,7 @@ void DirectionalLight::restore(const nlohmann::json& settings) {
         return;
 
     *m_pPrivate = settings;
+    m_pPrivate->direction = RotateVector(kWorldForward, m_pPrivate->pitch, m_pPrivate->yaw, false);
 }
 
 DEFINE_GETTER_IMMUTABLE_COPY(DirectionalLight, pitch, float, m_pPrivate->pitch)

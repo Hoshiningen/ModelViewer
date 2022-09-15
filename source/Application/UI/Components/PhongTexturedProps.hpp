@@ -13,11 +13,6 @@ class Texture;
 
 class PhongTexturedProps : public IComponent {
 public:
-    virtual void render() override;
-    
-    virtual void syncFrom(const IComponent::DataModel* pFrom) override;
-    virtual const IComponent::DataModel* dataModel() const override;
-
     sigslot::signal<const Texture&> diffuseMapLoaded;
     sigslot::signal<const Texture&> emissiveMapLoaded;
     sigslot::signal<const Texture&> specularMapLoaded;
@@ -39,5 +34,9 @@ public:
     };
 
 private:
+    virtual void render() override;
+    virtual void syncFrom(const IComponent::DataModel* pFrom) override;
+    virtual const IComponent::DataModel* dataModel() const override;
+
     DataModel m_model;
 };

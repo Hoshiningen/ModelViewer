@@ -10,11 +10,6 @@ class PhongMaterial;
 
 class PhongProps : public IComponent {
 public:
-    virtual void render();
-    
-    virtual void syncFrom(const IComponent::DataModel* pFrom) override;
-    virtual const IComponent::DataModel* dataModel() const override;
-
     sigslot::signal<const glm::vec4&> ambientColorChanged;
     sigslot::signal<const glm::vec4&> diffuseColorChanged;
     sigslot::signal<const glm::vec4&> specularColorChanged;
@@ -36,5 +31,9 @@ public:
     };
 
 private:
+    virtual void render();
+    virtual void syncFrom(const IComponent::DataModel* pFrom) override;
+    virtual const IComponent::DataModel* dataModel() const override;
+
     DataModel m_model;
 };

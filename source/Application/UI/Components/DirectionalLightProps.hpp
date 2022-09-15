@@ -10,13 +10,6 @@ class DirectionalLight;
 
 class DirectionalLightProps : public IComponent {
 public:
-    virtual void render() override;
-
-    virtual void syncFrom(const IComponent::DataModel* pFrom) override;
-    virtual const IComponent::DataModel* dataModel() const override;
-
-    virtual void watch(const IComponent* pComponent) override;
-
     sigslot::signal<bool> enabledChanged;
     sigslot::signal<const glm::vec3&> colorChanged;
     sigslot::signal<float> pitchChanged;
@@ -33,5 +26,10 @@ public:
     };
 
 private:
+    virtual void render() override;
+    virtual void syncFrom(const IComponent::DataModel* pFrom) override;
+    virtual const IComponent::DataModel* dataModel() const override;
+    virtual void watch(const IComponent* pComponent) override;
+
     DataModel m_model;
 };

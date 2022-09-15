@@ -10,11 +10,6 @@ class LambertianMaterial;
 
 class LambertianProps : public IComponent {
 public:
-    virtual void render();
-    
-    virtual void syncFrom(const IComponent::DataModel* pFrom) override;
-    virtual const IComponent::DataModel* dataModel() const override;
-
     sigslot::signal<const glm::vec4&> diffuseColorChanged;
     sigslot::signal<float> diffuseIntensityChanged;
     
@@ -24,5 +19,9 @@ public:
     };
 
 private:
+    virtual void render();
+    virtual void syncFrom(const IComponent::DataModel* pFrom) override;
+    virtual const IComponent::DataModel* dataModel() const override;
+
     DataModel m_model;
 };

@@ -79,17 +79,17 @@ void ModelProps::render() {
         switch (m_model.m_selectedMaterial) {
             case 0:
                 if (m_pLambertianProps)
-                    m_pLambertianProps->render();
+                    static_cast<IComponent*>(m_pLambertianProps)->render();
 
                 break;
             case 1:
                 if (m_pPhongProps)
-                    m_pPhongProps->render();
+                    static_cast<IComponent*>(m_pPhongProps)->render();
 
                 break;
             case 2:
                 if (m_pPhongTexturedProps)
-                    m_pPhongTexturedProps->render();
+                    static_cast<IComponent*>(m_pPhongTexturedProps)->render();
 
                 break;
             default: break;
@@ -135,13 +135,13 @@ void ModelProps::syncFrom(const IComponent::DataModel* pFrom) {
     }();
 
     if (m_pLambertianProps)
-        m_pLambertianProps->syncFrom(pModel);
+        static_cast<IComponent*>(m_pLambertianProps)->syncFrom(pModel);
     
     if (m_pPhongProps)
-        m_pPhongProps->syncFrom(pModel);
+        static_cast<IComponent*>(m_pPhongProps)->syncFrom(pModel);
     
     if (m_pPhongTexturedProps)
-        m_pPhongTexturedProps->syncFrom(pModel);
+        static_cast<IComponent*>(m_pPhongTexturedProps)->syncFrom(pModel);
 }
 
 const IComponent::DataModel* ModelProps::dataModel() const {

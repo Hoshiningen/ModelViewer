@@ -15,6 +15,7 @@
 #include "UI/Components/IComponent.hpp"
 #include "UI/Components/LightProps.hpp"
 #include "UI/Components/LambertianProps.hpp"
+#include "UI/Components/MainMenu.hpp"
 #include "UI/Components/ModelLoader.hpp"
 #include "UI/Components/ModelProps.hpp"
 #include "UI/Components/PhongProps.hpp"
@@ -22,10 +23,10 @@
 #include "UI/Components/Properties.hpp"
 #include "UI/Components/SceneProps.hpp"
 #include "UI/Components/SceneTree.hpp"
-#include "UI/Components/TitleBar.hpp"
 #include "UI/Components/Viewport.hpp"
 
 #include <array>
+#include <string>
 
 #include <glad/glad.h>
 #include <glm/vec3.hpp>
@@ -38,12 +39,10 @@ class MainFrameComponent : public IComponent {
 public:
     MainFrameComponent();
 
-    virtual void render() override;
-    virtual void syncFrom(const IComponent::DataModel* pFrom) override;
-    virtual const IComponent::DataModel* dataModel() const override;
-
     DECLARE_GETTER_MUTABLE(viewport, ViewportComponent)
-    //DECLARE_GETTER_MUTABLE(titleBar, TitleBarComponent)
+
+
+    sigslot::signal<> exited;
 
     struct DataModel : public IComponent::DataModel {
         glm::vec3* m_pAmbientColor = nullptr;
@@ -51,6 +50,7 @@ public:
         float* m_pAmbientIntensity = nullptr;
 
         Mesh* m_pMesh = nullptr;
+        std::string m_modelName;
 
         LambertianMaterial* m_pLambertianMat = nullptr;
         PhongMaterial* m_pPhongMat = nullptr;
@@ -60,9 +60,14 @@ public:
     };
 
 private:
+    virtual void render() override;
+    virtual void syncFrom(const IComponent::DataModel* pFrom) override;
+    virtual const IComponent::DataModel* dataModel() const override;
+
     void OnSceneNodeSelected(SceneTreeComponent::SceneNode node);
     void OnMaterialSelected(int materialIndex);
-    void OnModelLoaded(const std::forward_list<VertexBuffered>& model);
+    void OnModelOpened(const std::forward_list<VertexBuffered>& model, const std::filesystem::path& modelPath);
+    void OnModelClosed();
     void OnLightStatusChanged(std::uint8_t lightIndex, bool enabled);
 
     DataModel m_model;
@@ -86,7 +91,7 @@ private:
 
     SceneTreeComponent m_sceneTree;
     ViewportComponent m_viewport;
-    TitleBarComponent m_titleBar;
+    MainMenuComponent m_mainMenu;
 
     // Modal
 

@@ -5,6 +5,7 @@
 
 #include <array>
 #include <bitset>
+#include <string>
 
 #include <sigslot/signal.hpp>
 
@@ -17,21 +18,21 @@ public:
     sigslot::signal<SceneNode> nodeSelected;
     sigslot::signal<std::uint8_t, bool> lightStatusChanged;
     sigslot::signal<int> materialSelected;
-    sigslot::signal<> modelRemoved;
+    sigslot::signal<> modelClosed;
 
     struct DataModel : public IComponent::DataModel {
         std::array<bool, 3> m_enabledLights;
         int m_selectedMaterial = 0;
         bool m_modelLoaded = false;
+        std::string m_modelName;
     };
 
+private:
     virtual const char* windowId() const override;
     virtual void render() override;
-
     virtual void syncFrom(const IComponent::DataModel* pFrom) override;
     virtual const IComponent::DataModel* dataModel() const override;
 
-private:
     SceneNode selectedNode() const;
     bool selected(SceneNode sceneNode) const;
     void select(SceneNode sceneNode);

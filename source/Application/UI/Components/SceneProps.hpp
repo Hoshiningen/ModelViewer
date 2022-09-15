@@ -9,11 +9,6 @@
 
 class SceneProps : public IComponent {
 public:
-    virtual void render() override;
-
-    virtual void syncFrom(const IComponent::DataModel* pFrom) override;
-    virtual const IComponent::DataModel* dataModel() const override;
-
     sigslot::signal<const glm::vec3&> ambientColorChanged;
     sigslot::signal<const glm::vec4&> clearColorChanged;
     sigslot::signal<float> ambientIntensityChanged;
@@ -26,5 +21,9 @@ public:
     };
 
 private:
+    virtual void render() override;
+    virtual void syncFrom(const IComponent::DataModel* pFrom) override;
+    virtual const IComponent::DataModel* dataModel() const override;
+
     DataModel m_model;
 };

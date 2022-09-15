@@ -15,6 +15,13 @@ class Mesh;
 
 class ModelProps : public IComponent {
 public:
+    sigslot::signal<const glm::vec3&> positionOffsetsChanged;
+    sigslot::signal<float> scaleChanged;
+    sigslot::signal<float> pitchChanged;
+    sigslot::signal<float> yawChanged;
+    sigslot::signal<float> rollChanged;
+    sigslot::signal<int> materialSelected;
+
     struct ModelMetadata {
         enum Attribute {
             Color, Index, Normal, Position, Texel
@@ -41,21 +48,12 @@ public:
         static const std::array<const char*, 3> m_kMaterialNames;
     };
 
+private:
     virtual void render() override;
-
     virtual void syncFrom(const IComponent::DataModel* pFrom) override;
     virtual const IComponent::DataModel* dataModel() const override;
-
     virtual void compose(const std::initializer_list<IComponent*>& components) override;
 
-    sigslot::signal<const glm::vec3&> positionOffsetsChanged;
-    sigslot::signal<float> scaleChanged;
-    sigslot::signal<float> pitchChanged;
-    sigslot::signal<float> yawChanged;
-    sigslot::signal<float> rollChanged;
-    sigslot::signal<int> materialSelected;
-
-private:
     DataModel m_model;
 
     LambertianProps* m_pLambertianProps = nullptr;

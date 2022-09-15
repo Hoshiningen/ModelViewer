@@ -15,7 +15,7 @@ void LightProps::render() {
     ImGui::SetNextItemOpen(true, ImGuiCond_Once);
     if (ImGui::CollapsingHeader("Light1")) {
         ImGui::PushID("Light1Properties");
-        m_lightProps.at(0)->render();
+        static_cast<IComponent*>(m_lightProps.at(0))->render();
         ImGui::PopID();
     }
 
@@ -25,7 +25,7 @@ void LightProps::render() {
     ImGui::SetNextItemOpen(true, ImGuiCond_Once);
     if (ImGui::CollapsingHeader("Light2")) {
         ImGui::PushID("Light2Properties");
-        m_lightProps.at(1)->render();
+        static_cast<IComponent*>(m_lightProps.at(1))->render();
         ImGui::PopID();
     }
 
@@ -35,7 +35,7 @@ void LightProps::render() {
     ImGui::SetNextItemOpen(true, ImGuiCond_Once);
     if (ImGui::CollapsingHeader("Light3")) {
         ImGui::PushID("Light3Properties");
-        m_lightProps.at(2)->render();
+        static_cast<IComponent*>(m_lightProps.at(2))->render();
         ImGui::PopID();
     }
 }

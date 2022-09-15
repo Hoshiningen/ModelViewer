@@ -39,15 +39,13 @@ void SceneTreeComponent::render() {
         const bool sceneNodeOpen = ImGui::TreeNodeEx(Utility::Label("Scene", CUBES_ICON).c_str(), nodeFlags);
 
         if (ImGui::BeginPopupContextItem()) {
-            if (ImGui::MenuItem("Load Model..."))
+            if (ImGui::MenuItem(Utility::Label("Load Model...", FOLDER_OPEN_ICON).c_str()))
                 openModelLoader = true;
 
-            ImGui::BeginDisabled(!m_model.m_modelLoaded); {
-                if (ImGui::MenuItem("Remove Model"))
-                    modelRemoved();
 
-                ImGui::EndDisabled();
-            }
+            if (ImGui::MenuItem("Remove Model", nullptr, nullptr, m_model.m_modelLoaded))
+                modelClosed();
+
 
             ImGui::EndPopup();
         }
@@ -61,7 +59,7 @@ void SceneTreeComponent::render() {
 
                 ImGui::SetNextItemOpen(true, ImGuiCond_Once);
                 nodeFlags = NodeFlags(selected(SceneNode::Model), false);
-                const bool modelNodeOpen = ImGui::TreeNodeEx(Utility::Label("Model", CUBE_ICON).c_str(), nodeFlags);
+                const bool modelNodeOpen = ImGui::TreeNodeEx(Utility::Label(m_model.m_modelName, CUBE_ICON).c_str(), nodeFlags);
 
                 if (ImGui::BeginPopupContextItem()) {
                     if (ImGui::BeginMenu("Active Material")) {
@@ -170,6 +168,7 @@ void SceneTreeComponent::syncFrom(const IComponent::DataModel* pFrom) {
     for (std::size_t i = 0; i < m_model.m_enabledLights.size(); ++i)
         m_model.m_enabledLights.at(i) = pModel->m_lights.at(i)->enabled();
 
+    m_model.m_modelName = pModel->m_modelName;
     m_model.m_modelLoaded = !pModel->m_pMesh->model()->empty();
     m_model.m_selectedMaterial = [pModel]() {
         if (dynamic_cast<LambertianMaterial*>(pModel->m_pMesh->material()))
