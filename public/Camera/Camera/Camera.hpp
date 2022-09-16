@@ -14,6 +14,8 @@ public:
 
     static glm::vec3 worldUp();
 
+    enum class Projection { Orthographic, Perspective };
+
     DECLARE_GETTER_IMMUTABLE(position, glm::vec3)
     DECLARE_SETTER_CONSTREF(position, glm::vec3)
 

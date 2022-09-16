@@ -19,14 +19,22 @@ public:
     virtual nlohmann::json save() const override;
     virtual void restore(const nlohmann::json& settings) override;
 
-    DECLARE_GETTER_MUTABLE(direction, glm::vec3)
-    DECLARE_SETTER_CONSTREF(direction, glm::vec3)
+    DECLARE_GETTER_IMMUTABLE_COPY(pitch, float)
+    DECLARE_SETTER_COPY(pitch, float)
 
-    DECLARE_GETTER_MUTABLE(color, glm::vec3)
+    DECLARE_GETTER_IMMUTABLE_COPY(yaw, float)
+    DECLARE_SETTER_COPY(yaw, float)
+
+    DECLARE_GETTER_IMMUTABLE(direction, glm::vec3)
+
+    DECLARE_GETTER_IMMUTABLE(color, glm::vec3)
     DECLARE_SETTER_CONSTREF(color, glm::vec3)
 
-    DECLARE_GETTER_MUTABLE(intensity, float)
+    DECLARE_GETTER_IMMUTABLE_COPY(intensity, float)
     DECLARE_SETTER_COPY(intensity, float)
+
+    DECLARE_GETTER_IMMUTABLE_COPY(enabled, bool)
+    DECLARE_SETTER_COPY(enabled, bool)
 
 private:
     COMPILATION_FIREWALL_COPY_MOVE(DirectionalLight)

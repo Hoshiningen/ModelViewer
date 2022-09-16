@@ -76,8 +76,8 @@ void LambertianMaterial::restore(const nlohmann::json& settings) {
     *m_pPrivate = settings;
 }
 
-DEFINE_GETTER_MUTABLE(LambertianMaterial, diffuseColor, glm::vec4, m_pPrivate->diffuseColor)
-DEFINE_SETTER_CONSTREF(LambertianMaterial, diffuseColor, m_pPrivate->diffuseColor)
-
-DEFINE_GETTER_MUTABLE(LambertianMaterial, diffuseIntensity, float, m_pPrivate->diffuseIntensity)
+DEFINE_GETTER_IMMUTABLE_COPY(LambertianMaterial, diffuseIntensity, float, m_pPrivate->diffuseIntensity)
 DEFINE_SETTER_COPY(LambertianMaterial, diffuseIntensity, m_pPrivate->diffuseIntensity)
+
+DEFINE_GETTER_IMMUTABLE(LambertianMaterial, diffuseColor, glm::vec4, m_pPrivate->diffuseColor)
+DEFINE_SETTER_CONSTREF(LambertianMaterial, diffuseColor, m_pPrivate->diffuseColor)

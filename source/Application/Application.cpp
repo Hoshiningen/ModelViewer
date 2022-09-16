@@ -5,7 +5,6 @@
 
 #include "Common/IRestorable.hpp"
 #include "Common/Math.hpp"
-#include "Common/SignalMacros.hpp"
 
 #include "Controls/OrbitalControls.hpp"
 
@@ -17,6 +16,8 @@
 #include "IO/GeometryLoader.hpp"
 #include "IO/TextureLoader.hpp"
 
+#include "Light/DirectionalLight.hpp"
+
 #include "Material/LambertianMaterial.hpp"
 #include "Material/PhongMaterial.hpp"
 #include "Material/PhongTexturedMaterial.hpp"
@@ -26,10 +27,7 @@
 
 #include "Renderer/Renderer.hpp"
 
-#include "UI/LightPropertiesDialog.hpp"
-#include "UI/MaterialPropertiesDialog.hpp"
-#include "UI/ModelLoaderDialog.hpp"
-#include "UI/ScenePropertiesDialog.hpp"
+#include "UI/Components/MainFrame.hpp"
 
 #include <format>
 #include <fstream>
@@ -43,6 +41,7 @@
 
 #include <glm/vec2.hpp>
 #include <glm/vec3.hpp>
+#include <glm/gtc/type_ptr.hpp>
 
 #include <imgui_impl_glfw.h>
 #include <imgui_impl_opengl3.h>
@@ -67,7 +66,7 @@ void GladOpenGLPostCallback(const char* functionName, void*, int, ...) {
 
     const GLenum errorCode = glad_glGetError();
     if (errorCode != GL_NO_ERROR)
-        std::cerr << std::format("Error {}: {}\n", kErrorStrings.at(errorCode), functionName);
+        std::cerr << std::format("{}: Error {}\n", functionName, kErrorStrings.at(errorCode));
 }
 #endif
 } // end unnamed namespace
@@ -91,57 +90,63 @@ struct Application::Private : private IRestorable {
     virtual nlohmann::json save() const override;
     virtual void restore(const nlohmann::json& settings) override;
 
-    void fitSceneToModel(std::forward_list<VertexBuffered>* pModel);
-
-    // Signals
-    DEFINE_CONNECTION(m_signalInitialized, ApplicationInitialized)
-
     // Handlers
-    void onClearColorChange(const glm::vec3& clearColor);
-    void onProjectionChange(int projection);
+    void onProjectionChange(Camera::Projection projection);
     void onWireframeModeChange(bool wireframe) const;
     void onInitialized();
     void onSaved();
+    void onViewportResized(const glm::uvec2& dimensions);
+    void onThemeChanged(int theme);
+
+    sigslot::signal<> initialized;
 
 public:
-    sigslot::signal<> m_signalInitialized;
-
     Renderer m_renderer;
-    std::unique_ptr<Camera> m_pCamera;
-
-    // Debug cameras
-    PerspectiveCamera m_persp;
-    OrthographicCamera m_ortho;
 
     GLFWwindow* m_pWindow = nullptr;
     OrbitalControls m_callbacks; // window controls. Sets up an orbital camera.
 
-    // UI Code
-    ModelLoaderDialog m_loaderDialog;
-    MaterialPropertiesDialog m_materialPropDialog;
-    LightPropertiesDialog m_lightPropDialog;
-    ScenePropertiesDialog m_scenePropDialog;
+    // Ui
 
-    Mesh m_mesh;
+    MainFrameComponent m_mainFrame;
 
-    glm::vec3* m_pClearColor = nullptr;
+    struct DataModel {
 
-    glm::vec2 m_windowSize{ 800, 600 };
-    glm::vec2 m_windowPosition{ 800, 600 };
+        // Camera
 
-    bool m_windowMaximized = false;
+        std::unique_ptr<Camera> m_pCamera;
+        PerspectiveCamera m_persp;
+        OrthographicCamera m_ortho;
+
+        // Model
+
+        Mesh mesh;
+        LambertianMaterial lambertianMaterial;
+        PhongMaterial phongMaterial;
+        PhongTexturedMaterial phongTexturedMaterial;
+
+        // Scene
+
+        glm::vec4 clearColor{ 0.305f, 0.520f, 0.828f, 1.f };
+        glm::vec3 ambientColor{ 1.f };
+        float ambientIntensity = 0.f;
+        std::array<DirectionalLight, 3> lights;
+
+        // Window
+
+        glm::vec2 windowSize{ 800, 600 };
+        glm::vec2 windowPosition{ 0, 0 };
+        bool windowMaximized = false;
+        int windowTheme = 0;
+    } m_dataModel;
 };
 
-Application::Private::Private()
-    : m_loaderDialog("Model Loader", kWindowFlags),
-      m_materialPropDialog("Material Properties", kWindowFlags),
-      m_lightPropDialog("Directional Light Properties", kWindowFlags),
-      m_scenePropDialog("Scene Properties", kWindowFlags) {
+Application::Private::Private() {
 
     // Camera setup
-    m_pCamera = [this] {
+    m_dataModel.m_pCamera = [this] {
         std::unique_ptr<PerspectiveCamera> pCamera = std::make_unique<PerspectiveCamera>();
-        pCamera->aspectRatio(m_windowSize.x / m_windowSize.y);
+        pCamera->aspectRatio(m_dataModel.windowSize.x / m_dataModel.windowSize.y);
         pCamera->fovY(glm::radians(45.f));
         pCamera->far(150.f);
         pCamera->near(0.01f);
@@ -150,25 +155,28 @@ Application::Private::Private()
         return std::move(pCamera);
     }();
 
-    m_callbacks.camera(m_pCamera.get());
+    m_callbacks.camera(m_dataModel.m_pCamera.get());
 
-    m_persp = *static_cast<PerspectiveCamera*>(m_pCamera.get());
-    m_ortho = m_persp;
+    m_dataModel.m_persp = *static_cast<PerspectiveCamera*>(m_dataModel.m_pCamera.get());
+    m_dataModel.m_ortho = m_dataModel.m_persp;
 
     // Signals
-    connectApplicationInitialized(&Application::Private::onInitialized, this);
-    
-    m_callbacks.connectWindowMaximized([this](bool maximized) {
-        m_windowMaximized = maximized;
-    });
+    initialized.connect(&Application::Private::onInitialized, this);
 
-    m_callbacks.connectWindowSizeChanged([this](const glm::ivec2& size) {
-        m_windowSize = size;
-    });
+    m_callbacks.windowMaximized.connect([this](bool maximized) { m_dataModel.windowMaximized = maximized; });
+    m_callbacks.windowSizeChanged.connect([this](const glm::ivec2& size) { m_dataModel.windowSize = size; });
+    m_callbacks.windowPositionChanged.connect([this](const glm::ivec2& position) { m_dataModel.windowPosition = position; });
 
-    m_callbacks.connectWindowPositionChanged([this](const glm::ivec2& position) {
-        m_windowPosition = position;
-    });
+    m_dataModel.lights.at(0).enabled(true);
+    m_dataModel.lights.at(0).pitch(glm::radians(45.f));
+    m_dataModel.lights.at(0).yaw(0.f);
+
+    m_dataModel.lights.at(1).enabled(true);
+    m_dataModel.lights.at(1).pitch(glm::radians(45.f));
+    m_dataModel.lights.at(1).yaw(glm::radians(180.f));
+
+    m_dataModel.lights.at(2).pitch(glm::radians(-90.f));
+    m_dataModel.lights.at(2).yaw(0.f);
 }
 
 Application::Private::~Private() {
@@ -186,21 +194,44 @@ Application::Private::APICleanUp::~APICleanUp() {
 
 void Application::Private::render() {
 
-    if (m_pClearColor)
-        glClearColor(m_pClearColor->r, m_pClearColor->g, m_pClearColor->b, 1.f);
+    const GLuint framebufferId = m_renderer.framebufferId();
+    const GLuint framebufferTextureId = m_renderer.framebufferTextureId();
 
+    if (framebufferId > 0) {
+
+        glClearColor(
+            m_dataModel.clearColor.r,
+            m_dataModel.clearColor.g,
+            m_dataModel.clearColor.b,
+            m_dataModel.clearColor.a
+        );
+
+        m_mainFrame.viewport().framebufferTexture(framebufferTextureId);
+        glBindFramebuffer(GL_FRAMEBUFFER, framebufferId);
+        glClear(m_renderer.framebufferBitplane());
+
+        if (m_dataModel.mesh.model() && m_dataModel.mesh.material()) {
+
+            if (!m_dataModel.mesh.initialized()) {
+                Renderer::Configure(m_dataModel.mesh);
+                Renderer::Allocate(m_dataModel.mesh);
+            }
+
+            m_renderer.draw(m_dataModel.mesh);
+        }
+
+        m_renderer.purgeFramebuffer();
+    }
+
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+    glClearColor(0.1f, 0.1f, 0.1f, 1.f);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
     ImGui_ImplOpenGL3_NewFrame();
     ImGui_ImplGlfw_NewFrame();
     ImGui::NewFrame();
-
-    m_loaderDialog.render();
-    m_materialPropDialog.render();
-    m_lightPropDialog.render();
-    m_scenePropDialog.render();
-
-    m_renderer.draw(m_mesh);
+    
+    static_cast<IComponent&>(m_mainFrame).render();
 
     ImGui::Render();
     ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
@@ -210,16 +241,10 @@ void Application::Private::render() {
 
 void Application::Private::update() {
 
-    const bool disableNavigation =
-        m_loaderDialog.active() ||
-        m_materialPropDialog.active() ||
-        m_lightPropDialog.active() ||
-        m_scenePropDialog.active();
+    m_callbacks.navigationEnabled(m_mainFrame.viewport().active());
 
-    m_callbacks.navigationEnabled(!disableNavigation);
-
-    if (m_pCamera)
-        m_pCamera->update();
+    if (m_dataModel.m_pCamera)
+        m_dataModel.m_pCamera->update();
 }
 
 GLFWwindow* Application::Private::createWindow(const glm::ivec2& dimensions, const std::string& title) {
@@ -227,6 +252,7 @@ GLFWwindow* Application::Private::createWindow(const glm::ivec2& dimensions, con
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+    glfwWindowHint(GLFW_DOUBLEBUFFER, GLFW_TRUE);
     
     // Enable MSAA
     glfwWindowHint(GLFW_SAMPLES, 4);
@@ -246,24 +272,31 @@ nlohmann::json Application::Private::save() const {
     nlohmann::json json;
     nlohmann::json& obj = json[id().data()];
 
-    obj["windowSize"] = m_windowSize;
-    obj["windowPosition"] = m_windowPosition;
-    obj["windowMaximized"] = m_windowMaximized;
-
-    if (const auto json = m_lightPropDialog.save(); json.is_object())
+    obj["Window"]["size"] = m_dataModel.windowSize;
+    obj["Window"]["position"] = m_dataModel.windowPosition;
+    obj["Window"]["maximized"] = m_dataModel.windowMaximized;
+    obj["Window"]["theme"] = m_dataModel.windowTheme;
+    
+    obj["Scene"]["clearColor"] = m_dataModel.clearColor;
+    obj["Scene"]["ambientColor"] = m_dataModel.ambientColor;
+    obj["Scene"]["ambientIntensity"] = m_dataModel.ambientIntensity;
+    
+    for (const DirectionalLight& light : m_dataModel.lights) {
+        if (const auto json = light.save(); json.is_object())
+            obj["Lighting"].push_back(json);
+    }
+    
+    if (const auto json = m_dataModel.mesh.save(); json.is_object())
         obj.update(json);
-
-    if (const auto json = m_loaderDialog.save(); json.is_object())
-        obj.update(json);
-
-    if (const auto json = m_materialPropDialog.save(); json.is_object())
-        obj.update(json);
-
-    if (const auto json = m_scenePropDialog.save(); json.is_object())
-        obj.update(json);
-
-    if (const auto json = m_mesh.save(); json.is_object())
-        obj.update(json);
+    
+    if (const auto json = m_dataModel.lambertianMaterial.save(); json.is_object())
+        obj["Materials"].update(json);
+    
+    if (const auto json = m_dataModel.phongMaterial.save(); json.is_object())
+        obj["Materials"].update(json);
+    
+    if (const auto json = m_dataModel.phongTexturedMaterial.save(); json.is_object())
+        obj["Materials"].update(json);
 
     return json;
 }
@@ -273,57 +306,92 @@ void Application::Private::restore(const nlohmann::json& settings) {
     if (settings.is_null() || !settings.is_object())
         return;
 
-    if (settings.contains("windowSize"))
-        settings["windowSize"].get_to(m_windowSize);
+    if (settings.contains("Window")) {
+        const nlohmann::json& json = settings.at("Window");
+        
+        if (json.contains("size")) {
+            json.at("size").get_to(m_dataModel.windowSize);
+            glfwSetWindowSize(m_pWindow, m_dataModel.windowSize.x, m_dataModel.windowSize.y);
+        }
 
-    if (settings.contains("windowPosition"))
-        settings["windowPosition"].get_to(m_windowPosition);
+        if (json.contains("position")) {
+            json.at("position").get_to(m_dataModel.windowPosition);
+            glfwSetWindowPos(m_pWindow, m_dataModel.windowPosition.x, m_dataModel.windowPosition.y);
+        }
 
-    if (settings.contains("windowMaximized"))
-        settings["windowMaximized"].get_to(m_windowMaximized);
+        if (json.contains("maximized")) {
+            json.at("maximized").get_to(m_dataModel.windowMaximized);
 
-    if (settings.contains(m_lightPropDialog.id()))
-        m_lightPropDialog.restore(settings.at(m_lightPropDialog.id().data()));
+            if (m_dataModel.windowMaximized)
+                glfwMaximizeWindow(m_pWindow);
+        }
 
-    if (settings.contains(m_loaderDialog.id()))
-        m_loaderDialog.restore(settings.at(m_loaderDialog.id().data()));
+        if (json.contains("theme")) {
 
-    if (settings.contains(m_materialPropDialog.id()))
-        m_materialPropDialog.restore(settings.at(m_materialPropDialog.id().data()));
-
-    if (settings.contains(m_scenePropDialog.id()))
-        m_scenePropDialog.restore(settings.at(m_scenePropDialog.id().data()));
-
-    if (settings.contains(m_mesh.id()))
-        m_mesh.restore(settings.at(m_mesh.id().data()));
-
-    if (m_windowMaximized)
-        glfwMaximizeWindow(m_pWindow);
-
-    glfwSetWindowSize(m_pWindow, m_windowSize.x, m_windowSize.y);
-    glfwSetWindowPos(m_pWindow, m_windowPosition.x, m_windowPosition.y);
-    glViewport(0, 0, m_windowSize.x, m_windowSize.y);
-}
-
-void Application::Private::onProjectionChange(int projection) {
-
-    if (projection == ScenePropertiesDialog::Projection::eOrthographic) {
-
-        const PerspectiveCamera* pCamera = dynamic_cast<const PerspectiveCamera*>(m_pCamera.get());
-        if (pCamera) {
-            m_pCamera = std::make_unique<OrthographicCamera>(*pCamera);
-            m_callbacks.camera(m_pCamera.get());
-            m_renderer.camera(m_pCamera.get());
+            int theme = 0;
+            json.at("theme").get_to(theme);
+            onThemeChanged(theme);
         }
     }
 
-    if (projection == ScenePropertiesDialog::Projection::ePerspective) {
+    if (settings.contains("Scene")) {
+        const nlohmann::json& json = settings.at("Scene");
 
-        const OrthographicCamera* pCamera = dynamic_cast<const OrthographicCamera*>(m_pCamera.get());
+        if (json.contains("clearColor"))
+            json.at("clearColor").get_to(m_dataModel.clearColor);
+
+        if (json.contains("ambientColor"))
+            json.at("ambientColor").get_to(m_dataModel.ambientColor);
+
+        if (json.contains("ambientIntensity"))
+            json.at("ambientIntensity").get_to(m_dataModel.ambientIntensity);
+    }
+
+    if (settings.contains("Lighting")) {
+        const nlohmann::json& json = settings.at("Lighting");
+
+        if (json.is_array() && json.size() <= m_dataModel.lights.size()) {
+            for (std::size_t index = 0; index < json.size(); ++index)
+                m_dataModel.lights.at(index).restore(json.at(index).at("DirectionalLight"));
+        }
+    }
+
+    if (settings.contains(m_dataModel.mesh.id()))
+        m_dataModel.mesh.restore(settings.at(m_dataModel.mesh.id().data()));
+
+    if (settings.contains("Materials")) {
+        const nlohmann::json& json = settings.at("Materials");
+
+        if (json.contains(m_dataModel.lambertianMaterial.id()))
+            m_dataModel.lambertianMaterial.restore(json.at(m_dataModel.lambertianMaterial.id().data()));
+
+        if (json.contains(m_dataModel.phongMaterial.id()))
+            m_dataModel.phongMaterial.restore(json.at(m_dataModel.phongMaterial.id().data()));
+
+        if (json.contains(m_dataModel.phongTexturedMaterial.id()))
+            m_dataModel.phongTexturedMaterial.restore(json.at(m_dataModel.phongTexturedMaterial.id().data()));
+    }
+}
+
+void Application::Private::onProjectionChange(Camera::Projection projection) {
+
+    if (projection == Camera::Projection::Orthographic) {
+
+        const PerspectiveCamera* pCamera = dynamic_cast<const PerspectiveCamera*>(m_dataModel.m_pCamera.get());
         if (pCamera) {
-            m_pCamera = std::make_unique<PerspectiveCamera>(*pCamera);
-            m_callbacks.camera(m_pCamera.get());
-            m_renderer.camera(m_pCamera.get());
+            m_dataModel.m_pCamera = std::make_unique<OrthographicCamera>(*pCamera);
+            m_callbacks.camera(m_dataModel.m_pCamera.get());
+            m_renderer.camera(m_dataModel.m_pCamera.get());
+        }
+    }
+
+    if (projection == Camera::Projection::Perspective) {
+
+        const OrthographicCamera* pCamera = dynamic_cast<const OrthographicCamera*>(m_dataModel.m_pCamera.get());
+        if (pCamera) {
+            m_dataModel.m_pCamera = std::make_unique<PerspectiveCamera>(*pCamera);
+            m_callbacks.camera(m_dataModel.m_pCamera.get());
+            m_renderer.camera(m_dataModel.m_pCamera.get());
         }
     }
 }
@@ -336,49 +404,16 @@ void Application::Private::onWireframeModeChange(bool wireframe) const {
         glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 }
 
-void Application::Private::fitSceneToModel(std::forward_list<VertexBuffered>* pModel) {
-
-    if (!pModel)
-        return;
-
-    m_mesh.position() = -ComputeCenter(pModel);
-    m_mesh.scale() = ComputeScale(pModel, kMaxModelSize);
-}
-
 void Application::Private::onInitialized() {
 
-    // Setup data models for the scene
-    m_materialPropDialog.mesh(&m_mesh);
-    m_loaderDialog.mesh(&m_mesh);
-    m_scenePropDialog.mesh(&m_mesh);
-
-    m_pClearColor = m_scenePropDialog.clearColor();
-    m_renderer.ambientColor(m_scenePropDialog.ambientColor(), m_scenePropDialog.ambientIntensity());
-
-    for (uint8_t lightIndex = 0; lightIndex < kMaxLights; ++lightIndex)
-        m_renderer.directionalLight(m_lightPropDialog.directionalLight(lightIndex), lightIndex);
-
-    // Model loader signals
-    m_loaderDialog.connectModelLoaded([this]() {
-        fitSceneToModel(m_mesh.model());
-        m_renderer.initializeMesh(m_mesh);
-    });
-
-    // Material property signals
-    m_materialPropDialog.connectMaterialSelectionChanged([this]() {
-        m_renderer.initializeMesh(m_mesh);
-    });
-
-    m_materialPropDialog.connectTextureLoaded(&Renderer::onTextureLoaded, &m_renderer);
+    m_mainFrame.viewport().viewportResized.connect(&Application::Private::onViewportResized, this);
+    m_mainFrame.exited.connect([this] { glfwSetWindowShouldClose(m_pWindow, GLFW_TRUE); });
+    m_mainFrame.themeChanged.connect([this](int theme) { onThemeChanged(theme); });
 
     // Window controls signals
-    m_callbacks.connectProjectionChanged(&Application::Private::onProjectionChange, this);
-    m_callbacks.connectProjectionChanged(&ScenePropertiesDialog::onProjectionChange, &m_scenePropDialog);
-    
-    m_callbacks.connectWireframeChanged(&Application::Private::onWireframeModeChange, this);
-    m_callbacks.connectWireframeChanged(&ScenePropertiesDialog::onWireframeModeChange, &m_scenePropDialog);
-    
-    m_callbacks.connectApplicationSaved(&Application::Private::onSaved, this);
+    m_callbacks.projectionChanged.connect(&Application::Private::onProjectionChange, this);
+    m_callbacks.wireframeChanged.connect(&Application::Private::onWireframeModeChange, this);
+    m_callbacks.saved.connect(&Application::Private::onSaved, this);
 
     // Restore application settings
     if (std::filesystem::is_regular_file(kSettingsFileName) && std::filesystem::file_size(kSettingsFileName) > 0) {
@@ -401,6 +436,31 @@ void Application::Private::onInitialized() {
             std::cerr << "An unknown nlohmann error occurred.\n";
         }
     }
+
+    m_dataModel.mesh.material(&m_dataModel.phongMaterial);
+
+    const std::array<DirectionalLight*, 3> lights{
+        &m_dataModel.lights.at(0),
+        &m_dataModel.lights.at(1),
+        &m_dataModel.lights.at(2)
+    };
+
+    m_renderer.directionalLights(lights);
+    m_renderer.ambientColor(&m_dataModel.ambientColor);
+    m_renderer.ambientIntensity(&m_dataModel.ambientIntensity);
+
+    MainFrameComponent::DataModel model;
+    model.m_pAmbientColor = &m_dataModel.ambientColor;
+    model.m_pClearColor = &m_dataModel.clearColor;
+    model.m_pAmbientIntensity = &m_dataModel.ambientIntensity;
+    model.m_pMesh = &m_dataModel.mesh;
+    model.m_pLambertianMat = &m_dataModel.lambertianMaterial;
+    model.m_pPhongMat = &m_dataModel.phongMaterial;
+    model.m_pPhongTexturedMat = &m_dataModel.phongTexturedMaterial;
+    model.m_lights = lights;
+    model.m_pWindowTheme = &m_dataModel.windowTheme;
+
+    static_cast<IComponent&>(m_mainFrame).syncFrom(&model);
 }
 
 void Application::Private::onSaved() {
@@ -409,6 +469,26 @@ void Application::Private::onSaved() {
     file << save();
 }
 
+void Application::Private::onViewportResized(const glm::uvec2& dimensions) {
+
+    m_renderer.createFramebuffer(dimensions);
+    glViewport(0, 0, dimensions.x, dimensions.y);
+
+    if (m_dataModel.m_pCamera)
+        m_dataModel.m_pCamera->aspectRatio(static_cast<float>(dimensions.x) / static_cast<float>(dimensions.y));
+}
+
+void Application::Private::onThemeChanged(int theme) {
+
+    m_dataModel.windowTheme = theme;
+
+    switch (m_dataModel.windowTheme) {
+    case 0: ImGui::StyleColorsClassic(); break;
+    case 1: ImGui::StyleColorsLight(); break;
+    case 2: ImGui::StyleColorsDark(); break;
+    default: break;
+    }
+}
 
 Application::Application()
     : m_pPrivate(std::make_unique<Private>()) {}
@@ -424,7 +504,7 @@ bool Application::setUp() {
         m_pPrivate->m_pWindow = nullptr;
     }
 
-    m_pPrivate->m_pWindow = m_pPrivate->createWindow({ m_pPrivate->m_windowSize.x, m_pPrivate->m_windowSize.y}, "Model Viewer");
+    m_pPrivate->m_pWindow = m_pPrivate->createWindow({ m_pPrivate->m_dataModel.windowSize.x, m_pPrivate->m_dataModel.windowSize.y}, "Model Viewer");
     if (!m_pPrivate->m_pWindow) {
         std::cerr << "Failed to create a window.\n";
         return false;
@@ -441,13 +521,10 @@ bool Application::setUp() {
 #endif
 
     m_pPrivate->m_renderer.setup();
-    m_pPrivate->m_renderer.camera(m_pPrivate->m_pCamera.get());
-
-    glViewport(0, 0, m_pPrivate->m_windowSize.x, m_pPrivate->m_windowSize.y);
+    m_pPrivate->m_renderer.camera(m_pPrivate->m_dataModel.m_pCamera.get());
 
     // Setup window callbacks for modular window controls.
     glfwSetWindowUserPointer(m_pPrivate->m_pWindow, &m_pPrivate->m_callbacks);
-    glfwSetFramebufferSizeCallback(m_pPrivate->m_pWindow, WindowCallbacks::FrameBufferSizeCallback);
     
     glfwSetCursorPosCallback(m_pPrivate->m_pWindow, WindowCallbacks::CursorPositionCallback);
     glfwSetMouseButtonCallback(m_pPrivate->m_pWindow, WindowCallbacks::MouseButtonCallback);
@@ -460,14 +537,30 @@ bool Application::setUp() {
 
     IMGUI_CHECKVERSION();
     ImGui::CreateContext();
-    ImGui::StyleColorsLight();
 
     ImGui::GetIO().ConfigFlags |= ImGuiConfigFlags_DockingEnable;
+    ImGui::GetIO().Fonts->AddFontFromFileTTF("fonts/DroidSans.ttf", 15.f);
+    
+    ImFontConfig fontConfig;
+    fontConfig.MergeMode = true;
+    fontConfig.GlyphMinAdvanceX = 15.f;
+
+    static std::array<ImWchar, 2> iconRange{ 0xe005, 0xf8ff };
+    ImGui::GetIO().Fonts->AddFontFromFileTTF("fonts/fa-solid-900.ttf", 15.f, &fontConfig, iconRange.data());
+
+    ImGuiStyle& style = ImGui::GetStyle();
+    style.FrameBorderSize = 1.f;
+    style.FrameRounding = 2.f;
+    style.ItemSpacing.x = 7.f;
+    style.ItemSpacing.y = 7.f;
+    style.IndentSpacing = 21.f;
+    style.TabRounding = 3.f;
+    style.ScrollbarRounding = 2.f;
 
     ImGui_ImplGlfw_InitForOpenGL(m_pPrivate->m_pWindow, true);
     ImGui_ImplOpenGL3_Init("#version 330");
 
-    m_pPrivate->m_signalInitialized();
+    m_pPrivate->initialized();
 
     return true;
 }

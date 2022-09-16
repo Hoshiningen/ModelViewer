@@ -20,6 +20,8 @@ public:
     virtual nlohmann::json save() const override;
     virtual void restore(const nlohmann::json& settings) override;
 
+    virtual void destroy() override;
+
     DECLARE_GETTER_CONST_CORRECT(diffuseMap, std::optional<Texture>)
     DECLARE_SETTER_CONSTREF(diffuseMap, Texture)
 
@@ -29,16 +31,16 @@ public:
     DECLARE_GETTER_CONST_CORRECT(emissiveMap, std::optional<Texture>)
     DECLARE_SETTER_CONSTREF(emissiveMap, Texture)
 
-    DECLARE_GETTER_MUTABLE(shininess, float)
+    DECLARE_GETTER_IMMUTABLE_COPY(shininess, float)
     DECLARE_SETTER_COPY(shininess, float)
 
-    DECLARE_GETTER_MUTABLE(diffuseIntensity, float)
+    DECLARE_GETTER_IMMUTABLE_COPY(diffuseIntensity, float)
     DECLARE_SETTER_COPY(diffuseIntensity, float)
 
-    DECLARE_GETTER_MUTABLE(emissiveIntensity, float)
+    DECLARE_GETTER_IMMUTABLE_COPY(emissiveIntensity, float)
     DECLARE_SETTER_COPY(emissiveIntensity, float)
 
-    DECLARE_GETTER_MUTABLE(specularIntensity, float)
+    DECLARE_GETTER_IMMUTABLE_COPY(specularIntensity, float)
     DECLARE_SETTER_COPY(specularIntensity, float)
 
 private:

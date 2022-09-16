@@ -64,12 +64,3 @@ void WindowCallbacks::WindowPositionCallback(GLFWwindow* pWindow, int xPos, int 
 
     pCallbacks->WindowPositionImpl(pWindow, xPos, yPos);
 }
-
-void WindowCallbacks::FrameBufferSizeCallback(GLFWwindow* pWindow, int width, int height) {
-
-    WindowCallbacks* pCallbacks = static_cast<WindowCallbacks*>(glfwGetWindowUserPointer(pWindow));
-    if (!pCallbacks)
-        return;
-
-    pCallbacks->FrameBufferSizeImpl(pWindow, width, height);
-}

@@ -18,10 +18,10 @@ public:
     virtual nlohmann::json save() const override;
     virtual void restore(const nlohmann::json& settings) override;
 
-    DECLARE_GETTER_MUTABLE(diffuseIntensity, float)
+    DECLARE_GETTER_IMMUTABLE_COPY(diffuseIntensity, float)
     DECLARE_SETTER_COPY(diffuseIntensity, float)
 
-    DECLARE_GETTER_MUTABLE(diffuseColor, glm::vec4)
+    DECLARE_GETTER_IMMUTABLE(diffuseColor, glm::vec4)
     DECLARE_SETTER_CONSTREF(diffuseColor, glm::vec4)
 
 private:

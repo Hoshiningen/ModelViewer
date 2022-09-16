@@ -74,13 +74,13 @@ DEFINE_GETTER_IMMUTABLE(Texture, height, unsigned int, m_pPrivate->m_height)
 DEFINE_GETTER_IMMUTABLE(Texture, textureFormat, Texture::Channels, m_pPrivate->m_textureFormat)
 DEFINE_GETTER_IMMUTABLE(Texture, pixelFormat, Texture::Channels, m_pPrivate->m_pixelFormat)
 
-DEFINE_GETTER_IMMUTABLE(Texture, id, GLuint, m_pPrivate->m_id)
-DEFINE_GETTER_IMMUTABLE(Texture, target, Texture::Target, m_pPrivate->m_target)
+DEFINE_GETTER_IMMUTABLE_COPY(Texture, id, GLuint, m_pPrivate->m_id)
+DEFINE_GETTER_IMMUTABLE_COPY(Texture, target, Texture::Target, m_pPrivate->m_target)
 
-DEFINE_GETTER_IMMUTABLE(Texture, minFilter, Texture::Filter, m_pPrivate->m_minFilter)
+DEFINE_GETTER_IMMUTABLE_COPY(Texture, minFilter, Texture::Filter, m_pPrivate->m_minFilter)
 DEFINE_SETTER_COPY(Texture, minFilter, m_pPrivate->m_minFilter)
 
-DEFINE_GETTER_IMMUTABLE(Texture, magFilter, Texture::Filter, m_pPrivate->m_magFilter)
+DEFINE_GETTER_IMMUTABLE_COPY(Texture, magFilter, Texture::Filter, m_pPrivate->m_magFilter)
 DEFINE_SETTER_COPY(Texture, magFilter, m_pPrivate->m_magFilter)
 
 void Texture::wrap(Wrap value) {
@@ -88,13 +88,13 @@ void Texture::wrap(Wrap value) {
     m_pPrivate->m_wrapT = value;
 }
 
-DEFINE_GETTER_IMMUTABLE(Texture, wrapS, Texture::Wrap, m_pPrivate->m_wrapS)
+DEFINE_GETTER_IMMUTABLE_COPY(Texture, wrapS, Texture::Wrap, m_pPrivate->m_wrapS)
 DEFINE_SETTER_COPY(Texture, wrapS, m_pPrivate->m_wrapS)
 
-DEFINE_GETTER_IMMUTABLE(Texture, wrapT, Texture::Wrap, m_pPrivate->m_wrapT)
+DEFINE_GETTER_IMMUTABLE_COPY(Texture, wrapT, Texture::Wrap, m_pPrivate->m_wrapT)
 DEFINE_SETTER_COPY(Texture, wrapT, m_pPrivate->m_wrapT)
 
-DEFINE_GETTER_IMMUTABLE(Texture, mipmap, bool, m_pPrivate->m_mipmap)
+DEFINE_GETTER_IMMUTABLE_COPY(Texture, mipmap, bool, m_pPrivate->m_mipmap)
 DEFINE_SETTER_COPY(Texture, wrapT, m_pPrivate->m_mipmap)
 
 void Texture::borderColor(const glm::vec4& color) {
@@ -110,7 +110,7 @@ void Texture::initialize() {
     m_pPrivate->m_initialized = true;
 }
 
-DEFINE_GETTER_IMMUTABLE(Texture, initialized, bool, m_pPrivate->m_initialized)
+DEFINE_GETTER_IMMUTABLE_COPY(Texture, initialized, bool, m_pPrivate->m_initialized)
 
 void Texture::destroy() const {
 

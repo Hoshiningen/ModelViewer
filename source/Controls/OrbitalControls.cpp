@@ -51,14 +51,6 @@ OrbitalControls::~OrbitalControls() noexcept {}
 DEFINE_SETTER_COPY(OrbitalControls, camera, m_pPrivate->m_pCamera)
 DEFINE_SETTER_COPY(OrbitalControls, navigationEnabled, m_pPrivate->m_navigationEnabled)
 
-void OrbitalControls::FrameBufferSizeImpl(GLFWwindow*, int width, int height) {
-
-    glViewport(0, 0, width, height);
-
-    if (m_pPrivate->m_pCamera)
-        m_pPrivate->m_pCamera->aspectRatio(static_cast<float>(width) / static_cast<float>(height));
-}
-
 void OrbitalControls::CursorPositionImpl(GLFWwindow* pWindow, double xPos, double yPos) {
 
     if (!m_pPrivate->m_navigationEnabled)
@@ -112,33 +104,33 @@ void OrbitalControls::KeyboardImpl(GLFWwindow* pWindow, int key, int scanCode, i
         glfwSetWindowShouldClose(pWindow, true);
 
     if (key == GLFW_KEY_P && action == GLFW_PRESS)
-        m_signalProjectionChanged(0);
+        projectionChanged(Camera::Projection::Perspective);
 
     if (key == GLFW_KEY_O && action == GLFW_PRESS)
-        m_signalProjectionChanged(1);
+        projectionChanged(Camera::Projection::Orthographic);
 
     static bool m_wireframe = false;
     if (key == GLFW_KEY_W && action == GLFW_PRESS) {
         m_wireframe = !m_wireframe;
-        m_signalWireframeChanged(m_wireframe);
+        wireframeChanged(m_wireframe);
     }
 
     if (key == GLFW_KEY_S && action == GLFW_PRESS) {
         if (modifiers & GLFW_MOD_CONTROL)
-            m_signalSaved();
+            saved();
     }
 }
 
 void OrbitalControls::ScrollImpl(GLFWwindow*, double, double) {}
 
 void OrbitalControls::WindowMaximizedImpl(GLFWwindow* pWindow, int maximized) {
-    m_signalWindowMaximized(maximized != 0 ? true : false);
+    windowMaximized(maximized != 0 ? true : false);
 }
 
 void OrbitalControls::WindowSizeImpl(GLFWwindow* pWindow, int width, int height) {
-    m_signalWindowSizeChanged(glm::ivec2{ width, height });
+    windowSizeChanged(glm::ivec2{ width, height });
 }
 
 void OrbitalControls::WindowPositionImpl(GLFWwindow* pWindow, int xPos, int yPos) {
-    m_signalWindowPositionChanged(glm::ivec2{ xPos, yPos });
+    windowPositionChanged(glm::ivec2{ xPos, yPos });
 }
