@@ -41,8 +41,8 @@ public:
 
     DECLARE_GETTER_MUTABLE(viewport, ViewportComponent)
 
-
     sigslot::signal<> exited;
+    sigslot::signal<int> themeChanged;
 
     struct DataModel : public IComponent::DataModel {
         glm::vec3* m_pAmbientColor = nullptr;
@@ -57,6 +57,7 @@ public:
         PhongTexturedMaterial* m_pPhongTexturedMat = nullptr;
 
         std::array<DirectionalLight*, 3> m_lights;
+        int* m_pWindowTheme = nullptr;
     };
 
 private:

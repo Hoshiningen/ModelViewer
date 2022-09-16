@@ -96,6 +96,7 @@ struct Application::Private : private IRestorable {
     void onInitialized();
     void onSaved();
     void onViewportResized(const glm::uvec2& dimensions);
+    void onThemeChanged(int theme);
 
     sigslot::signal<> initialized;
 
@@ -136,6 +137,7 @@ public:
         glm::vec2 windowSize{ 800, 600 };
         glm::vec2 windowPosition{ 0, 0 };
         bool windowMaximized = false;
+        int windowTheme = 0;
     } m_dataModel;
 };
 
@@ -273,6 +275,7 @@ nlohmann::json Application::Private::save() const {
     obj["Window"]["size"] = m_dataModel.windowSize;
     obj["Window"]["position"] = m_dataModel.windowPosition;
     obj["Window"]["maximized"] = m_dataModel.windowMaximized;
+    obj["Window"]["theme"] = m_dataModel.windowTheme;
     
     obj["Scene"]["clearColor"] = m_dataModel.clearColor;
     obj["Scene"]["ambientColor"] = m_dataModel.ambientColor;
@@ -321,6 +324,13 @@ void Application::Private::restore(const nlohmann::json& settings) {
 
             if (m_dataModel.windowMaximized)
                 glfwMaximizeWindow(m_pWindow);
+        }
+
+        if (json.contains("theme")) {
+
+            int theme = 0;
+            json.at("theme").get_to(theme);
+            onThemeChanged(theme);
         }
     }
 
@@ -398,6 +408,7 @@ void Application::Private::onInitialized() {
 
     m_mainFrame.viewport().viewportResized.connect(&Application::Private::onViewportResized, this);
     m_mainFrame.exited.connect([this] { glfwSetWindowShouldClose(m_pWindow, GLFW_TRUE); });
+    m_mainFrame.themeChanged.connect([this](int theme) { onThemeChanged(theme); });
 
     // Window controls signals
     m_callbacks.projectionChanged.connect(&Application::Private::onProjectionChange, this);
@@ -447,6 +458,7 @@ void Application::Private::onInitialized() {
     model.m_pPhongMat = &m_dataModel.phongMaterial;
     model.m_pPhongTexturedMat = &m_dataModel.phongTexturedMaterial;
     model.m_lights = lights;
+    model.m_pWindowTheme = &m_dataModel.windowTheme;
 
     static_cast<IComponent&>(m_mainFrame).syncFrom(&model);
 }
@@ -464,6 +476,18 @@ void Application::Private::onViewportResized(const glm::uvec2& dimensions) {
 
     if (m_dataModel.m_pCamera)
         m_dataModel.m_pCamera->aspectRatio(static_cast<float>(dimensions.x) / static_cast<float>(dimensions.y));
+}
+
+void Application::Private::onThemeChanged(int theme) {
+
+    m_dataModel.windowTheme = theme;
+
+    switch (m_dataModel.windowTheme) {
+    case 0: ImGui::StyleColorsClassic(); break;
+    case 1: ImGui::StyleColorsLight(); break;
+    case 2: ImGui::StyleColorsDark(); break;
+    default: break;
+    }
 }
 
 Application::Application()
@@ -513,7 +537,6 @@ bool Application::setUp() {
 
     IMGUI_CHECKVERSION();
     ImGui::CreateContext();
-    ImGui::StyleColorsLight();
 
     ImGui::GetIO().ConfigFlags |= ImGuiConfigFlags_DockingEnable;
     ImGui::GetIO().Fonts->AddFontFromFileTTF("fonts/DroidSans.ttf", 15.f);

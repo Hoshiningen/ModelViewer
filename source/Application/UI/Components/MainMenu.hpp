@@ -12,9 +12,11 @@ public:
     sigslot::signal<> scenePropertiesOpened;
     sigslot::signal<> modelPropertiesOpened;
     sigslot::signal<> lightPropertiesOpened;
+    sigslot::signal<int> themeChanged;
 
     struct DataModel : public IComponent::DataModel {
         bool m_modelLoaded = false;
+        int m_selectedTheme = 0;
     };
 
 private:

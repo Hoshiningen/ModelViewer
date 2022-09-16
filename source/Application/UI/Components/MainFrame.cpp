@@ -71,6 +71,7 @@ MainFrameComponent::MainFrameComponent() {
     m_mainMenu.lightPropertiesOpened.connect([this] { OnSceneNodeSelected(SceneTreeComponent::SceneNode::Lighting); });
     m_mainMenu.modelPropertiesOpened.connect([this] { OnSceneNodeSelected(SceneTreeComponent::SceneNode::Model); });
     m_mainMenu.scenePropertiesOpened.connect([this] { OnSceneNodeSelected(SceneTreeComponent::SceneNode::Scene); });
+    m_mainMenu.themeChanged.connect([this](int theme) { themeChanged(theme); });
 }
 
 void MainFrameComponent::render() {
@@ -185,6 +186,7 @@ void MainFrameComponent::syncFrom(const IComponent::DataModel* pFrom) {
     static_cast<IComponent&>(m_phongTexturedProps).syncFrom(dataModel());
 
     static_cast<IComponent&>(m_sceneTree).syncFrom(dataModel());
+    static_cast<IComponent&>(m_mainMenu).syncFrom(dataModel());
 }
 
 const IComponent::DataModel* MainFrameComponent::dataModel() const {
@@ -274,7 +276,10 @@ void MainFrameComponent::OnLightStatusChanged(std::uint8_t lightIndex, bool enab
 }
 
 void MainFrameComponent::OnModelClosed() {
+
+    m_properties.propertiesComponent(nullptr);
     m_model.m_pMesh->destroy();
+
     static_cast<IComponent&>(m_sceneTree).syncFrom(dataModel());
     static_cast<IComponent&>(m_mainMenu).syncFrom(dataModel());
 }
