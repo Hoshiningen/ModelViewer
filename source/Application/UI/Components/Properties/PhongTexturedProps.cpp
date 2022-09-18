@@ -1,4 +1,4 @@
-#include "Ui/Components/PhongTexturedProps.hpp"
+#include "UI/Components/Properties/PhongTexturedProps.hpp"
 
 #include "IO/TextureLoader.hpp"
 #include "Material/PhongTexturedMaterial.hpp"

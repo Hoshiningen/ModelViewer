@@ -1,4 +1,4 @@
-#include "UI/Components/LightProps.hpp"
+#include "UI/Components/Properties/LightProps.hpp"
 #include "UI/Components/MainFrame.hpp"
 
 #include "Light/DirectionalLight.hpp"

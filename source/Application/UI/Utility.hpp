@@ -13,4 +13,5 @@ struct Utility {
     static void Center(const std::string& text);
 
     static float ComputeRightAlignedCursorPos(const std::initializer_list<const char*>& widgetLabels);
+    static float ComputeRightAlignedCursorPos(const std::initializer_list<float>& widgetWidths);
 };

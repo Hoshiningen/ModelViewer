@@ -32,7 +32,7 @@ MainFrameComponent::MainFrameComponent() {
         static_cast<IComponent&>(m_sceneTree).syncFrom(dataModel());
     });
 
-    m_modelLoader.modelOpened.connect(&MainFrameComponent::OnModelOpened, this);
+    //m_modelLoader.modelOpened.connect(&MainFrameComponent::OnModelOpened, this);
 
     m_lambertianProps.diffuseColorChanged.connect([this](const glm::vec4& color) { m_model.m_pLambertianMat->diffuseColor(color); });
     m_lambertianProps.diffuseIntensityChanged.connect([this](float intensity) { m_model.m_pLambertianMat->diffuseIntensity(intensity); });
@@ -133,7 +133,24 @@ void MainFrameComponent::render() {
     static_cast<IComponent&>(m_properties).render();
     static_cast<IComponent&>(m_sceneTree).render();
     static_cast<IComponent&>(m_viewport).render();
-    static_cast<IComponent&>(m_modelLoader).render();
+    static_cast<IComponent&>(m_fileExplorer).render();
+
+#ifdef MV_DEBUG
+    if (m_mainMenu.showDebugLog)
+        ImGui::ShowDebugLogWindow(&m_mainMenu.showDebugLog);
+
+    if (m_mainMenu.showStyleEditor)
+        ImGui::ShowStyleEditor();
+
+    if (m_mainMenu.showMetrics)
+        ImGui::ShowMetricsWindow(&m_mainMenu.showMetrics);
+
+    if (m_mainMenu.showDemoWindow)
+        ImGui::ShowDemoWindow(&m_mainMenu.showDemoWindow);
+
+    if (m_mainMenu.showStackTool)
+        ImGui::ShowStackToolWindow(&m_mainMenu.showStackTool);
+#endif
 
     ImGui::End();
 }

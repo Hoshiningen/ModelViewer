@@ -3,7 +3,7 @@
 #include "Light/DirectionalLight.hpp"
 
 #include "UI/Components/MainFrame.hpp"
-#include "UI/Components/ModelLoader.hpp"
+#include "UI/Components/FileExplorer/FileExplorer.hpp"
 #include "UI/Icons.hpp"
 #include "UI/Utility.hpp"
 
@@ -29,7 +29,7 @@ const char* SceneTreeComponent::windowId() const {
 
 void SceneTreeComponent::render() {
 
-    bool openModelLoader = false;
+    bool openFileExplorer = false;
     ImGui::Begin(windowId());
 
     if (ImGui::BeginTabBar("SceneTreeTabBar") && ImGui::BeginTabItem("Scene Tree")) {
@@ -40,7 +40,7 @@ void SceneTreeComponent::render() {
 
         if (ImGui::BeginPopupContextItem()) {
             if (ImGui::MenuItem(Utility::Label("Load Model...", FOLDER_OPEN_ICON).c_str()))
-                openModelLoader = true;
+                openFileExplorer = true;
 
 
             if (ImGui::MenuItem("Remove Model", nullptr, nullptr, m_model.m_modelLoaded))
@@ -152,8 +152,8 @@ void SceneTreeComponent::render() {
 
     ImGui::End();
 
-    if (openModelLoader && !ImGui::IsPopupOpen(ModelLoaderComponent::kWindowId))
-        ImGui::OpenPopup(ModelLoaderComponent::kWindowId);
+    if (openFileExplorer && !ImGui::IsPopupOpen(FileExplorer::kWindowId))
+        ImGui::OpenPopup(FileExplorer::kWindowId);
 }
 
 void SceneTreeComponent::syncFrom(const IComponent::DataModel* pFrom) {

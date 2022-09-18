@@ -1,6 +1,6 @@
-#include "Ui/Components/MainMenu.hpp"
-#include "Ui/Components/MainFrame.hpp"
-#include "UI/Components/ModelLoader.hpp"
+#include "UI/Components/MainMenu.hpp"
+#include "UI/Components/MainFrame.hpp"
+#include "UI/Components/FileExplorer/FileExplorer.hpp"
 #include "UI/Icons.hpp"
 #include "UI/Utility.hpp"
 
@@ -10,12 +10,12 @@
 
 void MainMenuComponent::render() {
 
-    bool openModelLoader = false;
+    bool openFileExplorer = false;
     if (ImGui::BeginMainMenuBar()) {
 
         if (ImGui::BeginMenu("File")) {
             if (ImGui::MenuItem(Utility::Label("Open...", FOLDER_OPEN_ICON).c_str()))
-                openModelLoader = true;
+                openFileExplorer = true;
 
             if (ImGui::MenuItem("Close", nullptr, nullptr, m_model.m_modelLoaded))
                 modelClosed();
@@ -56,11 +56,23 @@ void MainMenuComponent::render() {
             ImGui::EndMenu();
         }
 
+#ifdef MV_DEBUG
+        if (ImGui::BeginMenu("Debug")) {
+
+            ImGui::MenuItem("Metrics Window...", nullptr, &showMetrics);
+            ImGui::MenuItem("Style Editor...", nullptr, &showStyleEditor);
+            ImGui::MenuItem("Debug Log...", nullptr, &showDebugLog);
+            ImGui::MenuItem("Demo Window...", nullptr, &showDemoWindow);
+            ImGui::MenuItem("Stack Tool...", nullptr, &showStackTool);
+
+            ImGui::EndMenu();
+        }
+#endif
         ImGui::EndMainMenuBar();
     }
 
-    if (openModelLoader && !ImGui::IsPopupOpen(ModelLoaderComponent::kWindowId))
-        ImGui::OpenPopup(ModelLoaderComponent::kWindowId);
+    if (openFileExplorer && !ImGui::IsPopupOpen(FileExplorer::kWindowId))
+        ImGui::OpenPopup(FileExplorer::kWindowId);
 }
 
 void MainMenuComponent::syncFrom(const IComponent::DataModel* pFrom) {

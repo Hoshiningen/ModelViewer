@@ -22,29 +22,37 @@ set(UI
 )
 
 set(COMPONENTS
-    UI/Components/DirectionalLightProps.hpp
-    UI/Components/DirectionalLightProps.cpp
+    UI/Components/FileExplorer/DirectoryTree.hpp
+    UI/Components/FileExplorer/DirectoryTree.cpp
+    UI/Components/FileExplorer/DirectoryView.hpp
+    UI/Components/FileExplorer/DirectoryView.cpp
+    UI/Components/FileExplorer/FileSelector.hpp
+    UI/Components/FileExplorer/FileSelector.cpp
+    UI/Components/FileExplorer/FileExplorer.hpp
+    UI/Components/FileExplorer/FileExplorer.cpp
+    UI/Components/Properties/DirectionalLightProps.hpp
+    UI/Components/Properties/DirectionalLightProps.cpp
+    UI/Components/Properties/LambertianProps.hpp
+    UI/Components/Properties/LambertianProps.cpp
+    UI/Components/Properties/LightProps.hpp
+    UI/Components/Properties/LightProps.cpp
+    UI/Components/Properties/ModelProps.hpp
+    UI/Components/Properties/ModelProps.cpp
+    UI/Components/Properties/PhongProps.hpp
+    UI/Components/Properties/PhongProps.cpp
+    UI/Components/Properties/PhongTexturedProps.hpp
+    UI/Components/Properties/PhongTexturedProps.cpp
+    UI/Components/Properties/Properties.hpp
+    UI/Components/Properties/Properties.cpp
+    UI/Components/Properties/SceneProps.hpp
+    UI/Components/Properties/SceneProps.cpp
     UI/Components/IComponent.hpp
-    UI/Components/LambertianProps.hpp
-    UI/Components/LambertianProps.cpp
-    UI/Components/LightProps.hpp
-    UI/Components/LightProps.cpp
     UI/Components/MainFrame.hpp
     UI/Components/MainFrame.cpp
     UI/Components/MainMenu.hpp
     UI/Components/MainMenu.cpp
     UI/Components/ModelLoader.hpp
     UI/Components/ModelLoader.cpp
-    UI/Components/ModelProps.hpp
-    UI/Components/ModelProps.cpp
-    UI/Components/PhongProps.hpp
-    UI/Components/PhongProps.cpp
-    UI/Components/PhongTexturedProps.hpp
-    UI/Components/PhongTexturedProps.cpp
-    UI/Components/Properties.hpp
-    UI/Components/Properties.cpp
-    UI/Components/SceneProps.hpp
-    UI/Components/SceneProps.cpp
     UI/Components/SceneTree.hpp
     UI/Components/SceneTree.cpp
     UI/Components/Viewport.hpp
@@ -77,6 +85,11 @@ target_link_libraries(Application PRIVATE
     CONAN_PKG::imgui
     CONAN_PKG::nlohmann_json
     CONAN_PKG::sigslot
+)
+
+target_compile_definitions(Application PRIVATE
+  $<$<CONFIG:Debug>:MV_DEBUG>
+  $<$<CONFIG:RelWithDebInfo>:MV_DEBUG>
 )
 
 # Copy shaders for vs execution

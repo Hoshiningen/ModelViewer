@@ -19,6 +19,14 @@ public:
         int m_selectedTheme = 0;
     };
 
+#ifdef MV_DEBUG
+    bool showMetrics = false;
+    bool showStyleEditor = false;
+    bool showDebugLog = false;
+    bool showDemoWindow = false;
+    bool showStackTool = false;
+#endif
+
 private:
     virtual void syncFrom(const IComponent::DataModel* pFrom) override;
     virtual void render() override;

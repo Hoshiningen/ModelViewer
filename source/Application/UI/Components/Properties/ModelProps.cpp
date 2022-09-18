@@ -1,4 +1,4 @@
-#include "UI/Components/ModelProps.hpp"
+#include "UI/Components/Properties/ModelProps.hpp"
 
 #include "Material/LambertianMaterial.hpp"
 #include "Material/PhongMaterial.hpp"

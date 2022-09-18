@@ -1,4 +1,4 @@
-#include "UI/Components/PhongProps.hpp"
+#include "UI/Components/Properties/PhongProps.hpp"
 
 #include "Material/PhongMaterial.hpp"
 

@@ -10,3 +10,4 @@ constexpr const char* FOLDER_ICON = "\xef\x81\xbb";
 constexpr const char* FOLDER_OPEN_ICON = "\xef\x81\xbc";
 constexpr const char* FOLDER_CLOSED_ICON = "\xee\x86\x85";
 constexpr const char* WRENCH_ICON = "\xef\x82\xad";
+constexpr const char* REFRESH_ICON = "\xef\x80\xa1";
