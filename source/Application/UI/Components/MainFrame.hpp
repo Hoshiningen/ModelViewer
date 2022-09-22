@@ -69,6 +69,7 @@ private:
 
     void OnSceneNodeSelected(SceneTreeComponent::SceneNode node);
     void OnMaterialSelected(int materialIndex);
+    void OnModelSelected(const std::filesystem::path& modelPath);
     void OnModelOpened(const std::forward_list<VertexBuffered>& model, const std::filesystem::path& modelPath);
     void OnModelClosed();
     void OnLightStatusChanged(std::uint8_t lightIndex, bool enabled);

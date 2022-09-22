@@ -8,6 +8,13 @@
 #include <imgui.h>
 #include <imgui_internal.h>
 
+FileExplorer::FileExplorer() {
+
+    m_directoryView.fileSelected.connect(&FileSelector::onFileSelected, &m_fileSelector);
+    m_fileSelector.accepted.connect([this](const std::filesystem::path& path) { fileSelected(path); });
+    m_fileSelector.filterChanged.connect(&DirectoryView::onFilterChanged, &m_directoryView);
+}
+
 void FileExplorer::render() {
 
     static ImVec2 windowSize{ 800, 450 };
@@ -58,8 +65,15 @@ void FileExplorer::syncFrom(const IComponent::DataModel* pFrom) {
     if (!pFrom)
         return;
 
-    if (const DataModel* pModel = dynamic_cast<const DataModel*>(pFrom))
+    if (const DataModel* pModel = dynamic_cast<const DataModel*>(pFrom)) {
         m_dataModel = *pModel;
+
+        DirectoryView::DataModel dataModel;
+        dataModel.m_workingDirectory = m_dataModel.m_workingDirectory;
+
+        static_cast<IComponent&>(m_directoryView).syncFrom(&dataModel);
+        static_cast<IComponent&>(m_fileSelector).syncFrom(pModel);
+    }
 }
 
 const IComponent::DataModel* FileExplorer::dataModel() const {

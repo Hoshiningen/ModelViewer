@@ -2,6 +2,8 @@
 
 #include "Common/Math.hpp"
 
+#include "IO/GeometryLoader.hpp"
+
 #include "Light/DirectionalLight.hpp"
 
 #include <GLFW/glfw3.h>
@@ -31,8 +33,6 @@ MainFrameComponent::MainFrameComponent() {
         OnMaterialSelected(materialIndex);
         static_cast<IComponent&>(m_sceneTree).syncFrom(dataModel());
     });
-
-    //m_modelLoader.modelOpened.connect(&MainFrameComponent::OnModelOpened, this);
 
     m_lambertianProps.diffuseColorChanged.connect([this](const glm::vec4& color) { m_model.m_pLambertianMat->diffuseColor(color); });
     m_lambertianProps.diffuseIntensityChanged.connect([this](float intensity) { m_model.m_pLambertianMat->diffuseIntensity(intensity); });
@@ -72,6 +72,8 @@ MainFrameComponent::MainFrameComponent() {
     m_mainMenu.modelPropertiesOpened.connect([this] { OnSceneNodeSelected(SceneTreeComponent::SceneNode::Model); });
     m_mainMenu.scenePropertiesOpened.connect([this] { OnSceneNodeSelected(SceneTreeComponent::SceneNode::Scene); });
     m_mainMenu.themeChanged.connect([this](int theme) { themeChanged(theme); });
+
+    m_fileExplorer.fileSelected.connect(&MainFrameComponent::OnModelSelected, this);
 }
 
 void MainFrameComponent::render() {
@@ -102,38 +104,42 @@ void MainFrameComponent::render() {
         ImGuiDockNodeFlags_NoTabBar |
         ImGuiDockNodeFlags_NoSplit;
 
-    ImGui::Begin("Main Frame", nullptr, windowFlags);
-    ImGui::PopStyleVar(3);
+    if (ImGui::Begin("Main Frame", nullptr, windowFlags)) {
 
-    const ImGuiID dockspaceId = ImGui::GetID("MainFrameDockspace");
-    ImGui::DockSpace(dockspaceId, { 0, 0 }, dockspaceFlags);
+        ImGui::PopStyleVar(3);
 
-    static bool runOnce = true;
-    if (runOnce) {
-        runOnce = false;
+        const ImGuiID dockspaceId = ImGui::GetID("MainFrameDockspace");
+        ImGui::DockSpace(dockspaceId, { 0, 0 }, dockspaceFlags);
 
-        ImGui::DockBuilderRemoveNode(dockspaceId);
-        ImGui::DockBuilderAddNode(dockspaceId, dockspaceFlags);
-        ImGui::DockBuilderSetNodeSize(dockspaceId, pViewport->Size);
+        static bool runOnce = true;
+        if (runOnce) {
+            runOnce = false;
 
-        ImGuiID mainRight;
-        const ImGuiID mainLeft = ImGui::DockBuilderSplitNode(dockspaceId, ImGuiDir_Left, .20f, nullptr, &mainRight);
+            ImGui::DockBuilderRemoveNode(dockspaceId);
+            ImGui::DockBuilderAddNode(dockspaceId, dockspaceFlags);
+            ImGui::DockBuilderSetNodeSize(dockspaceId, pViewport->Size);
 
-        ImGuiID mainLeftBottom;
-        const ImGuiID mainLeftTop = ImGui::DockBuilderSplitNode(mainLeft, ImGuiDir_Up, .22f, nullptr, &mainLeftBottom);
+            ImGuiID mainRight;
+            const ImGuiID mainLeft = ImGui::DockBuilderSplitNode(dockspaceId, ImGuiDir_Left, .20f, nullptr, &mainRight);
 
-        ImGui::DockBuilderDockWindow(static_cast<IComponent&>(m_properties).windowId(), mainLeftBottom);
-        ImGui::DockBuilderDockWindow(static_cast<IComponent&>(m_sceneTree).windowId(), mainLeftTop);
-        ImGui::DockBuilderDockWindow(static_cast<IComponent&>(m_viewport).windowId(), mainRight);
+            ImGuiID mainLeftBottom;
+            const ImGuiID mainLeftTop = ImGui::DockBuilderSplitNode(mainLeft, ImGuiDir_Up, .22f, nullptr, &mainLeftBottom);
 
-        ImGui::DockBuilderFinish(dockspaceId);
+            ImGui::DockBuilderDockWindow(static_cast<IComponent&>(m_properties).windowId(), mainLeftBottom);
+            ImGui::DockBuilderDockWindow(static_cast<IComponent&>(m_sceneTree).windowId(), mainLeftTop);
+            ImGui::DockBuilderDockWindow(static_cast<IComponent&>(m_viewport).windowId(), mainRight);
+
+            ImGui::DockBuilderFinish(dockspaceId);
+        }
+
+        static_cast<IComponent&>(m_mainMenu).render();
+        static_cast<IComponent&>(m_properties).render();
+        static_cast<IComponent&>(m_sceneTree).render();
+        static_cast<IComponent&>(m_viewport).render();
+        static_cast<IComponent&>(m_fileExplorer).render();
+
+        ImGui::End();
     }
-
-    static_cast<IComponent&>(m_mainMenu).render();
-    static_cast<IComponent&>(m_properties).render();
-    static_cast<IComponent&>(m_sceneTree).render();
-    static_cast<IComponent&>(m_viewport).render();
-    static_cast<IComponent&>(m_fileExplorer).render();
 
 #ifdef MV_DEBUG
     if (m_mainMenu.showDebugLog)
@@ -151,8 +157,6 @@ void MainFrameComponent::render() {
     if (m_mainMenu.showStackTool)
         ImGui::ShowStackToolWindow(&m_mainMenu.showStackTool);
 #endif
-
-    ImGui::End();
 }
 
 void MainFrameComponent::syncFrom(const IComponent::DataModel* pFrom) {
@@ -204,6 +208,12 @@ void MainFrameComponent::syncFrom(const IComponent::DataModel* pFrom) {
 
     static_cast<IComponent&>(m_sceneTree).syncFrom(dataModel());
     static_cast<IComponent&>(m_mainMenu).syncFrom(dataModel());
+
+    FileExplorer::DataModel dataModel;
+    dataModel.m_workingDirectory = std::filesystem::current_path();
+    dataModel.m_nameFilters.emplace_back("Models", GeometryLoader::SupportedExtensions());
+
+    static_cast<IComponent&>(m_fileExplorer).syncFrom(&dataModel);
 }
 
 const IComponent::DataModel* MainFrameComponent::dataModel() const {
@@ -263,7 +273,13 @@ void MainFrameComponent::OnMaterialSelected(int materialIndex) {
     m_model.m_pMesh->material(pSelected);
 }
 
-void MainFrameComponent::OnModelOpened(const std::forward_list<VertexBuffered>& model, const std::filesystem::path& modelPath) {
+void MainFrameComponent::OnModelSelected(const std::filesystem::path& modelPath) {
+
+    if (!std::filesystem::is_regular_file(modelPath))
+        return;
+
+    static GeometryLoader loader;
+    const std::forward_list<VertexBuffered> model = loader.load(modelPath);
 
     m_model.m_pMesh->destroy();
     m_model.m_pMesh->model(model);
