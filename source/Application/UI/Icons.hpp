@@ -13,3 +13,4 @@ constexpr const char* WRENCH_ICON = "\xef\x82\xad";
 constexpr const char* REFRESH_ICON = "\xef\x80\xa1";
 constexpr const char* LINES_FILE_ICON = "\xef\x85\x9c";
 constexpr const char* IMAGE_FILE_ICON = "\xef\x87\x85";
+constexpr const char* HARD_DRIVE_ICON = "\xef\x82\xa0";

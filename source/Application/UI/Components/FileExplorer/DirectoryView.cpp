@@ -1,3 +1,8 @@
+#ifdef _WIN32
+#include <Windows.h>
+#include <fileapi.h>
+#endif
+
 #include "UI/Components/FileExplorer/DirectoryView.hpp"
 #include "UI/Icons.hpp"
 #include "UI/Utility.hpp"
@@ -5,6 +10,7 @@
 #include <chrono>
 #include <ctime>
 #include <format>
+#include <iostream>
 #include <ranges>
 #include <regex>
 #include <string>
@@ -31,6 +37,21 @@ std::string ConvertGlobToRegex(const std::string& globPattern) {
 auto CreateFileFilter(const std::vector<std::string>& nameFilters) {
 
     return [filters = nameFilters](const std::filesystem::directory_entry& entry) {
+
+#ifdef _WIN32
+        const DWORD attributes = GetFileAttributes(entry.path().string().c_str());
+        if (attributes == INVALID_FILE_ATTRIBUTES)
+            return false;
+
+        // Only hide system and hidden files if they're not drives.
+        if (entry.path().root_path() != entry.path()) {
+            if (attributes & FILE_ATTRIBUTE_HIDDEN)
+                return false;
+
+            if (attributes & FILE_ATTRIBUTE_SYSTEM)
+                return false;
+        }
+#endif
 
         // Don't filter out folders.
         if (entry.is_directory())
@@ -75,6 +96,20 @@ std::string FileSizeString(std::uintmax_t fileSize) {
 
 void DirectoryView::onFilterChanged(const NameFilter& nameFilter) {
     m_nameFilter = CreateFileFilter(nameFilter.second);
+}
+
+void DirectoryView::onDirectorySelected(const std::filesystem::path& path) {
+
+    if (!std::filesystem::is_directory(path))
+        return;
+
+    m_dataModel.m_workingDirectory = path;
+
+    m_directoryPathBuffer = {};
+    std::ranges::copy(m_dataModel.m_workingDirectory.string(), m_directoryPathBuffer.begin());
+    
+    m_selectedPath.clear();
+    fileSelected(m_selectedPath);
 }
 
 void DirectoryView::render() {

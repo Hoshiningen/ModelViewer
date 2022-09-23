@@ -14,6 +14,7 @@ public:
     sigslot::signal<const std::filesystem::path&> fileSelected;
 
     void onFilterChanged(const NameFilter& nameFilter);
+    void onDirectorySelected(const std::filesystem::path& path);
 
     struct DataModel : public IComponent::DataModel {
         std::filesystem::path m_workingDirectory;

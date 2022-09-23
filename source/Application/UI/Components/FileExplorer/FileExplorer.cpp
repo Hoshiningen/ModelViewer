@@ -13,6 +13,7 @@ FileExplorer::FileExplorer() {
     m_directoryView.fileSelected.connect(&FileSelector::onFileSelected, &m_fileSelector);
     m_fileSelector.accepted.connect([this](const std::filesystem::path& path) { fileSelected(path); });
     m_fileSelector.filterChanged.connect(&DirectoryView::onFilterChanged, &m_directoryView);
+    m_directoryTree.directorySelected.connect(&DirectoryView::onDirectorySelected, &m_directoryView);
 }
 
 void FileExplorer::render() {
