@@ -12,6 +12,7 @@
 class DirectoryView : public IComponent {
 public:
     sigslot::signal<const std::filesystem::path&> fileSelected;
+    sigslot::signal<const std::filesystem::path&> directoryChanged;
 
     void onFilterChanged(const NameFilter& nameFilter);
     void onDirectorySelected(const std::filesystem::path& path);

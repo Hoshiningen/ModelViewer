@@ -8,10 +8,9 @@
 
 class DirectoryTree : public IComponent {
 public:
-
     sigslot::signal<const std::filesystem::path&> directorySelected;
-    struct DataModel : public IComponent::DataModel {
-    };
+
+    void onDirectoryChanged(const std::filesystem::path& path);
 
 private:
     virtual void render() override;

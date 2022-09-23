@@ -66,6 +66,11 @@ bool DirectoryFilter(const std::filesystem::directory_entry& entry) {
 }
 } // end unnamed namespace
 
+void DirectoryTree::onDirectoryChanged(const std::filesystem::path& path) {
+    if (std::filesystem::is_directory(path))
+        m_selectedPath = path;
+}
+
 void DirectoryTree::render() {
 
     if (ImGui::Begin(windowId())) {

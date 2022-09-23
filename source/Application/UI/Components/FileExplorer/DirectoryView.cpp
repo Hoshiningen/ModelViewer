@@ -190,6 +190,8 @@ void DirectoryView::onChangeDirectory() {
 
     m_directoryPathBuffer = {};
     std::ranges::copy(m_dataModel.m_workingDirectory.string(), m_directoryPathBuffer.begin());
+
+    directoryChanged(m_dataModel.m_workingDirectory);
 }
 
 void DirectoryView::renderFileListing() {
@@ -245,6 +247,7 @@ void DirectoryView::renderFileListing() {
                     std::ranges::copy(m_dataModel.m_workingDirectory.string(), m_directoryPathBuffer.begin());
 
                     m_selectedPath.clear();
+                    directoryChanged(m_dataModel.m_workingDirectory);
                 }
             }
 
