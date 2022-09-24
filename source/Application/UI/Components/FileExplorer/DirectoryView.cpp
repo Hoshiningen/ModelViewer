@@ -135,7 +135,7 @@ void DirectoryView::render() {
 
         ImGui::PushItemWidth(inputWidth);
 
-        if (ImGui::InputText("", m_directoryPathBuffer.data(), m_directoryPathBuffer.size(), inputFlags)) {
+        if (ImGui::InputText("##WorkingDirectory", m_directoryPathBuffer.data(), m_directoryPathBuffer.size(), inputFlags)) {
 
             std::error_code errorCode;
             if (std::filesystem::is_directory(m_directoryPathBuffer.data(), errorCode)) {
