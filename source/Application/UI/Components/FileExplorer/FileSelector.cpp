@@ -4,11 +4,19 @@
 #include "UI/Utility.hpp"
 
 #include <algorithm>
+#include <iostream>
 #include <ranges>
 
 #include <imgui.h>
 
 void FileSelector::onFileSelected(const std::filesystem::path& path) {
+
+    std::error_code errorCode;
+    if (!std::filesystem::is_regular_file(path, errorCode))
+        return;
+
+    if (errorCode)
+        std::cerr << errorCode << " -> " << errorCode.message() << "\n";
 
     m_selectedPath = path;
     m_selectedFileBuffer = {};

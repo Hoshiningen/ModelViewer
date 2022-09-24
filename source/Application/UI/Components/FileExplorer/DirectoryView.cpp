@@ -53,12 +53,17 @@ auto CreateFileFilter(const std::vector<std::string>& nameFilters) {
         }
 #endif
 
+        std::error_code errorCode;
+
         // Don't filter out folders.
-        if (entry.is_directory())
+        if (entry.is_directory(errorCode))
             return true;
 
-        if (!entry.exists() || !entry.is_regular_file() || !entry.path().has_extension())
+        if (!entry.exists(errorCode) || !entry.is_regular_file(errorCode) || !entry.path().has_extension())
             return false;
+
+        if (errorCode)
+            std::cerr << errorCode << " -> " << errorCode.message() << "\n";
 
         return std::any_of(filters.cbegin(), filters.cend(), [&entry](const std::string& filter) {
             const std::regex regex{ ConvertGlobToRegex(filter) };
@@ -100,8 +105,12 @@ void DirectoryView::onFilterChanged(const NameFilter& nameFilter) {
 
 void DirectoryView::onDirectorySelected(const std::filesystem::path& path) {
 
-    if (!std::filesystem::is_directory(path))
+    std::error_code errorCode;
+    if (!std::filesystem::is_directory(path, errorCode))
         return;
+
+    if (errorCode)
+        std::cerr << errorCode << " -> " << errorCode.message() << "\n";
 
     m_dataModel.m_workingDirectory = path;
 
@@ -128,13 +137,17 @@ void DirectoryView::render() {
 
         if (ImGui::InputText("", m_directoryPathBuffer.data(), m_directoryPathBuffer.size(), inputFlags)) {
 
-            if (std::filesystem::is_directory(m_directoryPathBuffer.data())) {
+            std::error_code errorCode;
+            if (std::filesystem::is_directory(m_directoryPathBuffer.data(), errorCode)) {
                 m_dataModel.m_workingDirectory = m_directoryPathBuffer.data();
             }
             else {
                 m_directoryPathBuffer = {};
                 std::ranges::copy(m_dataModel.m_workingDirectory.string(), m_directoryPathBuffer.begin());
             }
+
+            if (errorCode)
+                std::cerr << errorCode << " -> " << errorCode.message() << "\n";
         }
 
         ImGui::PopItemWidth();
@@ -171,8 +184,13 @@ const char* DirectoryView::windowId() const {
 void DirectoryView::onChangeDirectory() {
 
     m_dataModel.m_workingDirectory = m_directoryPathBuffer.data();
-    if (!std::filesystem::is_directory(m_dataModel.m_workingDirectory))
+
+    std::error_code errorCode;
+    if (!std::filesystem::is_directory(m_dataModel.m_workingDirectory, errorCode))
         return;
+
+    if (errorCode)
+        std::cerr << errorCode << " -> " << errorCode.message() << "\n";
 
     std::vector<std::filesystem::path> splitPath{
         m_dataModel.m_workingDirectory.begin(),
@@ -211,10 +229,16 @@ void DirectoryView::renderFileListing() {
         ImGui::TableSetupScrollFreeze(3, 1);
         ImGui::TableHeadersRow();
 
-        const auto directoryIterator = std::filesystem::directory_iterator(m_dataModel.m_workingDirectory);
+        std::error_code errorCode;
+        const auto directoryIterator = std::filesystem::directory_iterator(
+            m_dataModel.m_workingDirectory,
+            std::filesystem::directory_options::skip_permission_denied,
+            errorCode
+        );
+
         for (const std::filesystem::directory_entry& entry : std::views::filter(directoryIterator, m_nameFilter)) {
 
-            if (!entry.exists())
+            if (!entry.exists(errorCode))
                 continue;
 
             ImGui::TableNextRow();
@@ -222,7 +246,7 @@ void DirectoryView::renderFileListing() {
 
             const std::filesystem::path& entryPath = entry.path();
 
-            const char* icon = entry.is_directory() ? FOLDER_ICON : LINES_FILE_ICON;
+            const char* icon = entry.is_directory(errorCode) ? FOLDER_ICON : LINES_FILE_ICON;
             const std::string name = entryPath.filename().string();
 
             bool selected = entry.path() == m_selectedPath;
@@ -231,7 +255,7 @@ void DirectoryView::renderFileListing() {
             if (ImGui::Selectable(Utility::Label(name, icon).c_str(), selected, selectableFlags)) {
                 m_selectedPath = entryPath;
 
-                if (entry.is_regular_file())
+                if (entry.is_regular_file(errorCode))
                     fileSelected(m_selectedPath);
                 else
                     fileSelected(std::filesystem::path{});
@@ -239,7 +263,7 @@ void DirectoryView::renderFileListing() {
 
             if (ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left)) {
 
-                if (std::filesystem::is_directory(m_selectedPath)) {
+                if (std::filesystem::is_directory(m_selectedPath, errorCode)) {
 
                     m_dataModel.m_workingDirectory = m_selectedPath;
 
@@ -252,12 +276,15 @@ void DirectoryView::renderFileListing() {
             }
 
             ImGui::TableNextColumn();
-            ImGui::Text(DateTimeString(entry.last_write_time()).c_str());
+            ImGui::Text(DateTimeString(entry.last_write_time(errorCode)).c_str());
 
             ImGui::TableNextColumn();
-            if (entry.is_regular_file())
-                ImGui::Text(FileSizeString(entry.file_size()).c_str());
+            if (entry.is_regular_file(errorCode))
+                ImGui::Text(FileSizeString(entry.file_size(errorCode)).c_str());
         }
+
+        if (errorCode)
+            std::cerr << errorCode << " -> " << errorCode.message() << "\n";
 
         ImGui::EndTable();
     }
