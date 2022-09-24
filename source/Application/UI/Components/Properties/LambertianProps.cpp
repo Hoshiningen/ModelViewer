@@ -1,4 +1,4 @@
-#include "UI/Components/LambertianProps.hpp"
+#include "UI/Components/Properties/LambertianProps.hpp"
 
 #include "Common/Constants.hpp"
 

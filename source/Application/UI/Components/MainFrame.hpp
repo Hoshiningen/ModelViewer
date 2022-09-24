@@ -11,19 +11,21 @@
 
 #include "Object/Mesh.hpp"
 
-#include "UI/Components/DirectionalLightProps.hpp"
 #include "UI/Components/IComponent.hpp"
-#include "UI/Components/LightProps.hpp"
-#include "UI/Components/LambertianProps.hpp"
 #include "UI/Components/MainMenu.hpp"
-#include "UI/Components/ModelLoader.hpp"
-#include "UI/Components/ModelProps.hpp"
-#include "UI/Components/PhongProps.hpp"
-#include "UI/Components/PhongTexturedProps.hpp"
-#include "UI/Components/Properties.hpp"
-#include "UI/Components/SceneProps.hpp"
 #include "UI/Components/SceneTree.hpp"
 #include "UI/Components/Viewport.hpp"
+
+#include "UI/Components/FileExplorer/FileExplorer.hpp"
+
+#include "UI/Components/Properties/DirectionalLightProps.hpp"
+#include "UI/Components/Properties/LightProps.hpp"
+#include "UI/Components/Properties/LambertianProps.hpp"
+#include "UI/Components/Properties/ModelProps.hpp"
+#include "UI/Components/Properties/PhongProps.hpp"
+#include "UI/Components/Properties/PhongTexturedProps.hpp"
+#include "UI/Components/Properties/Properties.hpp"
+#include "UI/Components/Properties/SceneProps.hpp"
 
 #include <array>
 #include <string>
@@ -67,6 +69,7 @@ private:
 
     void OnSceneNodeSelected(SceneTreeComponent::SceneNode node);
     void OnMaterialSelected(int materialIndex);
+    void OnModelSelected(const std::filesystem::path& modelPath);
     void OnModelOpened(const std::forward_list<VertexBuffered>& model, const std::filesystem::path& modelPath);
     void OnModelClosed();
     void OnLightStatusChanged(std::uint8_t lightIndex, bool enabled);
@@ -96,5 +99,5 @@ private:
 
     // Modal
 
-    ModelLoaderComponent m_modelLoader;
+    FileExplorer m_fileExplorer;
 };

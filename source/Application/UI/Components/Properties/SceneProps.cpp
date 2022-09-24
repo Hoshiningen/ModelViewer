@@ -1,4 +1,4 @@
-#include "UI/Components/SceneProps.hpp"
+#include "UI/Components/Properties/SceneProps.hpp"
 #include "UI/Components/MainFrame.hpp"
 
 #include <imgui.h>

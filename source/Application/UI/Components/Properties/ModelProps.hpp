@@ -2,9 +2,9 @@
 
 #include "Common/ClassMacros.hpp"
 #include "UI/Components/IComponent.hpp"
-#include "UI/Components/LambertianProps.hpp"
-#include "UI/Components/PhongProps.hpp"
-#include "UI/Components/PhongTexturedProps.hpp"
+#include "UI/Components/Properties/LambertianProps.hpp"
+#include "UI/Components/Properties/PhongProps.hpp"
+#include "UI/Components/Properties/PhongTexturedProps.hpp"
 
 #include <array>
 

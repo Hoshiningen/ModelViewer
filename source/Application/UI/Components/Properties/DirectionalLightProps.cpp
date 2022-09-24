@@ -1,4 +1,4 @@
-#include "UI/Components/DirectionalLightProps.hpp"
+#include "UI/Components/Properties/DirectionalLightProps.hpp"
 #include "UI/Components/SceneTree.hpp"
 
 #include "Common/Constants.hpp"

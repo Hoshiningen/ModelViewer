@@ -7,6 +7,7 @@
 #include <iostream>
 #include <optional>
 #include <stack>
+#include <sstream>
 #include <unordered_map>
 
 #include <assimp/Importer.hpp>
@@ -94,6 +95,23 @@ VertexBuffered GeometryLoader::Private::processMesh(aiMesh* pMesh, const aiScene
     return buffer;
 }
 
+
+std::vector<std::string> GeometryLoader::SupportedExtensions() {
+
+    Assimp::Importer importer;
+    
+    std::string extensions;
+    importer.GetExtensionList(extensions);
+
+    std::istringstream stream{ extensions };
+    std::vector<std::string> extensionList;
+
+    std::string split;
+    while (std::getline(stream, split, ';'))
+        extensionList.push_back(split);
+
+    return extensionList;
+}
 
 GeometryLoader::GeometryLoader()
     : m_pPrivate(std::make_unique<Private>()) {}

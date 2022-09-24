@@ -1,4 +1,4 @@
-#include "UI/Components/Properties.hpp"
+#include "UI/Components/Properties/Properties.hpp"
 
 #include <format>
 

@@ -42,3 +42,17 @@ float Utility::ComputeRightAlignedCursorPos(const std::initializer_list<const ch
 
     return ImGui::GetCursorPosX() + ImGui::GetContentRegionAvail().x - totalWidth;
 }
+
+float Utility::ComputeRightAlignedCursorPos(const std::initializer_list<float>& widgetWidths) {
+
+    static const ImVec2 kFramePadding = ImGui::GetStyle().FramePadding;
+    static const ImVec2 kItemSpacing = ImGui::GetStyle().ItemSpacing;
+
+    float totalWidth = 0.f;
+    for (float width : widgetWidths)
+        totalWidth += width;// +kFramePadding.x * 2;
+
+    totalWidth += (widgetWidths.size() - 1) * kItemSpacing.x;
+
+    return ImGui::GetCursorPosX() + ImGui::GetContentRegionAvail().x - totalWidth;
+}

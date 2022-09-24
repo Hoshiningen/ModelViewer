@@ -2,7 +2,7 @@
 
 #include "Common/ClassMacros.hpp"
 #include "UI/Components/IComponent.hpp"
-#include "UI/Components/DirectionalLightProps.hpp"
+#include "UI/Components/Properties/DirectionalLightProps.hpp"
 
 #include <array>
 #include <bitset>
