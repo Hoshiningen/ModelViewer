@@ -69,7 +69,7 @@ void DirectionalLight::apply(ShaderProgram* pShader, std::size_t index) const {
     if (!pShader)
         return;
 
-    assert(index > 0 && index < kMaxLights);
+    assert(index < kMaxLights);
 
     pShader->set(std::format("directionalLights[{}].direction", index), m_pPrivate->direction);
     pShader->set(std::format("directionalLights[{}].color", index), m_pPrivate->color);

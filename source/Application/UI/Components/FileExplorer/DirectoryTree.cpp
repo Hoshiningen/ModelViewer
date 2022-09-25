@@ -11,6 +11,7 @@
 #include <array>
 #include <filesystem>
 #include <format>
+#include <iostream>
 #include <ranges>
 
 #include <imgui.h>
@@ -44,8 +45,12 @@ std::vector<std::string> GetDrives() {
 
 bool DirectoryFilter(const std::filesystem::directory_entry& entry) {
 
-    if (!std::filesystem::is_directory(entry.path()))
+    std::error_code errorCode;
+    if (!std::filesystem::is_directory(entry.path(), errorCode))
         return false;
+
+    if (errorCode)
+        std::cerr << errorCode << " -> " << errorCode.message() << "\n";
 
 #ifdef _WIN32
     const DWORD attributes = GetFileAttributes(entry.path().string().c_str());
@@ -67,8 +72,13 @@ bool DirectoryFilter(const std::filesystem::directory_entry& entry) {
 } // end unnamed namespace
 
 void DirectoryTree::onDirectoryChanged(const std::filesystem::path& path) {
-    if (std::filesystem::is_directory(path))
+
+    std::error_code errorCode;
+    if (std::filesystem::is_directory(path, errorCode))
         m_selectedPath = path;
+
+    if (errorCode)
+        std::cerr << errorCode << " -> " << errorCode.message() << "\n";
 }
 
 void DirectoryTree::render() {
@@ -98,10 +108,16 @@ void DirectoryTree::buildTreeRecursive(const char* label, const std::filesystem:
     if (m_selectedPath == path)
         nodeFlags |= ImGuiTreeNodeFlags_Selected;
 
+    std::error_code errorCode;
+
+    const auto iterOptions = std::filesystem::directory_options::skip_permission_denied;
     const auto numChildren = std::ranges::distance(
-        std::filesystem::directory_iterator(path) |
+        std::filesystem::directory_iterator(path, iterOptions, errorCode) |
         std::views::filter(DirectoryFilter)
     );
+
+    if (errorCode)
+        std::cerr << errorCode << " -> " << errorCode.message() << "\n";
 
     if (numChildren == 0)
         nodeFlags |= ImGuiTreeNodeFlags_Leaf;
@@ -113,16 +129,16 @@ void DirectoryTree::buildTreeRecursive(const char* label, const std::filesystem:
     }
 
     if (driveNodeOpen) {
-        try {
-            for (const auto& entry : std::filesystem::directory_iterator(path) | std::views::filter(DirectoryFilter)) {
-                const std::string childLabel = entry.path().filename().string();
-                buildTreeRecursive(Utility::Label(childLabel, FOLDER_ICON).c_str(), entry.path());
-            }
+
+        for (const auto& entry : std::filesystem::directory_iterator(path, iterOptions, errorCode)
+                               | std::views::filter(DirectoryFilter)) {
+
+            const std::string childLabel = entry.path().filename().string();
+            buildTreeRecursive(Utility::Label(childLabel, FOLDER_ICON).c_str(), entry.path());
         }
-        catch (const std::filesystem::filesystem_error& e) {
-            ImGui::TreePop();
-            return;
-        }
+
+        if (errorCode)
+            std::cerr << errorCode << " -> " << errorCode.message() << "\n";
 
         ImGui::TreePop();
     }
