@@ -168,7 +168,7 @@ void SceneTreeComponent::syncFrom(const IComponent::DataModel* pFrom) {
     for (std::size_t i = 0; i < m_model.m_enabledLights.size(); ++i)
         m_model.m_enabledLights.at(i) = pModel->m_lights.at(i)->enabled();
 
-    m_model.m_modelName = pModel->m_modelName;
+    m_model.m_modelName = pModel->m_modelPath.has_filename() ? pModel->m_modelPath.filename().string() : "";
     m_model.m_modelLoaded = !pModel->m_pMesh->model()->empty();
     m_model.m_selectedMaterial = [pModel]() {
         if (dynamic_cast<LambertianMaterial*>(pModel->m_pMesh->material()))

@@ -43,6 +43,13 @@ public:
         Texture2D = GL_TEXTURE_2D
     };
 
+    enum class Type {
+        Unknown,
+        Diffuse,
+        Emissive,
+        Specular,
+    };
+
     Texture();
     Texture(unsigned int width, unsigned int height, Channels textureFormat, Channels pixelFormat, Target target);
 

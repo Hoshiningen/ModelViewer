@@ -24,9 +24,10 @@ public:
         std::vector<NameFilter> m_nameFilters{{ "All Files (*.*)", {"*.*"} }};
     };
 
+    virtual void syncFrom(const IComponent::DataModel* pFrom) override;
+
 private:
     virtual void render() override;
-    virtual void syncFrom(const IComponent::DataModel* pFrom) override;
     virtual const IComponent::DataModel* dataModel() const override;
     virtual const char* windowId() const override;
 

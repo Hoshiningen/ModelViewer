@@ -51,10 +51,10 @@ set(COMPONENTS
     UI/Components/MainFrame.cpp
     UI/Components/MainMenu.hpp
     UI/Components/MainMenu.cpp
-    UI/Components/ModelLoader.hpp
-    UI/Components/ModelLoader.cpp
     UI/Components/SceneTree.hpp
     UI/Components/SceneTree.cpp
+    UI/Components/TextureImporter.hpp
+    UI/Components/TextureImporter.cpp
     UI/Components/Viewport.hpp
     UI/Components/Viewport.cpp
 )

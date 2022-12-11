@@ -11,6 +11,8 @@
 
 #include "Object/Mesh.hpp"
 
+#include "Texture/Texture.hpp"
+
 #include "UI/Components/IComponent.hpp"
 #include "UI/Components/MainMenu.hpp"
 #include "UI/Components/SceneTree.hpp"
@@ -29,6 +31,7 @@
 
 #include <array>
 #include <string>
+#include <unordered_map>
 
 #include <glad/glad.h>
 #include <glm/vec3.hpp>
@@ -52,7 +55,8 @@ public:
         float* m_pAmbientIntensity = nullptr;
 
         Mesh* m_pMesh = nullptr;
-        std::string m_modelName;
+        std::filesystem::path m_modelPath;
+        std::unordered_multimap<Texture::Type, std::filesystem::path> m_texturePaths;
 
         LambertianMaterial* m_pLambertianMat = nullptr;
         PhongMaterial* m_pPhongMat = nullptr;
@@ -70,7 +74,6 @@ private:
     void OnSceneNodeSelected(SceneTreeComponent::SceneNode node);
     void OnMaterialSelected(int materialIndex);
     void OnModelSelected(const std::filesystem::path& modelPath);
-    void OnModelOpened(const std::forward_list<VertexBuffered>& model, const std::filesystem::path& modelPath);
     void OnModelClosed();
     void OnLightStatusChanged(std::uint8_t lightIndex, bool enabled);
 

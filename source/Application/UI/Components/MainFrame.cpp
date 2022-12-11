@@ -1,8 +1,9 @@
 #include "UI/Components/MainFrame.hpp"
+#include "UI/Components/TextureImporter.hpp"
 
 #include "Common/Math.hpp"
 
-#include "IO/GeometryLoader.hpp"
+#include "IO/ModelLoader.hpp"
 
 #include "Light/DirectionalLight.hpp"
 
@@ -47,10 +48,28 @@ MainFrameComponent::MainFrameComponent() {
 
     m_phongTexturedProps.diffuseIntensityChanged.connect([this](float intensity) { m_model.m_pPhongTexturedMat->diffuseIntensity(intensity); });
     m_phongTexturedProps.diffuseMapLoaded.connect([this](const Texture& map) { m_model.m_pPhongTexturedMat->diffuseMap(map); });
+    m_phongTexturedProps.diffuseMapUnloaded.connect([this] {
+        if (auto& map = m_model.m_pPhongTexturedMat->diffuseMap(); map) {
+            map->destroy();
+            map = std::nullopt;
+        }
+    });
     m_phongTexturedProps.emissiveIntensityChanged.connect([this](float intensity) { m_model.m_pPhongTexturedMat->emissiveIntensity(intensity); });
     m_phongTexturedProps.emissiveMapLoaded.connect([this](const Texture& map) { m_model.m_pPhongTexturedMat->emissiveMap(map); });
+    m_phongTexturedProps.emissiveMapUnloaded.connect([this] {
+        if (auto& map = m_model.m_pPhongTexturedMat->emissiveMap(); map) {
+            map->destroy();
+            map = std::nullopt;
+        }
+    });
     m_phongTexturedProps.specularIntensityChanged.connect([this](float intensity) { m_model.m_pPhongTexturedMat->specularIntensity(intensity); });
     m_phongTexturedProps.specularMapLoaded.connect([this](const Texture& map) { m_model.m_pPhongTexturedMat->specularMap(map); });
+    m_phongTexturedProps.specularMapUnloaded.connect([this] {
+        if (auto& map = m_model.m_pPhongTexturedMat->specularMap(); map) {
+            map->destroy();
+            map = std::nullopt;
+        }
+    });
     m_phongTexturedProps.shininessChanged.connect([this](float shininess) { m_model.m_pPhongTexturedMat->shininess(shininess); });
 
     for (std::uint8_t lightIndex = 0; lightIndex < m_model.m_lights.size(); ++lightIndex) {
@@ -211,7 +230,7 @@ void MainFrameComponent::syncFrom(const IComponent::DataModel* pFrom) {
 
     FileExplorer::DataModel dataModel;
     dataModel.m_workingDirectory = std::filesystem::current_path();
-    dataModel.m_nameFilters.emplace_back("Models", GeometryLoader::SupportedExtensions());
+    dataModel.m_nameFilters.insert(dataModel.m_nameFilters.cbegin(), { "Models", ModelLoader::SupportedExtensions() });
 
     static_cast<IComponent&>(m_fileExplorer).syncFrom(&dataModel);
 }
@@ -278,14 +297,15 @@ void MainFrameComponent::OnModelSelected(const std::filesystem::path& modelPath)
     if (!std::filesystem::is_regular_file(modelPath))
         return;
 
-    static GeometryLoader loader;
-    const std::forward_list<VertexBuffered> model = loader.load(modelPath);
+    static ModelLoader loader;
+    const auto modelProperties = loader.load(modelPath);
 
     m_model.m_pMesh->destroy();
-    m_model.m_pMesh->model(model);
+    m_model.m_pMesh->model(modelProperties.meshes);
     m_model.m_pMesh->position(-ComputeCenter(m_model.m_pMesh->model()));
     m_model.m_pMesh->scale(ComputeScale(m_model.m_pMesh->model(), kMaxModelSize));
-    m_model.m_modelName = modelPath.filename().string();
+    m_model.m_modelPath = modelPath;
+    m_model.m_texturePaths = modelProperties.texturePaths;
 
     static_cast<IComponent&>(m_modelProps).syncFrom(dataModel());
     static_cast<IComponent&>(m_sceneTree).syncFrom(dataModel());
@@ -315,4 +335,5 @@ void MainFrameComponent::OnModelClosed() {
 
     static_cast<IComponent&>(m_sceneTree).syncFrom(dataModel());
     static_cast<IComponent&>(m_mainMenu).syncFrom(dataModel());
+    static_cast<IComponent&>(m_phongTexturedProps).syncFrom(dataModel());
 }
