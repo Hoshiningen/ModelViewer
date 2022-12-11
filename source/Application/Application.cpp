@@ -8,14 +8,6 @@
 
 #include "Controls/OrbitalControls.hpp"
 
-#include "Geometry/Box.hpp"
-#include "Geometry/Line.hpp"
-#include "Geometry/Plane.hpp"
-#include "Geometry/Point.hpp"
-
-#include "IO/GeometryLoader.hpp"
-#include "IO/TextureLoader.hpp"
-
 #include "Light/DirectionalLight.hpp"
 
 #include "Material/LambertianMaterial.hpp"
@@ -230,7 +222,7 @@ void Application::Private::render() {
     ImGui_ImplOpenGL3_NewFrame();
     ImGui_ImplGlfw_NewFrame();
     ImGui::NewFrame();
-    
+
     static_cast<IComponent&>(m_mainFrame).render();
 
     ImGui::Render();
@@ -437,7 +429,7 @@ void Application::Private::onInitialized() {
         }
     }
 
-    m_dataModel.mesh.material(&m_dataModel.phongMaterial);
+    m_dataModel.mesh.material(&m_dataModel.phongTexturedMaterial);
 
     const std::array<DirectionalLight*, 3> lights{
         &m_dataModel.lights.at(0),

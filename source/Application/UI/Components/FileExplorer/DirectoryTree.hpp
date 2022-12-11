@@ -18,6 +18,5 @@ private:
 
     void buildTreeRecursive(const char* label, const std::filesystem::path& path);
 
-    DataModel m_dataModel;
     std::filesystem::path m_selectedPath;
 };

@@ -1,10 +1,10 @@
 set(SOURCES
-    GeometryLoader.cpp
+    ModelLoader.cpp
     TextureLoader.cpp
 )
 
 set(INCLUDES
-    ${PUBLIC_DIR}/IO/IO/GeometryLoader.hpp
+    ${PUBLIC_DIR}/IO/IO/ModelLoader.hpp
     ${PUBLIC_DIR}/IO/IO/TextureLoader.hpp
 )
 

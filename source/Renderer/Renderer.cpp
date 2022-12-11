@@ -273,6 +273,8 @@ void Renderer::Private::draw(const VertexBuffered& geometry, const IMaterial& ma
 
     if (geometry.colors().has_value())
         pShader->set("hasVertexColor", true);
+    else
+        pShader->set("hasVertexColor", false);
 
     glBindVertexArray(geometry.id());
 

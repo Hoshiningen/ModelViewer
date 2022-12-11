@@ -1,9 +1,9 @@
-#include "IO/GeometryLoader.hpp"
+#include "IO/ModelLoader.hpp"
 #include "IO/TextureLoader.hpp"
 
 #include "Geometry/VertexBuffer.hpp"
-#include "Texture/Texture.hpp"
 
+#include <filesystem>
 #include <iostream>
 #include <optional>
 #include <stack>
@@ -14,15 +14,18 @@
 #include <assimp/postprocess.h>
 #include <assimp/scene.h>
 
-struct GeometryLoader::Private {
+struct ModelLoader::Private {
 
-    std::forward_list<VertexBuffered> importGeometry(aiNode* pNode, const aiScene* pScene) const;
+    ModelLoader::ModelProperties importMesh(aiNode* pNode, const aiScene* pScene) const;
     VertexBuffered processMesh(aiMesh* pMesh, const aiScene* pScene) const;
+    void getTexturePathsByType(aiMaterial* pMaterial, aiTextureType textureType, std::unordered_multimap<Texture::Type, std::filesystem::path>& paths) const;
+    Texture::Type mapAiTextureType(aiTextureType type) const;
+
 };
 
-std::forward_list<VertexBuffered> GeometryLoader::Private::importGeometry(aiNode* pRoot, const aiScene* pScene) const {
+ModelLoader::ModelProperties ModelLoader::Private::importMesh(aiNode* pRoot, const aiScene* pScene) const {
 
-    std::forward_list<VertexBuffered> meshes;
+    ModelProperties properties;
 
     std::stack<aiNode*> nodes;
     std::unordered_map<aiNode*, bool> visited;
@@ -41,7 +44,19 @@ std::forward_list<VertexBuffered> GeometryLoader::Private::importGeometry(aiNode
         for (unsigned int meshIndex = 0; meshIndex < pNode->mNumMeshes; ++meshIndex) {
 
             aiMesh* pMesh = pScene->mMeshes[pNode->mMeshes[meshIndex]];
-            meshes.push_front(processMesh(pMesh, pScene));
+            properties.meshes.push_front(processMesh(pMesh, pScene));
+
+            if (pMesh->mMaterialIndex >= 0) {
+
+                for (int typeIndex = aiTextureType_NONE; typeIndex < AI_TEXTURE_TYPE_MAX; ++typeIndex) {
+
+                    aiMaterial* pMaterial = pScene->mMaterials[pMesh->mMaterialIndex];
+                    if (!pMaterial)
+                        continue;
+
+                    getTexturePathsByType(pMaterial, static_cast<aiTextureType>(typeIndex), properties.texturePaths);
+                }
+            }
         }
 
         // Add all children so we can process their meshes too.
@@ -49,10 +64,10 @@ std::forward_list<VertexBuffered> GeometryLoader::Private::importGeometry(aiNode
             nodes.push(pNode->mChildren[childIndex]);
     }
 
-    return meshes;
+    return properties;
 }
 
-VertexBuffered GeometryLoader::Private::processMesh(aiMesh* pMesh, const aiScene* pScene) const {
+VertexBuffered ModelLoader::Private::processMesh(aiMesh* pMesh, const aiScene* pScene) const {
 
     VertexBuffer buffer;
 
@@ -95,8 +110,31 @@ VertexBuffered GeometryLoader::Private::processMesh(aiMesh* pMesh, const aiScene
     return buffer;
 }
 
+void ModelLoader::Private::getTexturePathsByType(aiMaterial* pMaterial, aiTextureType textureType, std::unordered_multimap<Texture::Type, std::filesystem::path>& paths) const {
+    
+    if (!pMaterial)
+        return;
 
-std::vector<std::string> GeometryLoader::SupportedExtensions() {
+    for (unsigned int index = 0; index < pMaterial->GetTextureCount(textureType); ++index) {
+        aiString name;
+        pMaterial->GetTexture(textureType, index, &name);
+
+        if (const std::filesystem::path path = name.C_Str(); path.has_filename())
+            paths.emplace(mapAiTextureType(textureType), path.filename());
+    }
+}
+
+Texture::Type ModelLoader::Private::mapAiTextureType(aiTextureType type) const {
+    switch (type) {
+    case aiTextureType_DIFFUSE: return Texture::Type::Diffuse;
+    case aiTextureType_EMISSIVE: return Texture::Type::Emissive;
+    case aiTextureType_SPECULAR: return Texture::Type::Specular;
+    default: return Texture::Type::Unknown;
+    }
+}
+
+
+std::vector<std::string> ModelLoader::SupportedExtensions() {
 
     Assimp::Importer importer;
     
@@ -113,16 +151,16 @@ std::vector<std::string> GeometryLoader::SupportedExtensions() {
     return extensionList;
 }
 
-GeometryLoader::GeometryLoader()
+ModelLoader::ModelLoader()
     : m_pPrivate(std::make_unique<Private>()) {}
 
-GeometryLoader::~GeometryLoader() noexcept {}
+ModelLoader::~ModelLoader() noexcept {}
 
-GeometryLoader::GeometryLoader(const GeometryLoader& other) {
+ModelLoader::ModelLoader(const ModelLoader& other) {
     *this = other;
 }
 
-GeometryLoader& GeometryLoader::operator=(const GeometryLoader& other) {
+ModelLoader& ModelLoader::operator=(const ModelLoader& other) {
 
     if (this != &other)
         m_pPrivate = std::make_unique<Private>(*other.m_pPrivate);
@@ -130,11 +168,11 @@ GeometryLoader& GeometryLoader::operator=(const GeometryLoader& other) {
     return *this;
 }
 
-GeometryLoader::GeometryLoader(GeometryLoader&& other) noexcept {
+ModelLoader::ModelLoader(ModelLoader&& other) noexcept {
     *this = std::move(other);
 }
 
-GeometryLoader& GeometryLoader::operator=(GeometryLoader&& other) noexcept {
+ModelLoader& ModelLoader::operator=(ModelLoader&& other) noexcept {
 
     if (this != &other)
         m_pPrivate = std::exchange(other.m_pPrivate, nullptr);
@@ -142,7 +180,7 @@ GeometryLoader& GeometryLoader::operator=(GeometryLoader&& other) noexcept {
     return *this;
 }
 
-std::forward_list<VertexBuffered> GeometryLoader::load(const std::filesystem::path& path) const {
+ModelLoader::ModelProperties ModelLoader::load(const std::filesystem::path& path) const {
 
     constexpr unsigned int kPostProcessingFlags =
         aiProcess_Triangulate |
@@ -162,5 +200,5 @@ std::forward_list<VertexBuffered> GeometryLoader::load(const std::filesystem::pa
         return {};
     }
 
-    return m_pPrivate->importGeometry(pScene->mRootNode, pScene);
+    return m_pPrivate->importMesh(pScene->mRootNode, pScene);
 }
